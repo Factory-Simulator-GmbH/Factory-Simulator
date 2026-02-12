@@ -5,18 +5,32 @@
     </header>
 
     <section class="mt-6 flex-1">
-      <div class="h-full rounded-3xl border border-white/10 bg-white/5 p-5 shadow-xl backdrop-blur">
-        <div class=" flex items-center justify-between">
-        </div>
-
+      <div class="factory-container h-full rounded-3xl border border-white/10 bg-white/5 p-5 shadow-xl backdrop-blur">
         <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
           <div class="mb-3 text-xs font-semibold tracking-wide text-slate-300">Playground</div>
-          <div class="min-h-[50vh] rounded-2xl border-2 border-black flex items-center justify-center text-3xl"></div>
+
+          <div class="min-h-[50vh] rounded-2xl border-2 border-black bg-white/5"></div>
         </div>
 
         <div class="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4">
           <div class="mb-3 text-xs font-semibold tracking-wide text-slate-300">Items</div>
-          <div class="min-h-[15vh] rounded-2xl border-2 border-black"></div>
+
+          <div
+            id="item-area"
+            class="min-h-[15vh] rounded-2xl border-2 border-black bg-white/5 p-3 flex flex-wrap gap-3"
+          >
+            @for (item of items; track item.id) {
+              <div
+                class="draggable grid select-none place-items-center rounded-xl border border-white/20 bg-white/10 text-slate-100 shadow-sm backdrop-blur touch-none"
+                [class.w-[150px]]="item.size === 'large'"
+                [class.h-[150px]]="item.size === 'large'"
+                [class.w-[50px]]="item.size === 'small'"
+                [class.h-[50px]]="item.size === 'small'"
+              >
+                {{ item.label }}
+              </div>
+            }
+          </div>
         </div>
       </div>
     </section>
