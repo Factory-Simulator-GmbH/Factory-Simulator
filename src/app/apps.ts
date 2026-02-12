@@ -1,7 +1,7 @@
 import {AfterViewInit, Component} from '@angular/core';
 import interact from 'interactjs';
 
-type ItemSize = 'large' | 'small';
+type ItemSize = 'large' | 'small'; // adjustable
 
 interface DraggableItem {
   id: string;
@@ -15,7 +15,7 @@ interface DraggableItem {
   templateUrl: './app.html',
 })
 export class App implements AfterViewInit {
-  readonly snapPx = 50;
+  readonly gridSize = 50;
 
   items: DraggableItem[] = [
     {id: 'f1', label: 'Fabrik', size: 'large'},
@@ -29,12 +29,13 @@ export class App implements AfterViewInit {
     this.initInteract();
   }
 
+// Snap dragging in 50px steps
   private initInteract(): void {
     interact('.draggable').draggable({
       origin: '#item-area',
       modifiers: [
         interact.modifiers.snap({
-          targets: [interact.snappers.grid({x: this.snapPx, y: this.snapPx})],
+          targets: [interact.snappers.grid({x: this.gridSize, y: this.gridSize})],
           relativePoints: [{x: 0, y: 0}],
         }),
         interact.modifiers.restrictRect({
