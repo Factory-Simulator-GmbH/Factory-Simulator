@@ -8,10 +8,28 @@
       <div class="factory-container h-full rounded-3xl border border-white/10 bg-white/5 p-5 shadow-xl backdrop-blur">
         <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
           <div class="mb-3 text-xs font-semibold tracking-wide text-slate-300">Playground</div>
-
-          <div class="min-h-[50vh] rounded-2xl border-2 border-black bg-white/5"></div>
+          <div class="h-[50vh] rounded-2xl border-2 border-black bg-white/5 p-2 overflow-hidden">
+            <table
+              #playArea
+              id="play-area"
+              class="h-full w-full table-fixed border-collapse"
+            >
+              @for (row of grid; let r = $index; track r) {
+                <tr class="h-[50px]">
+                  @for (isConv of row; let c = $index; track c) {
+                    <td
+                      class="h-[50px] w-[50px] border border-white/10"
+                      [class.border-0]="isConv"
+                      [style.background]="isConv ? 'url(assets/images/conveyor.jpg) center/cover no-repeat' : ''"
+                      (mousedown)="toggleCell(r, c)"
+                      (mouseenter)="toggleCellIfPainting(r, c)"
+                    ></td>
+                  }
+                </tr>
+              }
+            </table>
+          </div>
         </div>
-
         <div class="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4">
           <div class="mb-3 text-xs font-semibold tracking-wide text-slate-300">Items</div>
 
