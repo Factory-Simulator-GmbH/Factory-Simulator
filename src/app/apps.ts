@@ -30,31 +30,42 @@ export class App implements AfterViewInit {
   }
 
 // Snap dragging in 50px steps
-  private initInteract(): void {
+private initInteract(): void {
+    const playground = document.getElementById('playground');
+
     interact('.draggable').draggable({
-      origin: '#item-area',
+      origin: playground || undefined, 
+      
       modifiers: [
         interact.modifiers.snap({
-          targets: [interact.snappers.grid({x: this.gridSize, y: this.gridSize})],
-          relativePoints: [{x: 0, y: 0}],
+          targets: [
+            interact.createSnapGrid({ x: this.gridSize, y: this.gridSize })
+          ],
+          relativePoints: [{ x: 0, y: 0 }] 
         }),
         interact.modifiers.restrictRect({
           restriction: '.factory-container',
-          endOnly: true,
+          endOnly: false, 
         }),
       ],
-      listeners: {
-        move: (event) => {
-          const target = event.target as HTMLElement;
-
-          const x = (parseFloat(target.getAttribute('data-x') || '0') || 0) + event.dx;
-          const y = (parseFloat(target.getAttribute('data-y') || '0') || 0) + event.dy;
-
-          target.style.transform = `translate(${x}px, ${y}px)`;
-          target.setAttribute('data-x', String(x));
-          target.setAttribute('data-y', String(y));
-        },
-      },
-    });
+        listeners: {
+          start: (event) => {
+            event.target.style.zIndex = '1000';
+          },
+          move: (event) => {
+            const target = event.target as HTMLElement;
+  
+            const x = (parseFloat(target.getAttribute('data-x') || '0') || 0) + event.dx;
+            const y = (parseFloat(target.getAttribute('data-y') || '0') || 0) + event.dy;
+  
+            target.style.transform = `translate(${x}px, ${y}px)`;
+            target.setAttribute('data-x', String(x));
+            target.setAttribute('data-y', String(y));
+          },
+          end: (event) => {
+            event.target.style.zIndex = '';
+          }
+        }
+      });
+    }
   }
-}
