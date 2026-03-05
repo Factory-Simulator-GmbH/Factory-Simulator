@@ -3,7 +3,7 @@ import interact from 'interactjs';
 
 type ItemSize = 'large' | 'small';
 
-interface DraggableItem {
+interface DraggableItems {
   id: string;
   label: string;
   size: ItemSize;
@@ -15,18 +15,20 @@ interface DraggableItem {
   templateUrl: './app.html',
 })
 export class App implements AfterViewInit {
-  @ViewChild('playArea', {static: true}) playAreaRef!: ElementRef<HTMLTableElement>;
+  @ViewChild('gridTable', {static: true})
+  gridTableRef!: ElementRef<HTMLTableElement>;
 
   mousePressed = false;
-  dragging = false;
+  isDraggingItem = false;
 
-  readonly cellSizePx = 50;
-  readonly rows = 9;
+  readonly gridCellSizePx = 30;
+  readonly gridRowCount = 10;
 
-  cols = 0;
-  grid: boolean[][] = [];
+  gridColumns = 0;
 
-  items: DraggableItem[] = [
+  conveyorGrid: boolean[][] = [];
+
+  items: DraggableItems[] = [
     {id: 'f1', label: 'Fabrik', size: 'large'},
     {id: 'f2', label: 'Fabrik', size: 'large'},
     {id: 'f3', label: 'Fabrik', size: 'large'},
@@ -34,74 +36,121 @@ export class App implements AfterViewInit {
     {id: 'io2', label: 'I/O', size: 'small'},
   ];
 
+  private paintMode: 'on' | 'off' | null = null;
+  private previewCells = new Set<string>();
+  private touchedCells = new Set<string>();
+
   ngAfterViewInit(): void {
-    this.computeColsAndInitGrid();
-    this.initInteract();
+    this.calculateColumnsAndCreateGrid();
+    this.setupInteractDragging();
   }
 
-  private computeColsAndInitGrid(): void {
-    const table = this.playAreaRef.nativeElement;
+  private calculateColumnsAndCreateGrid(): void {
+    const table = this.gridTableRef.nativeElement;
+    const container = table.parentElement;
+    const availableWidthPx = container?.clientWidth ?? 1000;
 
-    const wrapper = table.parentElement;
-    const width = wrapper?.clientWidth ?? 1000;
+    this.gridColumns = Math.max(1, Math.floor(availableWidthPx / this.gridCellSizePx));
 
-    this.cols = Math.max(1, Math.floor(width / this.cellSizePx));
-
-    this.grid = Array.from({length: this.rows}, () =>
-      Array.from({length: this.cols}, () => false),
+    this.conveyorGrid = Array.from({length: this.gridRowCount}, () =>
+      Array.from({length: this.gridColumns}, () => false),
     );
   }
 
-  toggleCell(r: number, c: number): void {
-    if (this.dragging) return;
-    this.grid[r][c] = !this.grid[r][c];
+  private key(r: number, c: number) {
+    return `${r}:${c}`;
   }
 
-  toggleCellIfPainting(r: number, c: number): void {
-    if (!this.mousePressed || this.dragging) return;
-    this.grid[r][c] = !this.grid[r][c];
+  isPaintPreview(r: number, c: number): boolean {
+    return this.previewCells.has(this.key(r, c));
+  }
+
+  onCellMouseDown(event: MouseEvent, rowIndex: number, colIndex: number): void {
+    if (this.isDraggingItem) return;
+
+    if (event.button === 2) {
+      this.paintMode = 'off';
+    } else {
+      this.paintMode = 'on';
+    }
+
+    event.preventDefault();
+
+    this.mousePressed = true;
+
+    this.previewCells.clear();
+    this.touchedCells.clear();
+
+    this.applyPreview(rowIndex, colIndex);
+  }
+
+  onCellMouseEnter(rowIndex: number, colIndex: number): void {
+    if (!this.mousePressed || this.isDraggingItem || !this.paintMode) return;
+    this.applyPreview(rowIndex, colIndex);
+  }
+
+  private applyPreview(rowIndex: number, colIndex: number): void {
+    const k = this.key(rowIndex, colIndex);
+
+    if (this.touchedCells.has(k)) return;
+    this.touchedCells.add(k);
+
+    this.previewCells.add(k);
+
+    const next = this.paintMode === 'on';
+    this.conveyorGrid[rowIndex][colIndex] = next;
   }
 
   @HostListener('document:mousedown')
-  onDocMouseDown(): void {
+  onDocumentMouseDown(): void {
     this.mousePressed = true;
   }
 
   @HostListener('document:mouseup')
-  onDocMouseUp(): void {
+  onDocumentMouseUp(): void {
     this.mousePressed = false;
+    this.paintMode = null;
+    this.previewCells.clear();
+    this.touchedCells.clear();
   }
 
-  private initInteract(): void {
-    interact('.draggable').draggable({
-      origin: '#item-area',
+  @HostListener('document:contextmenu', ['$event'])
+  onContextMenu(event: MouseEvent) {
+    event.preventDefault();
+  }
+
+  private setupInteractDragging(): void {
+    interact('.draggable-item').draggable({
+      origin: '#item-palette',
       modifiers: [
-        // Snap dragging to a 50px grid.
         interact.modifiers.snap({
-          targets: [interact.snappers.grid({x: this.cellSizePx, y: this.cellSizePx})],
+          targets: [interact.snappers.grid({x: this.gridCellSizePx, y: this.gridCellSizePx})],
           relativePoints: [{x: 0, y: 0}],
         }),
         interact.modifiers.restrictRect({
-          restriction: '.factory-container',
+          restriction: '.factory-surface',
           endOnly: true,
         }),
       ],
       listeners: {
         start: () => {
-          this.dragging = true;
+          this.isDraggingItem = true;
         },
         move: (event) => {
-          const target = event.target as HTMLElement;
+          const element = event.target as HTMLElement;
 
-          const x = (parseFloat(target.getAttribute('data-x') || '0') || 0) + event.dx;
-          const y = (parseFloat(target.getAttribute('data-y') || '0') || 0) + event.dy;
+          const currentX = Number(element.getAttribute('data-x') ?? '0');
+          const currentY = Number(element.getAttribute('data-y') ?? '0');
 
-          target.style.transform = `translate(${x}px, ${y}px)`;
-          target.setAttribute('data-x', String(x));
-          target.setAttribute('data-y', String(y));
+          const nextX = currentX + event.dx;
+          const nextY = currentY + event.dy;
+
+          element.style.transform = `translate(${nextX}px, ${nextY}px)`;
+          element.setAttribute('data-x', String(nextX));
+          element.setAttribute('data-y', String(nextY));
         },
         end: () => {
-          this.dragging = false;
+          this.isDraggingItem = false;
         },
       },
     });
