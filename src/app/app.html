@@ -7,7 +7,7 @@
 
     <section class="mt-6 flex-1">
       <div class="factory-surface h-full rounded-3xl border border-white/10 bg-white/5 p-5 shadow-xl backdrop-blur">
-        
+
         <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
           <div class="mb-3 text-xs font-semibold tracking-wide text-white">Playground</div>
 
@@ -35,7 +35,7 @@
 
         <div class="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4">
           <div class="mb-3 text-xs font-semibold tracking-wide text-white">Items</div>
-                      
+
 <!-- Item Palette-->
           <div id="item-palette" class="min-h-[15vh] rounded-2xl border-2 border-black bg-white/5 p-3 flex flex-wrap gap-3">
             @for (item of items; track item.id) {
@@ -45,6 +45,7 @@
                 [class.h-[150px]]="item.size === 'large'"
                 [class.w-[50px]]="item.size === 'small'"
                 [class.h-[50px]]="item.size === 'small'"
+                id="{{ item.id }}"
               >
                 {{ item.label }}
               </div>

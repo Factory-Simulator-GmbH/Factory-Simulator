@@ -66,6 +66,24 @@ export class App implements AfterViewInit {
     );
   }
 
+  private isOverlapping(checkItem: HTMLElement) {
+    console.log("checking overlap for", checkItem.id);
+    const checkItemRect = checkItem.getBoundingClientRect();
+    for (let item of this.items) {
+      if (item.id === checkItem.id) continue; // Skip self
+      const itemRect = document.getElementById(item.id)?.getBoundingClientRect();
+      if (!itemRect) continue;
+      if (
+        checkItemRect.top + 0.5 >= itemRect.bottom - 0.5 || // 0.5px toleranz für weniger bugs
+        checkItemRect.right - 0.5 <= itemRect.left + 0.5 ||
+        checkItemRect.bottom - 0.5 <= itemRect.top + 0.5 ||
+        checkItemRect.left + 0.5 >= itemRect.right - 0.5
+      ) continue; // kein overlap, weiter zum nächsten item
+      return true; // overlap gefunden
+    }
+    return false;
+  }
+
   // Eindeutiger Key für Zelle 
   private key(r: number, c: number) {
     return `${r}:${c}`;
@@ -166,8 +184,12 @@ export class App implements AfterViewInit {
           element.setAttribute('data-x', String(nextX));
           element.setAttribute('data-y', String(nextY));
         },
-        end: () => {
+        end: (event) => {
+          console.log(event.target);
           this.isDraggingItem = false;
+          if (this.isOverlapping(event.target as HTMLElement)) {
+            console.log("overlapping!! helpppp");
+          }
         },
       },
     });
