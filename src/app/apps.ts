@@ -17,7 +17,7 @@ interface DraggableItems {
   templateUrl: './app.html',
 })
 export class App implements AfterViewInit {
-  // Referenz auf das HTML Grid
+    // Reference to the HTML grid
   @ViewChild('gridTable', {static: true})
   gridTableRef!: ElementRef<HTMLTableElement>;
 
@@ -25,12 +25,11 @@ export class App implements AfterViewInit {
   mousePressed = false;
   isDraggingItem = false;
 
-  // Grid Konstanten 
+  // Grid constants 
   readonly gridCellSizePx = 50;
   readonly gridRowCount = 10;
   gridColumns = 0;
 
-  // Datenstruktur für Förderbänder
   conveyorGrid: boolean[][] = [];
 
   // List of availabel Items
@@ -47,7 +46,7 @@ export class App implements AfterViewInit {
   private previewCells = new Set<string>();
   private touchedCells = new Set<string>();
 
-  // Initialisierung nach View Build
+  // Data structure for conveyor belts
   ngAfterViewInit(): void {
     this.calculateColumnsAndCreateGrid();
     this.setupInteractDragging();
