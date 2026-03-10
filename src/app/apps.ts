@@ -1,4 +1,11 @@
-import {AfterViewInit, Component, ElementRef, HostListener, ViewChild} from '@angular/core';
+import {
+  AfterViewInit,
+  Component,
+  ElementRef,
+  HostListener,
+  NgZone,
+  ViewChild,
+} from '@angular/core';
 import interact from 'interactjs';
 
 // Definition der Objektgrößen
@@ -24,8 +31,9 @@ export class App implements AfterViewInit {
   // Status Flags für Interaktion
   mousePressed = false;
   isDraggingItem = false;
+  activeDraggedItemId: string | null = null;
 
-  // Grid Konstanten 
+  // Grid Konstanten
   readonly gridCellSizePx = 50;
   readonly gridRowCount = 10;
   gridColumns = 0;
@@ -47,13 +55,15 @@ export class App implements AfterViewInit {
   private previewCells = new Set<string>();
   private touchedCells = new Set<string>();
 
+  constructor(private ngZone: NgZone) {}
+
   // Initialisierung nach View Build
   ngAfterViewInit(): void {
     this.calculateColumnsAndCreateGrid();
     this.setupInteractDragging();
   }
 
-  // Berechnet Spaltenanzahl u
+  // Berechnet Spaltenanzahl und erstellt Grid
   private calculateColumnsAndCreateGrid(): void {
     const table = this.gridTableRef.nativeElement;
     const container = table.parentElement;
@@ -66,8 +76,8 @@ export class App implements AfterViewInit {
     );
   }
 
-  // Eindeutiger Key für Zelle 
-  private key(r: number, c: number) {
+  // Eindeutiger Key für Zelle
+  private key(r: number, c: number): string {
     return `${r}:${c}`;
   }
 
@@ -76,15 +86,11 @@ export class App implements AfterViewInit {
     return this.previewCells.has(this.key(r, c));
   }
 
-  // Startet Mal Vorgang 
+  // Startet Mal Vorgang
   onCellMouseDown(event: MouseEvent, rowIndex: number, colIndex: number): void {
     if (this.isDraggingItem) return;
 
-    if (event.button === 2) {
-      this.paintMode = 'off';
-    } else {
-      this.paintMode = 'on';
-    }
+    this.paintMode = event.button === 2 ? 'off' : 'on';
 
     event.preventDefault();
     this.mousePressed = true;
@@ -105,11 +111,16 @@ export class App implements AfterViewInit {
     const k = this.key(rowIndex, colIndex);
 
     if (this.touchedCells.has(k)) return;
+
     this.touchedCells.add(k);
     this.previewCells.add(k);
+    this.conveyorGrid[rowIndex][colIndex] = this.paintMode === 'on';
+  }
 
-    const next = this.paintMode === 'on';
-    this.conveyorGrid[rowIndex][colIndex] = next;
+  // Wenn Maus auf Item gedrückt wird, direkt visuell "in der Hand"
+  onItemMouseDown(itemId: string): void {
+    this.isDraggingItem = true;
+    this.activeDraggedItemId = itemId;
   }
 
   // Dokument weiter Mouse-Down Listener
@@ -118,18 +129,20 @@ export class App implements AfterViewInit {
     this.mousePressed = true;
   }
 
-  // Stoppt Mal Vorgang 
+  // Stoppt Mal Vorgang / Drag Status
   @HostListener('document:mouseup')
   onDocumentMouseUp(): void {
     this.mousePressed = false;
     this.paintMode = null;
     this.previewCells.clear();
     this.touchedCells.clear();
+    this.isDraggingItem = false;
+    this.activeDraggedItemId = null;
   }
 
   // Unterdrückt Standard Kontextmenü
   @HostListener('document:contextmenu', ['$event'])
-  onContextMenu(event: MouseEvent) {
+  onContextMenu(event: MouseEvent): void {
     event.preventDefault();
   }
 
@@ -138,21 +151,29 @@ export class App implements AfterViewInit {
     interact('.draggable-item').draggable({
       origin: this.gridTableRef.nativeElement,
       modifiers: [
-        // Raster Magnet Effekt
         interact.modifiers.snap({
           targets: [interact.createSnapGrid({x: this.gridCellSizePx, y: this.gridCellSizePx})],
           relativePoints: [{x: 0, y: 0}],
         }),
-        // Spielfeldbegrenzung
         interact.modifiers.restrictRect({
           restriction: '.factory-surface',
           endOnly: true,
         }),
       ],
       listeners: {
-        start: () => {
-          this.isDraggingItem = true;
+        start: (event) => {
+          const element = event.target as HTMLElement;
+          const itemId = element.getAttribute('data-item-id');
+
+          this.ngZone.run(() => {
+            this.isDraggingItem = true;
+            this.activeDraggedItemId = itemId;
+          });
+
+          element.style.position = 'relative';
+          element.style.zIndex = '60';
         },
+
         move: (event) => {
           const element = event.target as HTMLElement;
 
@@ -166,8 +187,16 @@ export class App implements AfterViewInit {
           element.setAttribute('data-x', String(nextX));
           element.setAttribute('data-y', String(nextY));
         },
-        end: () => {
-          this.isDraggingItem = false;
+
+        end: (event) => {
+          this.ngZone.run(() => {
+            this.isDraggingItem = false;
+            this.activeDraggedItemId = null;
+          });
+
+          const element = event.target as HTMLElement;
+          element.style.zIndex = '';
+          element.style.position = '';
         },
       },
     });
