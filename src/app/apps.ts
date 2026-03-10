@@ -8,10 +8,10 @@ import {
 } from '@angular/core';
 import interact from 'interactjs';
 
-// Definition der Objektgrößen
+// Definition of Item Sizes
 type ItemSize = 'large' | 'small';
 
-// Struktur für ziehbare Elemente
+// Structure for draggable elements
 interface DraggableItems {
   id: string;
   label: string;
@@ -24,24 +24,23 @@ interface DraggableItems {
   templateUrl: './app.html',
 })
 export class App implements AfterViewInit {
-  // Referenz auf das HTML Grid
+    // Reference to the HTML grid
   @ViewChild('gridTable', {static: true})
   gridTableRef!: ElementRef<HTMLTableElement>;
 
-  // Status Flags für Interaktion
+  // Status Flags for Interaction
   mousePressed = false;
   isDraggingItem = false;
   activeDraggedItemId: string | null = null;
 
-  // Grid Konstanten
+  // Grid constants 
   readonly gridCellSizePx = 50;
   readonly gridRowCount = 10;
   gridColumns = 0;
 
-  // Datenstruktur für Förderbänder
   conveyorGrid: boolean[][] = [];
 
-  // Liste der verfügbaren Items
+  // List of availabel Items
   items: DraggableItems[] = [
     {id: 'f1', label: 'Fabrik', size: 'large'},
     {id: 'f2', label: 'Fabrik', size: 'large'},
@@ -50,7 +49,7 @@ export class App implements AfterViewInit {
     {id: 'io2', label: 'I/O', size: 'small'},
   ];
 
-  // Interne Mal Zustände
+  // Intern drawing states
   private paintMode: 'on' | 'off' | null = null;
   private previewCells = new Set<string>();
   private touchedCells = new Set<string>();
@@ -63,7 +62,7 @@ export class App implements AfterViewInit {
     this.setupInteractDragging();
   }
 
-  // Berechnet Spaltenanzahl und erstellt Grid
+  // calculates the number of columns and creates the grid
   private calculateColumnsAndCreateGrid(): void {
     const table = this.gridTableRef.nativeElement;
     const container = table.parentElement;
@@ -81,12 +80,12 @@ export class App implements AfterViewInit {
     return `${r}:${c}`;
   }
 
-  // Prüft auf aktive Mal Vorschau
+  // Check if a cell is in the paint preview
   isPaintPreview(r: number, c: number): boolean {
     return this.previewCells.has(this.key(r, c));
   }
 
-  // Startet Mal Vorgang
+  // Starts painting or erasing based on mouse button
   onCellMouseDown(event: MouseEvent, rowIndex: number, colIndex: number): void {
     if (this.isDraggingItem) return;
 
@@ -100,13 +99,13 @@ export class App implements AfterViewInit {
     this.applyPreview(rowIndex, colIndex);
   }
 
-  // Führt Malen beim Ziehen fort
+  // continue drawing when mouse is moved
   onCellMouseEnter(rowIndex: number, colIndex: number): void {
     if (!this.mousePressed || this.isDraggingItem || !this.paintMode) return;
     this.applyPreview(rowIndex, colIndex);
   }
 
-  // Aktualisiert Array State und Vorschau
+  // Update Array State and preview
   private applyPreview(rowIndex: number, colIndex: number): void {
     const k = this.key(rowIndex, colIndex);
 
@@ -123,13 +122,13 @@ export class App implements AfterViewInit {
     this.activeDraggedItemId = itemId;
   }
 
-  // Dokument weiter Mouse-Down Listener
+  // Document further Mouse-Down Listener
   @HostListener('document:mousedown')
   onDocumentMouseDown(): void {
     this.mousePressed = true;
   }
 
-  // Stoppt Mal Vorgang / Drag Status
+  // Stoping painting when mouse is released 
   @HostListener('document:mouseup')
   onDocumentMouseUp(): void {
     this.mousePressed = false;
@@ -140,21 +139,33 @@ export class App implements AfterViewInit {
     this.activeDraggedItemId = null;
   }
 
-  // Unterdrückt Standard Kontextmenü
+  // suppreses standard context menu to allow right-click painting AND handles item reset
   @HostListener('document:contextmenu', ['$event'])
   onContextMenu(event: MouseEvent): void {
     event.preventDefault();
+
+    // Der viel simplere Weg: Wir prüfen das Element, das wir direkt angeklickt haben
+    const target = event.target as HTMLElement;
+
+    // Wenn es ein ziehbares Item ist, setzen wir die Achsen auf 0 (Point Reset)
+    if (target && target.classList.contains('draggable-item')) {
+      target.style.transform = '';
+      target.setAttribute('data-x', '0');
+      target.setAttribute('data-y', '0');
+    }
   }
 
-  // Konfiguriert interact.js Drag & Drop
+  // configures interact.js Drag & Drop
   private setupInteractDragging(): void {
     interact('.draggable-item').draggable({
       origin: this.gridTableRef.nativeElement,
       modifiers: [
+        // grid magnetic effect
         interact.modifiers.snap({
           targets: [interact.createSnapGrid({x: this.gridCellSizePx, y: this.gridCellSizePx})],
           relativePoints: [{x: 0, y: 0}],
         }),
+        // grid boundaries restriction
         interact.modifiers.restrictRect({
           restriction: '.factory-surface',
           endOnly: true,
