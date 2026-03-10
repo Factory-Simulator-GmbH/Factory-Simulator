@@ -42,6 +42,8 @@ export class App implements AfterViewInit {
     {id: 'io2', label: 'I/O', size: 'small'},
   ];
 
+  private itemPositions: Record<string, {x: number, y: number}> = {};
+
   // Interne Mal Zustände
   private paintMode: 'on' | 'off' | null = null;
   private previewCells = new Set<string>();
@@ -67,7 +69,6 @@ export class App implements AfterViewInit {
   }
 
   private isOverlapping(checkItem: HTMLElement) {
-    console.log("checking overlap for", checkItem.id);
     const checkItemRect = checkItem.getBoundingClientRect();
     for (let item of this.items) {
       if (item.id === checkItem.id) continue; // Skip self
@@ -183,12 +184,20 @@ export class App implements AfterViewInit {
           element.style.transform = `translate(${nextX}px, ${nextY}px)`;
           element.setAttribute('data-x', String(nextX));
           element.setAttribute('data-y', String(nextY));
+
+          if (!this.isOverlapping(element)) {
+            this.itemPositions[element.id] = {x: nextX, y: nextY};
+          }
         },
         end: (event) => {
-          console.log(event.target);
           this.isDraggingItem = false;
-          if (this.isOverlapping(event.target as HTMLElement)) {
-            console.log("overlapping!! helpppp");
+          const element = event.target as HTMLElement;
+          if (this.isOverlapping(element)) {
+            // Zurücksetzen auf letzte gültige Position oder Startposition
+            const pos = this.itemPositions[element.id] ?? {x: 0, y: 0};
+            element.style.transform = `translate(${pos.x}px, ${pos.y}px)`;
+            element.setAttribute('data-x', String(pos.x));
+            element.setAttribute('data-y', String(pos.y));
           }
         },
       },
