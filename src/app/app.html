@@ -1,15 +1,23 @@
-<!-- Main Container: provides full height, background, and global text color --><div class="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-800 text-white">
+<!-- Titel -->
+<div class="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-800 text-white">
   <div class="mx-auto flex min-h-screen w-[95%] flex-col px-4 py-8">
-    <header class="text-center">
+    <header class="text-center" [class.opacity-30]="isDraggingItem">
       <h1 class="text-4xl font-extrabold tracking-tight">Factory Simulator</h1>
     </header>
 
     <!-- Main content: contains the game area -->
     <section class="mt-6 flex-1">
-      <!-- Area of the factory interface with frame and background -->
-        <div class="factory-surface h-full rounded-3xl border border-white/10 bg-white/5 p-5 shadow-xl backdrop-blur">
+      <div class="factory-surface relative h-full rounded-3xl border border-white/10 bg-white/5 p-5 shadow-xl backdrop-blur">
         
-        <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+        @if (isDraggingItem) {
+          <div class="absolute inset-0 z-40 rounded-3xl bg-black/50 pointer-events-none"></div>
+        }
+
+        <div
+          class="rounded-2xl border border-white/10 bg-white/5 p-4"
+          [class.relative]="isDraggingItem"
+          [class.z-50]="isDraggingItem"
+        >
           <div class="mb-3 text-xs font-semibold tracking-wide text-white">Playground</div>
 
           <div class="h-[50vh] overflow-hidden rounded-2xl border-2 border-black bg-white/5 p-2">
@@ -20,7 +28,7 @@
                   <!-- Loop over cells in a row -->
                     @for (cell of row; let colIndex = $index; track colIndex) {
                     <td
-                      class="h-[50px] w-[50px] border border-white/10 transition-colors cursor-crosshair"
+                      class="h-[50px] w-[50px] cursor-crosshair border border-white/10 transition-colors"
                       [class.border-0]="conveyorGrid[rowIndex][colIndex] && !isPaintPreview(rowIndex, colIndex)"
                       [class.bg-slate-300]="conveyorGrid[rowIndex][colIndex] && !isPaintPreview(rowIndex, colIndex)"
                       [class.border-2]="isPaintPreview(rowIndex, colIndex)"
@@ -36,19 +44,28 @@
           </div>
         </div>
 
-        <div class="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4">
+        <div class="relative mt-4 rounded-2xl border border-white/10 bg-white/5 p-4">
+          @if (isDraggingItem) {
+            <div class="absolute inset-0 z-40 rounded-2xl bg-black/50 pointer-events-none"></div>
+          }
+
           <div class="mb-3 text-xs font-semibold tracking-wide text-white">Items</div>
-                      
-<!-- Items block: Selection of available items -->
-          <div id="item-palette" class="min-h-[15vh] rounded-2xl border-2 border-black bg-white/5 p-3 flex flex-wrap gap-3">
-            <!-- Loop over available items -->
-              @for (item of items; track item.id) {
+
+          <div
+            id="item-palette"
+            class="min-h-[15vh] rounded-2xl border-2 border-black bg-white/5 p-3 flex flex-wrap gap-3"
+          >
+            @for (item of items; track item.id) {
               <div
                 class="draggable-item grid select-none place-items-center rounded-xl border border-white/20 bg-white/10 text-white shadow-sm backdrop-blur touch-none"
+                [attr.data-item-id]="item.id"
                 [class.w-[150px]]="item.size === 'large'"
                 [class.h-[150px]]="item.size === 'large'"
                 [class.w-[50px]]="item.size === 'small'"
                 [class.h-[50px]]="item.size === 'small'"
+                [class.relative]="activeDraggedItemId === item.id"
+                [class.z-50]="activeDraggedItemId === item.id"
+                (mousedown)="onItemMouseDown(item.id)"
               >
                 {{ item.label }}
               </div>

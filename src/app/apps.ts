@@ -1,4 +1,11 @@
-import {AfterViewInit, Component, ElementRef, HostListener, ViewChild} from '@angular/core';
+import {
+  AfterViewInit,
+  Component,
+  ElementRef,
+  HostListener,
+  NgZone,
+  ViewChild,
+} from '@angular/core';
 import interact from 'interactjs';
 
 // Definition of Item Sizes
@@ -24,6 +31,7 @@ export class App implements AfterViewInit {
   // Status Flags for Interaction
   mousePressed = false;
   isDraggingItem = false;
+  activeDraggedItemId: string | null = null;
 
   // Grid constants 
   readonly gridCellSizePx = 50;
@@ -46,7 +54,9 @@ export class App implements AfterViewInit {
   private previewCells = new Set<string>();
   private touchedCells = new Set<string>();
 
-  // Data structure for conveyor belts
+  constructor(private ngZone: NgZone) {}
+
+  // Initialisierung nach View Build
   ngAfterViewInit(): void {
     this.calculateColumnsAndCreateGrid();
     this.setupInteractDragging();
@@ -64,9 +74,9 @@ export class App implements AfterViewInit {
       Array.from({length: this.gridColumns}, () => false),
     );
   }
- //Clamp
-  // Clear Key for lines in sets 
-  private key(r: number, c: number) {
+
+  // Eindeutiger Key für Zelle
+  private key(r: number, c: number): string {
     return `${r}:${c}`;
   }
 
@@ -79,11 +89,7 @@ export class App implements AfterViewInit {
   onCellMouseDown(event: MouseEvent, rowIndex: number, colIndex: number): void {
     if (this.isDraggingItem) return;
 
-    if (event.button === 2) {
-      this.paintMode = 'off';
-    } else {
-      this.paintMode = 'on';
-    }
+    this.paintMode = event.button === 2 ? 'off' : 'on';
 
     event.preventDefault();
     this.mousePressed = true;
@@ -104,11 +110,16 @@ export class App implements AfterViewInit {
     const k = this.key(rowIndex, colIndex);
 
     if (this.touchedCells.has(k)) return;
+
     this.touchedCells.add(k);
     this.previewCells.add(k);
+    this.conveyorGrid[rowIndex][colIndex] = this.paintMode === 'on';
+  }
 
-    const next = this.paintMode === 'on';
-    this.conveyorGrid[rowIndex][colIndex] = next;
+  // Wenn Maus auf Item gedrückt wird, direkt visuell "in der Hand"
+  onItemMouseDown(itemId: string): void {
+    this.isDraggingItem = true;
+    this.activeDraggedItemId = itemId;
   }
 
   // Document further Mouse-Down Listener
@@ -124,11 +135,13 @@ export class App implements AfterViewInit {
     this.paintMode = null;
     this.previewCells.clear();
     this.touchedCells.clear();
+    this.isDraggingItem = false;
+    this.activeDraggedItemId = null;
   }
 
   // suppreses standard context menu to allow right-click painting AND handles item reset
   @HostListener('document:contextmenu', ['$event'])
-  onContextMenu(event: MouseEvent) {
+  onContextMenu(event: MouseEvent): void {
     event.preventDefault();
 
     // Der viel simplere Weg: Wir prüfen das Element, das wir direkt angeklickt haben
@@ -159,9 +172,19 @@ export class App implements AfterViewInit {
         }),
       ],
       listeners: {
-        start: () => {
-          this.isDraggingItem = true;
+        start: (event) => {
+          const element = event.target as HTMLElement;
+          const itemId = element.getAttribute('data-item-id');
+
+          this.ngZone.run(() => {
+            this.isDraggingItem = true;
+            this.activeDraggedItemId = itemId;
+          });
+
+          element.style.position = 'relative';
+          element.style.zIndex = '60';
         },
+
         move: (event) => {
           const element = event.target as HTMLElement;
 
@@ -175,8 +198,16 @@ export class App implements AfterViewInit {
           element.setAttribute('data-x', String(nextX));
           element.setAttribute('data-y', String(nextY));
         },
-        end: () => {
-          this.isDraggingItem = false;
+
+        end: (event) => {
+          this.ngZone.run(() => {
+            this.isDraggingItem = false;
+            this.activeDraggedItemId = null;
+          });
+
+          const element = event.target as HTMLElement;
+          element.style.zIndex = '';
+          element.style.position = '';
         },
       },
     });
