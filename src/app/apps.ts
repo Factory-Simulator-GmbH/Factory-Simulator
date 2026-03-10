@@ -1,10 +1,10 @@
 import {AfterViewInit, Component, ElementRef, HostListener, ViewChild} from '@angular/core';
 import interact from 'interactjs';
 
-// Definition der Objektgrößen
+// Definition of Item Sizes
 type ItemSize = 'large' | 'small';
 
-// Struktur für ziehbare Elemente
+// Structure for draggable elements
 interface DraggableItems {
   id: string;
   label: string;
@@ -21,7 +21,7 @@ export class App implements AfterViewInit {
   @ViewChild('gridTable', {static: true})
   gridTableRef!: ElementRef<HTMLTableElement>;
 
-  // Status Flags für Interaktion
+  // Status Flags for Interaction
   mousePressed = false;
   isDraggingItem = false;
 
@@ -33,7 +33,7 @@ export class App implements AfterViewInit {
   // Datenstruktur für Förderbänder
   conveyorGrid: boolean[][] = [];
 
-  // Liste der verfügbaren Items
+  // List of availabel Items
   items: DraggableItems[] = [
     {id: 'f1', label: 'Fabrik', size: 'large'},
     {id: 'f2', label: 'Fabrik', size: 'large'},
@@ -42,7 +42,7 @@ export class App implements AfterViewInit {
     {id: 'io2', label: 'I/O', size: 'small'},
   ];
 
-  // Interne Mal Zustände
+  // Intern drawing states
   private paintMode: 'on' | 'off' | null = null;
   private previewCells = new Set<string>();
   private touchedCells = new Set<string>();
@@ -53,7 +53,7 @@ export class App implements AfterViewInit {
     this.setupInteractDragging();
   }
 
-  // Berechnet Spaltenanzahl u
+  // calculates the number of columns and creates the grid
   private calculateColumnsAndCreateGrid(): void {
     const table = this.gridTableRef.nativeElement;
     const container = table.parentElement;
@@ -65,18 +65,18 @@ export class App implements AfterViewInit {
       Array.from({length: this.gridColumns}, () => false),
     );
   }
-
-  // Eindeutiger Key für Zelle 
+//Clamp
+  // Clear Key for lines in sets 
   private key(r: number, c: number) {
     return `${r}:${c}`;
   }
 
-  // Prüft auf aktive Mal Vorschau
+  // Check if a cell is in the paint preview
   isPaintPreview(r: number, c: number): boolean {
     return this.previewCells.has(this.key(r, c));
   }
 
-  // Startet Mal Vorgang 
+  // Starts drawing  
   onCellMouseDown(event: MouseEvent, rowIndex: number, colIndex: number): void {
     if (this.isDraggingItem) return;
 
@@ -94,13 +94,13 @@ export class App implements AfterViewInit {
     this.applyPreview(rowIndex, colIndex);
   }
 
-  // Führt Malen beim Ziehen fort
+  // continue drawing when mouse is moved
   onCellMouseEnter(rowIndex: number, colIndex: number): void {
     if (!this.mousePressed || this.isDraggingItem || !this.paintMode) return;
     this.applyPreview(rowIndex, colIndex);
   }
 
-  // Aktualisiert Array State und Vorschau
+  // Update Array State and preview
   private applyPreview(rowIndex: number, colIndex: number): void {
     const k = this.key(rowIndex, colIndex);
 
@@ -112,7 +112,7 @@ export class App implements AfterViewInit {
     this.conveyorGrid[rowIndex][colIndex] = next;
   }
 
-  // Dokument weiter Mouse-Down Listener
+  // Document further Mouse-Down Listener
   @HostListener('document:mousedown')
   onDocumentMouseDown(): void {
     this.mousePressed = true;
@@ -127,23 +127,23 @@ export class App implements AfterViewInit {
     this.touchedCells.clear();
   }
 
-  // Unterdrückt Standard Kontextmenü
+  // suppreses standard context menu to allow right-click painting
   @HostListener('document:contextmenu', ['$event'])
   onContextMenu(event: MouseEvent) {
     event.preventDefault();
   }
 
-  // Konfiguriert interact.js Drag & Drop
+  // configures interact.js Drag & Drop
   private setupInteractDragging(): void {
     interact('.draggable-item').draggable({
       origin: this.gridTableRef.nativeElement,
       modifiers: [
-        // Raster Magnet Effekt
+        // grid magnetic effect
         interact.modifiers.snap({
           targets: [interact.createSnapGrid({x: this.gridCellSizePx, y: this.gridCellSizePx})],
           relativePoints: [{x: 0, y: 0}],
         }),
-        // Spielfeldbegrenzung
+        // grid boundaries restriction
         interact.modifiers.restrictRect({
           restriction: '.factory-surface',
           endOnly: true,
