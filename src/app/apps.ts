@@ -81,18 +81,6 @@ export class App implements AfterViewInit {
 
     if (event.button === 2) {
       this.paintMode = 'off';
-      
-      //Searching for draggable item at the mouse position
-      const elementsAtPoint = document.elementsFromPoint(event.clientX, event.clientY);
-      const item = elementsAtPoint.find(el => el.classList.contains('draggable-item')) as HTMLElement;
-
-      if (item) {
-        // Reset position of the dragger item 
-        item.style.transform = '';
-        item.setAttribute('data-x', '0');
-        item.setAttribute('data-y', '0');
-        return; 
-      }
     } else {
       this.paintMode = 'on';
     }
@@ -138,10 +126,20 @@ export class App implements AfterViewInit {
     this.touchedCells.clear();
   }
 
-  // suppreses standard context menu to allow right-click painting
+  // suppreses standard context menu to allow right-click painting AND handles item reset
   @HostListener('document:contextmenu', ['$event'])
   onContextMenu(event: MouseEvent) {
     event.preventDefault();
+
+    // Der viel simplere Weg: Wir prüfen das Element, das wir direkt angeklickt haben
+    const target = event.target as HTMLElement;
+
+    // Wenn es ein ziehbares Item ist, setzen wir die Achsen auf 0 (Point Reset)
+    if (target && target.classList.contains('draggable-item')) {
+      target.style.transform = '';
+      target.setAttribute('data-x', '0');
+      target.setAttribute('data-y', '0');
+    }
   }
 
   // configures interact.js Drag & Drop
@@ -155,7 +153,6 @@ export class App implements AfterViewInit {
           relativePoints: [{x: 0, y: 0}],
         }),
         // grid boundaries restriction
-
         interact.modifiers.restrictRect({
           restriction: '.factory-surface',
           endOnly: true,
