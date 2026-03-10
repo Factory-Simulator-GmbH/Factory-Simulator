@@ -1,6 +1,8 @@
+// Auto generated file to test the app
 import {TestBed} from '@angular/core/testing';
 import {App} from './apps';
 
+// Test for the Components of the App
 describe('App', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({

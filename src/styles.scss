@@ -1,7 +1,9 @@
+// Tailwind Imports
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+// own Styler
 @layer components {
   .playground-grid {
     background-size: 50px 50px;
