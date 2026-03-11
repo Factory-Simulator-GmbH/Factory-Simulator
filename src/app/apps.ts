@@ -24,7 +24,7 @@ interface DraggableItems {
   templateUrl: './app.html',
 })
 export class App implements AfterViewInit {
-    // Reference to the HTML grid
+  // Reference to the HTML grid
   @ViewChild('gridTable', {static: true})
   gridTableRef!: ElementRef<HTMLTableElement>;
 
@@ -144,10 +144,8 @@ export class App implements AfterViewInit {
   onContextMenu(event: MouseEvent): void {
     event.preventDefault();
 
-    // Der viel simplere Weg: Wir prüfen das Element, das wir direkt angeklickt haben
     const target = event.target as HTMLElement;
 
-    // Wenn es ein ziehbares Item ist, setzen wir die Achsen auf 0 (Point Reset)
     if (target && target.classList.contains('draggable-item')) {
       target.style.transform = '';
       target.setAttribute('data-x', '0');
@@ -165,7 +163,7 @@ export class App implements AfterViewInit {
           targets: [interact.createSnapGrid({x: this.gridCellSizePx, y: this.gridCellSizePx})],
           relativePoints: [{x: 0, y: 0}],
         }),
-        // grid boundaries restriction
+        // Wir setzen die Boundary wieder auf das große Ganze, damit man es butterweich bewegen kann
         interact.modifiers.restrictRect({
           restriction: '.factory-surface',
           endOnly: true,
@@ -205,9 +203,28 @@ export class App implements AfterViewInit {
             this.activeDraggedItemId = null;
           });
 
+          // Here, the items are restricted and can no longer be placed outside the playing field.
           const element = event.target as HTMLElement;
           element.style.zIndex = '';
           element.style.position = '';
+
+          const gridRect = this.gridTableRef.nativeElement.getBoundingClientRect();
+          const itemRect = element.getBoundingClientRect();
+
+          const itemCenterX = itemRect.left + itemRect.width / 2;
+          const itemCenterY = itemRect.top + itemRect.height / 2;
+
+          const isInsideGrid = 
+            itemCenterX >= gridRect.left &&
+            itemCenterX <= gridRect.right &&
+            itemCenterY >= gridRect.top &&
+            itemCenterY <= gridRect.bottom;
+
+          if (!isInsideGrid) {
+            element.style.transform = '';
+            element.setAttribute('data-x', '0');
+            element.setAttribute('data-y', '0');
+          }
         },
       },
     });
