@@ -1,4 +1,12 @@
-import {AfterViewInit, Component, ElementRef, HostListener, ViewChild} from '@angular/core';
+import {
+  AfterViewInit,
+  Component,
+  ElementRef,
+  HostListener,
+  NgZone,
+  OnInit,
+  ViewChild,
+} from '@angular/core';
 import interact from 'interactjs';
 
 // Definition of Item Sizes
@@ -34,42 +42,62 @@ export class App implements AfterViewInit {
   // Status Flags for Interaction
   mousePressed = false;
   isDraggingItem = false;
+  activeDraggedItemId: string | null = null;
 
-  // Grid constants
-  readonly gridCellSizePx = 50;
-  readonly gridRowCount = 10;
+  readonly gridCellSizeVw = 2.5;
+  gridCellSizePx = 0;
+  readonly gridRowCount = 30;
   gridColumns = 0;
 
   conveyorGrid: ConveyorCell[][] = [];
 
-  // List of availabel Items
   items: DraggableItems[] = [
-    {id: 'f1', label: 'Fabrik', size: 'large'},
-    {id: 'f2', label: 'Fabrik', size: 'large'},
-    {id: 'f3', label: 'Fabrik', size: 'large'},
-    {id: 'io1', label: 'I/O', size: 'small'},
-    {id: 'io2', label: 'I/O', size: 'small'},
+    { id: 'f1', label: 'Fabrik', size: 'large' },
+    { id: 'f2', label: 'Fabrik', size: 'large' },
+    { id: 'f3', label: 'Fabrik', size: 'large' },
+    { id: 'io1', label: 'I/O', size: 'small' },
+    { id: 'io2', label: 'I/O', size: 'small' },
   ];
 
-  // Intern drawing states
+  // Gespeicherte Rasterposition
+private itemStates: Record<string, { col: number; row: number; isAtStartPosition: boolean }> = {};
+  // Ursprüngliche Basisposition jedes Items relativ zum Grid
+  private itemBasePositions: Record<string, { x: number; y: number }> = {};
+
   private paintMode: 'on' | 'off' | null = null;
   private previewCells = new Set<string>();
   private touchedCells = new Set<string>();
   private pathCells: { row: number; col: number }[] = [];
 
-  // Data structure for conveyor belts
+  constructor(private ngZone: NgZone) {}
+
+  ngOnInit(): void {
+    this.updateGridCellSize();
+  }
+
   ngAfterViewInit(): void {
     this.calculateColumnsAndCreateGrid();
-    this.setupInteractDragging();
+
+    requestAnimationFrame(() => {
+      this.captureItemBasePositions();
+      this.initializeItemStates();
+      this.setupInteractDragging();
+    });
   }
+// Initialisiert die itemStates mit den Startpositionen der Items
+  private initializeItemStates(): void {
+  for (const item of this.items) {
+    this.itemStates[item.id] = {
+      col: 0,
+      row: 0,
+      isAtStartPosition: true,
+    };
+  }
+}
 
   // calculates the number of columns and creates the grid
   private calculateColumnsAndCreateGrid(): void {
-    const table = this.gridTableRef.nativeElement;
-    const container = table.parentElement;
-    const availableWidthPx = container?.clientWidth ?? 1000;
-
-    this.gridColumns = Math.max(1, Math.floor(availableWidthPx / this.gridCellSizePx));
+    this.gridColumns = 200;
 
     this.conveyorGrid = Array.from({length: this.gridRowCount}, () =>
       Array.from({length: this.gridColumns}, () => ({
@@ -80,12 +108,131 @@ export class App implements AfterViewInit {
     );
   }
 
-  // Clear Key for lines in sets
-  private key(r: number, c: number) {
+  private pxToGrid(valuePx: number): number {
+    if (!this.gridCellSizePx) return 0;
+    return Math.round(valuePx / this.gridCellSizePx);
+  }
+
+  private captureItemBasePositions(): void {
+    const gridRect = this.gridTableRef.nativeElement.getBoundingClientRect();
+
+    for (const item of this.items) {
+      const element = document.getElementById(item.id);
+      if (!element) continue;
+
+      // Transform kurz ignorieren, damit wir die echte Basisposition bekommen
+      const oldTransform = element.style.transform;
+      element.style.transform = '';
+
+      const rect = element.getBoundingClientRect();
+
+      this.itemBasePositions[item.id] = {
+        x: rect.left - gridRect.left,
+        y: rect.top - gridRect.top,
+      };
+
+      element.style.transform = oldTransform;
+    }
+  }
+
+  private applyItemPosition(element: HTMLElement, col: number, row: number): void {
+    const base = this.itemBasePositions[element.id] ?? { x: 0, y: 0 };
+
+    const targetX = col * this.gridCellSizePx;
+    const targetY = row * this.gridCellSizePx;
+
+    const translateX = targetX - base.x;
+    const translateY = targetY - base.y;
+
+    element.style.transform = `translate(${translateX}px, ${translateY}px)`;
+    element.setAttribute('data-x', String(translateX));
+    element.setAttribute('data-y', String(translateY));
+  }
+
+  private saveItemGridPosition(element: HTMLElement): void {
+  const base = this.itemBasePositions[element.id] ?? { x: 0, y: 0 };
+
+  const translateX = Number(element.getAttribute('data-x') ?? '0');
+  const translateY = Number(element.getAttribute('data-y') ?? '0');
+
+  const absoluteX = base.x + translateX;
+  const absoluteY = base.y + translateY;
+
+  const col = this.pxToGrid(absoluteX);
+  const row = this.pxToGrid(absoluteY);
+
+  this.itemStates[element.id] = {
+    col,
+    row,
+    isAtStartPosition: false,
+  };
+}
+
+  private repositionAllItems(): void {
+  for (const item of this.items) {
+    const element = document.getElementById(item.id);
+    if (!element) continue;
+
+    const state = this.itemStates[item.id];
+
+    if (!state || state.isAtStartPosition) {
+      element.style.transform = '';
+      element.setAttribute('data-x', '0');
+      element.setAttribute('data-y', '0');
+      continue;
+    }
+
+    this.applyItemPosition(element, state.col, state.row);
+  }
+}
+
+  getItemSizePx(size: 'small' | 'large'): number {
+    return size === 'large' ? this.gridCellSizePx * 3 : this.gridCellSizePx;
+  }
+
+  private updateGridCellSize(): void {
+    this.gridCellSizePx = window.innerWidth * this.gridCellSizeVw / 100;
+  }
+
+  @HostListener('window:resize')
+  onResize(): void {
+    this.updateGridCellSize();
+
+    requestAnimationFrame(() => {
+      this.captureItemBasePositions();
+      this.repositionAllItems();
+      this.setupInteractDragging();
+    });
+  }
+
+  private isOverlapping(checkItem: HTMLElement): boolean {
+    const checkItemRect = checkItem.getBoundingClientRect();
+
+    for (const item of this.items) {
+      if (item.id === checkItem.id) continue;
+
+      const itemRect = document.getElementById(item.id)?.getBoundingClientRect();
+      if (!itemRect) continue;
+
+      if (
+        checkItemRect.top + 0.5 >= itemRect.bottom - 0.5 ||
+        checkItemRect.right - 0.5 <= itemRect.left + 0.5 ||
+        checkItemRect.bottom - 0.5 <= itemRect.top + 0.5 ||
+        checkItemRect.left + 0.5 >= itemRect.right - 0.5
+      ) {
+        continue;
+      }
+
+      return true;
+    }
+
+    return false;
+  }
+
+  private key(r: number, c: number): string {
     return `${r}:${c}`;
   }
 
-  // Check if a cell is in the paint preview
   isPaintPreview(r: number, c: number): boolean {
     return this.previewCells.has(this.key(r, c));
   }
@@ -94,11 +241,7 @@ export class App implements AfterViewInit {
   onCellMouseDown(event: MouseEvent, rowIndex: number, colIndex: number): void {
     if (this.isDraggingItem) return;
 
-    if (event.button === 2) {
-      this.paintMode = 'off';
-    } else {
-      this.paintMode = 'on';
-    }
+    this.paintMode = event.button === 2 ? 'off' : 'on';
 
     event.preventDefault();
     this.mousePressed = true;
@@ -120,8 +263,11 @@ export class App implements AfterViewInit {
     const k = this.key(rowIndex, colIndex);
 
     if (this.touchedCells.has(k)) return;
+
     this.touchedCells.add(k);
     this.previewCells.add(k);
+    this.conveyorGrid[rowIndex][colIndex] = this.paintMode === 'on';
+  
 
     if (this.paintMode === 'off') {
       this.conveyorGrid[rowIndex][colIndex] = {
@@ -240,6 +386,11 @@ export class App implements AfterViewInit {
   }
 
   // Document further Mouse-Down Listener
+  onItemMouseDown(itemId: string): void {
+    this.isDraggingItem = true;
+    this.activeDraggedItemId = itemId;
+  }
+
   @HostListener('document:mousedown')
   onDocumentMouseDown(): void {
     this.mousePressed = true;
@@ -253,11 +404,15 @@ export class App implements AfterViewInit {
     this.previewCells.clear();
     this.touchedCells.clear();
     this.pathCells = [];
-  }
+  
 
   // suppreses standard context menu to allow right-click painting AND handles item reset
+    this.isDraggingItem = false;
+    this.activeDraggedItemId = null;
+  }
+
   @HostListener('document:contextmenu', ['$event'])
-  onContextMenu(event: MouseEvent) {
+  onContextMenu(event: MouseEvent): void {
     event.preventDefault();
 
     const target = event.target as HTMLElement;
@@ -266,18 +421,29 @@ export class App implements AfterViewInit {
       target.style.transform = '';
       target.setAttribute('data-x', '0');
       target.setAttribute('data-y', '0');
+      this.itemStates[target.id] = {
+        col: 0,
+        row: 0,
+        isAtStartPosition: true,
+      };
     }
   }
 
-  // configures interact.js Drag & Drop
   private setupInteractDragging(): void {
+    interact('.draggable-item').unset();
+
     interact('.draggable-item').draggable({
       origin: this.gridTableRef.nativeElement,
       modifiers: [
         // grid magnetic effect
         interact.modifiers.snap({
-          targets: [interact.createSnapGrid({x: this.gridCellSizePx, y: this.gridCellSizePx})],
-          relativePoints: [{x: 0, y: 0}],
+          targets: [
+            interact.createSnapGrid({
+              x: this.gridCellSizePx,
+              y: this.gridCellSizePx,
+            }),
+          ],
+          relativePoints: [{ x: 0, y: 0 }],
         }),
         // grid boundaries restriction
         interact.modifiers.restrictRect({
@@ -286,9 +452,19 @@ export class App implements AfterViewInit {
         }),
       ],
       listeners: {
-        start: () => {
-          this.isDraggingItem = true;
+        start: (event) => {
+          const element = event.target as HTMLElement;
+          const itemId = element.getAttribute('data-item-id');
+
+          this.ngZone.run(() => {
+            this.isDraggingItem = true;
+            this.activeDraggedItemId = itemId;
+          });
+
+          element.style.position = 'relative';
+          element.style.zIndex = '60';
         },
+
         move: (event) => {
           const element = event.target as HTMLElement;
 
@@ -302,8 +478,33 @@ export class App implements AfterViewInit {
           element.setAttribute('data-x', String(nextX));
           element.setAttribute('data-y', String(nextY));
         },
-        end: () => {
-          this.isDraggingItem = false;
+
+        end: (event) => {
+          this.ngZone.run(() => {
+            this.isDraggingItem = false;
+            this.activeDraggedItemId = null;
+          });
+
+          const element = event.target as HTMLElement;
+
+          if (this.isOverlapping(element)) {
+            const state = this.itemStates[element.id];
+
+            if (!state || state.isAtStartPosition) {
+              element.style.transform = '';
+              element.setAttribute('data-x', '0');
+              element.setAttribute('data-y', '0');
+            } else {
+              this.applyItemPosition(element, state.col, state.row);
+            }
+          } else {
+            this.saveItemGridPosition(element);
+            const pos = this.itemStates[element.id];
+            this.applyItemPosition(element, pos.col, pos.row);
+          }
+
+          element.style.zIndex = '';
+          element.style.position = '';
         },
       },
     });
