@@ -1,4 +1,4 @@
-<!-- Titel -->
+<!-- Main Container: provides full height, background, and global text color -->
 <div class="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-800 text-white">
   <div class="mx-auto flex min-h-screen w-[95%] flex-col px-4 py-8">
     <header class="text-center" [class.opacity-30]="isDraggingItem">
@@ -37,8 +37,14 @@
                       [class.border-slate-300]="isPaintPreview(rowIndex, colIndex)"
                       [class.bg-slate-400]="isPaintPreview(rowIndex, colIndex)"
                       (mousedown)="onCellMouseDown($event, rowIndex, colIndex)"
-                      (mouseenter)="onCellMouseEnter(rowIndex, colIndex)"
-                    ></td>
+                      (mouseenter)="onCellMouseEnter(rowIndex, colIndex)">
+
+                      @if (conveyorGrid[rowIndex][colIndex].active) {
+                        <span>
+                          {{ getConveyorSymbol(conveyorGrid[rowIndex][colIndex]) }}
+                        </span>
+                      }
+                    </td>
                   }
                 </tr>
               }

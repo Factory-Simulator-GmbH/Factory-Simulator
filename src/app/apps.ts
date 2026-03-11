@@ -9,12 +9,24 @@ import {
 } from '@angular/core';
 import interact from 'interactjs';
 
+// Definition of Item Sizes
 type ItemSize = 'large' | 'small';
 
+// Direction type for conveyor belts
+type Direction = 'up' | 'down' | 'left' | 'right';
+
+// Structure for draggable elements
 interface DraggableItems {
   id: string;
   label: string;
   size: ItemSize;
+}
+
+// Conveyor belt cell structure
+interface ConveyorCell {
+  active: boolean;
+  entry: Direction | null;
+  exit: Direction | null;
 }
 
 @Component({
@@ -22,10 +34,12 @@ interface DraggableItems {
   standalone: true,
   templateUrl: './app.html',
 })
-export class App implements AfterViewInit, OnInit {
-  @ViewChild('gridTable', { static: true })
+export class App implements AfterViewInit {
+  // Reference to the HTML grid
+  @ViewChild('gridTable', {static: true})
   gridTableRef!: ElementRef<HTMLTableElement>;
 
+  // Status Flags for Interaction
   mousePressed = false;
   isDraggingItem = false;
   activeDraggedItemId: string | null = null;
@@ -35,7 +49,7 @@ export class App implements AfterViewInit, OnInit {
   readonly gridRowCount = 30;
   gridColumns = 0;
 
-  conveyorGrid: boolean[][] = [];
+  conveyorGrid: ConveyorCell[][] = [];
 
   items: DraggableItems[] = [
     { id: 'f1', label: 'Fabrik', size: 'large' },
@@ -53,6 +67,7 @@ private itemStates: Record<string, { col: number; row: number; isAtStartPosition
   private paintMode: 'on' | 'off' | null = null;
   private previewCells = new Set<string>();
   private touchedCells = new Set<string>();
+  private pathCells: { row: number; col: number }[] = [];
 
   constructor(private ngZone: NgZone) {}
 
@@ -80,11 +95,16 @@ private itemStates: Record<string, { col: number; row: number; isAtStartPosition
   }
 }
 
+  // calculates the number of columns and creates the grid
   private calculateColumnsAndCreateGrid(): void {
     this.gridColumns = 200;
 
-    this.conveyorGrid = Array.from({ length: this.gridRowCount }, () =>
-      Array.from({ length: this.gridColumns }, () => false)
+    this.conveyorGrid = Array.from({length: this.gridRowCount}, () =>
+      Array.from({length: this.gridColumns}, () => ({
+        active: false,
+        entry: null,
+        exit: null,
+      })),
     );
   }
 
@@ -217,6 +237,7 @@ private itemStates: Record<string, { col: number; row: number; isAtStartPosition
     return this.previewCells.has(this.key(r, c));
   }
 
+  // Starts painting or erasing based on mouse button
   onCellMouseDown(event: MouseEvent, rowIndex: number, colIndex: number): void {
     if (this.isDraggingItem) return;
 
@@ -226,15 +247,18 @@ private itemStates: Record<string, { col: number; row: number; isAtStartPosition
     this.mousePressed = true;
     this.previewCells.clear();
     this.touchedCells.clear();
+    this.pathCells = [];
 
     this.applyPreview(rowIndex, colIndex);
   }
 
+  // continue drawing when mouse is moved
   onCellMouseEnter(rowIndex: number, colIndex: number): void {
     if (!this.mousePressed || this.isDraggingItem || !this.paintMode) return;
     this.applyPreview(rowIndex, colIndex);
   }
 
+  // Update Array State and preview
   private applyPreview(rowIndex: number, colIndex: number): void {
     const k = this.key(rowIndex, colIndex);
 
@@ -243,8 +267,125 @@ private itemStates: Record<string, { col: number; row: number; isAtStartPosition
     this.touchedCells.add(k);
     this.previewCells.add(k);
     this.conveyorGrid[rowIndex][colIndex] = this.paintMode === 'on';
+  
+
+    if (this.paintMode === 'off') {
+      this.conveyorGrid[rowIndex][colIndex] = {
+        active: false,
+        entry: null,
+        exit: null,
+      };
+      return;
+    }
+
+    this.conveyorGrid[rowIndex][colIndex].active = true;
+    this.pathCells.push({row: rowIndex, col: colIndex});
+
+    this.rebuildPathDirections();
   }
 
+  private rebuildPathDirections(): void {
+    for (const {row, col} of this.pathCells) {
+      this.conveyorGrid[row][col].entry = null;
+      this.conveyorGrid[row][col].exit = null;
+    }
+
+    for (let i = 0; i < this.pathCells.length; i++) {
+      const current = this.pathCells[i];
+      const prev = this.pathCells[i - 1] ?? null;
+      const next = this.pathCells[i + 1] ?? null;
+
+      const cell = this.conveyorGrid[current.row][current.col];
+
+      if (prev) {
+        cell.entry = this.getDirection(prev.row, prev.col, current.row, current.col);
+      }
+
+      if (next) {
+        cell.exit = this.getDirection(current.row, current.col, next.row, next.col);
+      }
+    }
+  }
+
+  private getDirection(
+    fromRow: number,
+    fromCol: number,
+    toRow: number,
+    toCol: number,
+  ): Direction | null {
+    if (toRow === fromRow - 1 && toCol === fromCol) return 'up';
+    if (toRow === fromRow + 1 && toCol === fromCol) return 'down';
+    if (toRow === fromRow && toCol === fromCol - 1) return 'left';
+    if (toRow === fromRow && toCol === fromCol + 1) return 'right';
+    return null;
+  }
+
+  getConveyorSymbol(cell: ConveyorCell): string {
+    if (!cell.active) return '';
+
+    if (cell.entry && cell.exit) {
+      if (
+        (cell.entry === 'left' && cell.exit === 'right') ||
+        (cell.entry === 'right' && cell.exit === 'left')
+      ) {
+        return '─';
+      }
+
+      if (
+        (cell.entry === 'up' && cell.exit === 'down') ||
+        (cell.entry === 'down' && cell.exit === 'up')
+      ) {
+        return '│';
+      }
+
+      if (
+        (cell.entry === 'up' && cell.exit === 'right') ||
+        (cell.entry === 'left' && cell.exit === 'down')
+      ) {
+        return '┌';
+      }
+
+      if (
+        (cell.entry === 'up' && cell.exit === 'left') ||
+        (cell.entry === 'right' && cell.exit === 'down')
+      ) {
+        return '┐';
+      }
+
+      if (
+        (cell.entry === 'down' && cell.exit === 'right') ||
+        (cell.entry === 'left' && cell.exit === 'up')
+      ) {
+        return '└';
+      }
+
+      if (
+        (cell.entry === 'down' && cell.exit === 'left') ||
+        (cell.entry === 'right' && cell.exit === 'up')
+      ) {
+        return '┘';
+      }
+    }
+
+    if (!cell.entry && cell.exit) {
+      if (cell.exit === 'left' || cell.exit === 'right') return '─';
+      if (cell.exit === 'up' || cell.exit === 'down') return '│';
+    }
+
+    if (cell.entry && !cell.exit) {
+      if (cell.entry === 'right') return '→';
+      if (cell.entry === 'left') return '←';
+      if (cell.entry === 'up') return '↑';
+      if (cell.entry === 'down') return '↓';
+    }
+
+    if (cell.entry === 'left' || cell.entry === 'right') return '─';
+    if (cell.entry === 'up' || cell.entry === 'down') return '│';
+
+    return '';
+  }
+
+  // Document further Mouse-Down Listener
   onItemMouseDown(itemId: string): void {
     this.isDraggingItem = true;
     this.activeDraggedItemId = itemId;
@@ -255,12 +396,17 @@ private itemStates: Record<string, { col: number; row: number; isAtStartPosition
     this.mousePressed = true;
   }
 
+  // Stoping painting when mouse is released
   @HostListener('document:mouseup')
   onDocumentMouseUp(): void {
     this.mousePressed = false;
     this.paintMode = null;
     this.previewCells.clear();
     this.touchedCells.clear();
+    this.pathCells = [];
+  
+
+  // suppreses standard context menu to allow right-click painting AND handles item reset
     this.isDraggingItem = false;
     this.activeDraggedItemId = null;
   }
@@ -289,6 +435,7 @@ private itemStates: Record<string, { col: number; row: number; isAtStartPosition
     interact('.draggable-item').draggable({
       origin: this.gridTableRef.nativeElement,
       modifiers: [
+        // grid magnetic effect
         interact.modifiers.snap({
           targets: [
             interact.createSnapGrid({
@@ -298,6 +445,7 @@ private itemStates: Record<string, { col: number; row: number; isAtStartPosition
           ],
           relativePoints: [{ x: 0, y: 0 }],
         }),
+        // grid boundaries restriction
         interact.modifiers.restrictRect({
           restriction: '.factory-surface',
           endOnly: true,
