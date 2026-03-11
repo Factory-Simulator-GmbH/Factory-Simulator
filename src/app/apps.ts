@@ -49,6 +49,8 @@ export class App implements AfterViewInit {
     {id: 'io2', label: 'I/O', size: 'small'},
   ];
 
+  private itemPositions: Record<string, {x: number, y: number}> = {};
+
   // Intern drawing states
   private paintMode: 'on' | 'off' | null = null;
   private previewCells = new Set<string>();
@@ -73,6 +75,23 @@ export class App implements AfterViewInit {
     this.conveyorGrid = Array.from({length: this.gridRowCount}, () =>
       Array.from({length: this.gridColumns}, () => false),
     );
+  }
+
+  private isOverlapping(checkItem: HTMLElement) {
+    const checkItemRect = checkItem.getBoundingClientRect();
+    for (let item of this.items) {
+      if (item.id === checkItem.id) continue; // Skip self
+      const itemRect = document.getElementById(item.id)?.getBoundingClientRect();
+      if (!itemRect) continue;
+      if (
+        checkItemRect.top + 0.5 >= itemRect.bottom - 0.5 || // 0.5px toleranz für weniger bugs
+        checkItemRect.right - 0.5 <= itemRect.left + 0.5 ||
+        checkItemRect.bottom - 0.5 <= itemRect.top + 0.5 ||
+        checkItemRect.left + 0.5 >= itemRect.right - 0.5
+      ) continue; // kein overlap, weiter zum nächsten item
+      return true; // overlap gefunden
+    }
+    return false;
   }
 
   // Eindeutiger Key für Zelle
@@ -197,15 +216,26 @@ export class App implements AfterViewInit {
           element.style.transform = `translate(${nextX}px, ${nextY}px)`;
           element.setAttribute('data-x', String(nextX));
           element.setAttribute('data-y', String(nextY));
-        },
 
+          if (!this.isOverlapping(element)) {
+            this.itemPositions[element.id] = {x: nextX, y: nextY};
+          }
+        },
         end: (event) => {
           this.ngZone.run(() => {
             this.isDraggingItem = false;
             this.activeDraggedItemId = null;
           });
-
+          
           const element = event.target as HTMLElement;
+          if (this.isOverlapping(element)) {
+            // Zurücksetzen auf letzte gültige Position oder Startposition
+            const pos = this.itemPositions[element.id] ?? {x: 0, y: 0};
+            element.style.transform = `translate(${pos.x}px, ${pos.y}px)`;
+            element.setAttribute('data-x', String(pos.x));
+            element.setAttribute('data-y', String(pos.y));
+          }
+          
           element.style.zIndex = '';
           element.style.position = '';
         },

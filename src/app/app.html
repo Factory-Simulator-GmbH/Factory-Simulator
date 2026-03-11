@@ -65,6 +65,7 @@
                 [class.h-[50px]]="item.size === 'small'"
                 [class.relative]="activeDraggedItemId === item.id"
                 [class.z-50]="activeDraggedItemId === item.id"
+                id="{{ item.id }}"
                 (mousedown)="onItemMouseDown(item.id)"
               >
                 {{ item.label }}
