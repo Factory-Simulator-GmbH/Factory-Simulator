@@ -4,14 +4,13 @@ import {
   ElementRef,
   HostListener,
   NgZone,
+  OnInit,
   ViewChild,
 } from '@angular/core';
 import interact from 'interactjs';
 
-// Definition of Item Sizes
 type ItemSize = 'large' | 'small';
 
-// Structure for draggable elements
 interface DraggableItems {
   id: string;
   label: string;
@@ -23,58 +22,167 @@ interface DraggableItems {
   standalone: true,
   templateUrl: './app.html',
 })
-export class App implements AfterViewInit {
-    // Reference to the HTML grid
-  @ViewChild('gridTable', {static: true})
+export class App implements AfterViewInit, OnInit {
+  @ViewChild('gridTable', { static: true })
   gridTableRef!: ElementRef<HTMLTableElement>;
 
-  // Status Flags for Interaction
   mousePressed = false;
   isDraggingItem = false;
   activeDraggedItemId: string | null = null;
 
-  // Grid constants
-  readonly gridCellSizePx = 50;
-  readonly gridRowCount = 10;
+  readonly gridCellSizeVw = 2.5;
+  gridCellSizePx = 0;
+  readonly gridRowCount = 30;
   gridColumns = 0;
 
   conveyorGrid: boolean[][] = [];
 
-  // List of availabel Items
   items: DraggableItems[] = [
-    {id: 'f1', label: 'Fabrik', size: 'large'},
-    {id: 'f2', label: 'Fabrik', size: 'large'},
-    {id: 'f3', label: 'Fabrik', size: 'large'},
-    {id: 'io1', label: 'I/O', size: 'small'},
-    {id: 'io2', label: 'I/O', size: 'small'},
+    { id: 'f1', label: 'Fabrik', size: 'large' },
+    { id: 'f2', label: 'Fabrik', size: 'large' },
+    { id: 'f3', label: 'Fabrik', size: 'large' },
+    { id: 'io1', label: 'I/O', size: 'small' },
+    { id: 'io2', label: 'I/O', size: 'small' },
   ];
 
-  private itemPositions: Record<string, {x: number, y: number}> = {};
+  // Gespeicherte Rasterposition
+private itemStates: Record<string, { col: number; row: number; isAtStartPosition: boolean }> = {};
+  // Ursprüngliche Basisposition jedes Items relativ zum Grid
+  private itemBasePositions: Record<string, { x: number; y: number }> = {};
 
-  // Intern drawing states
   private paintMode: 'on' | 'off' | null = null;
   private previewCells = new Set<string>();
   private touchedCells = new Set<string>();
 
   constructor(private ngZone: NgZone) {}
 
-  // Initialisierung nach View Build
-  ngAfterViewInit(): void {
-    this.calculateColumnsAndCreateGrid();
-    this.setupInteractDragging();
+  ngOnInit(): void {
+    this.updateGridCellSize();
   }
 
-  // calculates the number of columns and creates the grid
+  ngAfterViewInit(): void {
+    this.calculateColumnsAndCreateGrid();
+
+    requestAnimationFrame(() => {
+      this.captureItemBasePositions();
+      this.initializeItemStates();
+      this.setupInteractDragging();
+    });
+  }
+// Initialisiert die itemStates mit den Startpositionen der Items
+  private initializeItemStates(): void {
+  for (const item of this.items) {
+    this.itemStates[item.id] = {
+      col: 0,
+      row: 0,
+      isAtStartPosition: true,
+    };
+  }
+}
+
   private calculateColumnsAndCreateGrid(): void {
-    const table = this.gridTableRef.nativeElement;
-    const container = table.parentElement;
-    const availableWidthPx = container?.clientWidth ?? 1000;
+    this.gridColumns = 200;
 
-    this.gridColumns = Math.max(1, Math.floor(availableWidthPx / this.gridCellSizePx));
-
-    this.conveyorGrid = Array.from({length: this.gridRowCount}, () =>
-      Array.from({length: this.gridColumns}, () => false),
+    this.conveyorGrid = Array.from({ length: this.gridRowCount }, () =>
+      Array.from({ length: this.gridColumns }, () => false)
     );
+  }
+
+  private pxToGrid(valuePx: number): number {
+    if (!this.gridCellSizePx) return 0;
+    return Math.round(valuePx / this.gridCellSizePx);
+  }
+
+  private captureItemBasePositions(): void {
+    const gridRect = this.gridTableRef.nativeElement.getBoundingClientRect();
+
+    for (const item of this.items) {
+      const element = document.getElementById(item.id);
+      if (!element) continue;
+
+      // Transform kurz ignorieren, damit wir die echte Basisposition bekommen
+      const oldTransform = element.style.transform;
+      element.style.transform = '';
+
+      const rect = element.getBoundingClientRect();
+
+      this.itemBasePositions[item.id] = {
+        x: rect.left - gridRect.left,
+        y: rect.top - gridRect.top,
+      };
+
+      element.style.transform = oldTransform;
+    }
+  }
+
+  private applyItemPosition(element: HTMLElement, col: number, row: number): void {
+    const base = this.itemBasePositions[element.id] ?? { x: 0, y: 0 };
+
+    const targetX = col * this.gridCellSizePx;
+    const targetY = row * this.gridCellSizePx;
+
+    const translateX = targetX - base.x;
+    const translateY = targetY - base.y;
+
+    element.style.transform = `translate(${translateX}px, ${translateY}px)`;
+    element.setAttribute('data-x', String(translateX));
+    element.setAttribute('data-y', String(translateY));
+  }
+
+  private saveItemGridPosition(element: HTMLElement): void {
+  const base = this.itemBasePositions[element.id] ?? { x: 0, y: 0 };
+
+  const translateX = Number(element.getAttribute('data-x') ?? '0');
+  const translateY = Number(element.getAttribute('data-y') ?? '0');
+
+  const absoluteX = base.x + translateX;
+  const absoluteY = base.y + translateY;
+
+  const col = this.pxToGrid(absoluteX);
+  const row = this.pxToGrid(absoluteY);
+
+  this.itemStates[element.id] = {
+    col,
+    row,
+    isAtStartPosition: false,
+  };
+}
+
+  private repositionAllItems(): void {
+  for (const item of this.items) {
+    const element = document.getElementById(item.id);
+    if (!element) continue;
+
+    const state = this.itemStates[item.id];
+
+    if (!state || state.isAtStartPosition) {
+      element.style.transform = '';
+      element.setAttribute('data-x', '0');
+      element.setAttribute('data-y', '0');
+      continue;
+    }
+
+    this.applyItemPosition(element, state.col, state.row);
+  }
+}
+
+  getItemSizePx(size: 'small' | 'large'): number {
+    return size === 'large' ? this.gridCellSizePx * 3 : this.gridCellSizePx;
+  }
+
+  private updateGridCellSize(): void {
+    this.gridCellSizePx = window.innerWidth * this.gridCellSizeVw / 100;
+  }
+
+  @HostListener('window:resize')
+  onResize(): void {
+    this.updateGridCellSize();
+
+    requestAnimationFrame(() => {
+      this.captureItemBasePositions();
+      this.repositionAllItems();
+      this.setupInteractDragging();
+    });
   }
 
   private isOverlapping(checkItem: HTMLElement) {
@@ -83,18 +191,25 @@ export class App implements AfterViewInit {
 
   private isOverlappingWithItem(checkItem: HTMLElement) {
     const checkItemRect = checkItem.getBoundingClientRect();
-    for (let item of this.items) {
-      if (item.id === checkItem.id) continue; // Skip self
+
+    for (const item of this.items) {
+      if (item.id === checkItem.id) continue;
+
       const itemRect = document.getElementById(item.id)?.getBoundingClientRect();
       if (!itemRect) continue;
+
       if (
-        checkItemRect.top + 0.5 >= itemRect.bottom - 0.5 || // 0.5px toleranz für weniger bugs
+        checkItemRect.top + 0.5 >= itemRect.bottom - 0.5 ||
         checkItemRect.right - 0.5 <= itemRect.left + 0.5 ||
         checkItemRect.bottom - 0.5 <= itemRect.top + 0.5 ||
         checkItemRect.left + 0.5 >= itemRect.right - 0.5
-      ) continue; // kein overlap, weiter zum nächsten item
-      return true; // overlap gefunden
+      ) {
+        continue;
+      }
+
+      return true;
     }
+
     return false;
   }
 
@@ -138,12 +253,10 @@ export class App implements AfterViewInit {
     return `${r}:${c}`;
   }
 
-  // Check if a cell is in the paint preview
   isPaintPreview(r: number, c: number): boolean {
     return this.previewCells.has(this.key(r, c));
   }
 
-  // Starts painting or erasing based on mouse button
   onCellMouseDown(event: MouseEvent, rowIndex: number, colIndex: number): void {
     if (this.isDraggingItem) return;
 
@@ -157,13 +270,11 @@ export class App implements AfterViewInit {
     this.applyPreview(rowIndex, colIndex);
   }
 
-  // continue drawing when mouse is moved
   onCellMouseEnter(rowIndex: number, colIndex: number): void {
     if (!this.mousePressed || this.isDraggingItem || !this.paintMode) return;
     this.applyPreview(rowIndex, colIndex);
   }
 
-  // Update Array State and preview
   private applyPreview(rowIndex: number, colIndex: number): void {
     const k = this.key(rowIndex, colIndex);
 
@@ -174,19 +285,16 @@ export class App implements AfterViewInit {
     this.conveyorGrid[rowIndex][colIndex] = this.paintMode === 'on';
   }
 
-  // Wenn Maus auf Item gedrückt wird, direkt visuell "in der Hand"
   onItemMouseDown(itemId: string): void {
     this.isDraggingItem = true;
     this.activeDraggedItemId = itemId;
   }
 
-  // Document further Mouse-Down Listener
   @HostListener('document:mousedown')
   onDocumentMouseDown(): void {
     this.mousePressed = true;
   }
 
-  // Stoping painting when mouse is released
   @HostListener('document:mouseup')
   onDocumentMouseUp(): void {
     this.mousePressed = false;
@@ -197,33 +305,39 @@ export class App implements AfterViewInit {
     this.activeDraggedItemId = null;
   }
 
-  // suppreses standard context menu to allow right-click painting AND handles item reset
   @HostListener('document:contextmenu', ['$event'])
   onContextMenu(event: MouseEvent): void {
     event.preventDefault();
 
-    // Der viel simplere Weg: Wir prüfen das Element, das wir direkt angeklickt haben
     const target = event.target as HTMLElement;
 
-    // Wenn es ein ziehbares Item ist, setzen wir die Achsen auf 0 (Point Reset)
     if (target && target.classList.contains('draggable-item')) {
       target.style.transform = '';
       target.setAttribute('data-x', '0');
       target.setAttribute('data-y', '0');
+      this.itemStates[target.id] = {
+        col: 0,
+        row: 0,
+        isAtStartPosition: true,
+      };
     }
   }
 
-  // configures interact.js Drag & Drop
   private setupInteractDragging(): void {
+    interact('.draggable-item').unset();
+
     interact('.draggable-item').draggable({
       origin: this.gridTableRef.nativeElement,
       modifiers: [
-        // grid magnetic effect
         interact.modifiers.snap({
-          targets: [interact.createSnapGrid({x: this.gridCellSizePx, y: this.gridCellSizePx})],
-          relativePoints: [{x: 0, y: 0}],
+          targets: [
+            interact.createSnapGrid({
+              x: this.gridCellSizePx,
+              y: this.gridCellSizePx,
+            }),
+          ],
+          relativePoints: [{ x: 0, y: 0 }],
         }),
-        // grid boundaries restriction
         interact.modifiers.restrictRect({
           restriction: '.factory-surface',
           endOnly: true,
@@ -255,11 +369,8 @@ export class App implements AfterViewInit {
           element.style.transform = `translate(${nextX}px, ${nextY}px)`;
           element.setAttribute('data-x', String(nextX));
           element.setAttribute('data-y', String(nextY));
-
-          if (!this.isOverlapping(element)) {
-            this.itemPositions[element.id] = {x: nextX, y: nextY};
-          }
         },
+
         end: (event) => {
           this.ngZone.run(() => {
             this.isDraggingItem = false;
@@ -267,12 +378,21 @@ export class App implements AfterViewInit {
           });
 
           const element = event.target as HTMLElement;
+
           if (this.isOverlapping(element)) {
-            // Zurücksetzen auf letzte gültige Position oder Startposition
-            const pos = this.itemPositions[element.id] ?? {x: 0, y: 0};
-            element.style.transform = `translate(${pos.x}px, ${pos.y}px)`;
-            element.setAttribute('data-x', String(pos.x));
-            element.setAttribute('data-y', String(pos.y));
+            const state = this.itemStates[element.id];
+
+            if (!state || state.isAtStartPosition) {
+              element.style.transform = '';
+              element.setAttribute('data-x', '0');
+              element.setAttribute('data-y', '0');
+            } else {
+              this.applyItemPosition(element, state.col, state.row);
+            }
+          } else {
+            this.saveItemGridPosition(element);
+            const pos = this.itemStates[element.id];
+            this.applyItemPosition(element, pos.col, pos.row);
           }
 
           element.style.zIndex = '';
