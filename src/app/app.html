@@ -1,4 +1,4 @@
-<!-- Titel -->
+<!-- Main Container: provides full height, background, and global text color -->
 <div class="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-800 text-white">
   <div class="mx-auto flex min-h-screen w-[95%] flex-col px-4 py-8">
     <header class="text-center" [class.opacity-30]="isDraggingItem">
@@ -37,26 +37,26 @@
                       [class.border-slate-300]="isPaintPreview(rowIndex, colIndex)"
                       [class.bg-slate-400]="isPaintPreview(rowIndex, colIndex)"
                       (mousedown)="onCellMouseDown($event, rowIndex, colIndex)"
-                      (mouseenter)="onCellMouseEnter(rowIndex, colIndex)"
-                    ></td>
+                      (mouseenter)="onCellMouseEnter(rowIndex, colIndex)">
+
+                      @if (conveyorGrid[rowIndex][colIndex].active) {
+                        <span>
+                          {{ getConveyorSymbol(conveyorGrid[rowIndex][colIndex]) }}
+                        </span>
+                      }
+                    </td>
                   }
                 </tr>
               }
             </table>
           </div>
         </div>
-
-        <div class="relative mt-4 rounded-2xl border border-white/10 bg-white/5 p-4">
-          @if (isDraggingItem) {
-            <div class="absolute inset-0 z-40 rounded-2xl bg-black/50 pointer-events-none"></div>
-          }
-
+        <div class="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4">
           <div class="mb-3 text-xs font-semibold tracking-wide text-white">Items</div>
-
-          <div
-            id="item-palette"
-            class="min-h-[15vh] rounded-2xl border-2 border-black bg-white/5 p-3 flex flex-wrap gap-3"
-          >
+          <!-- Items block: Selection of available items -->
+          <div id="item-palette"
+               class="min-h-[15vh] rounded-2xl border-2 border-black bg-white/5 p-3 flex flex-wrap gap-3">
+            <!-- Loop over available items -->
             @for (item of items; track item.id) {
               <div
                 class="draggable-item grid select-none place-items-center rounded-xl border border-white/20 bg-white/10 text-white shadow-sm backdrop-blur touch-none"
