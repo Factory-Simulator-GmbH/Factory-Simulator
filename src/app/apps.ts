@@ -33,7 +33,7 @@ export class App implements AfterViewInit {
   isDraggingItem = false;
   activeDraggedItemId: string | null = null;
 
-  // Grid constants 
+  // Grid constants
   readonly gridCellSizePx = 50;
   readonly gridRowCount = 10;
   gridColumns = 0;
@@ -78,6 +78,10 @@ export class App implements AfterViewInit {
   }
 
   private isOverlapping(checkItem: HTMLElement) {
+    return this.isOverlappingWithItem(checkItem) || this.isOverlappingWithConveyor(checkItem);
+  }
+
+  private isOverlappingWithItem(checkItem: HTMLElement) {
     const checkItemRect = checkItem.getBoundingClientRect();
     for (let item of this.items) {
       if (item.id === checkItem.id) continue; // Skip self
@@ -91,6 +95,41 @@ export class App implements AfterViewInit {
       ) continue; // kein overlap, weiter zum nächsten item
       return true; // overlap gefunden
     }
+    return false;
+  }
+
+  private isOverlappingWithConveyor(checkItem: HTMLElement) {
+    const checkItemRect = checkItem.getBoundingClientRect();
+    const conveyorTableRect = this.gridTableRef.nativeElement.getBoundingClientRect();
+
+    // Position relativ zum Grid
+    const x = checkItemRect.left - conveyorTableRect.left;
+    const y = checkItemRect.top - conveyorTableRect.top;
+    const width = checkItemRect.width;
+    const height = checkItemRect.height;
+
+    // Start- und End-Koordinaten im Grid
+    const colStart = Math.floor((x + 1) / this.gridCellSizePx); // 1px Toleranz für weniger Bugs
+    const rowStart = Math.floor((y + 1) / this.gridCellSizePx);
+    const colEnd = Math.floor((x + width - 1) / this.gridCellSizePx);
+    const rowEnd = Math.floor((y + height - 1) / this.gridCellSizePx);
+
+    console.log('x:', x, 'y:', y, 'width:', width, 'height:', height);
+    console.log('colStart:', colStart, 'colEnd:', colEnd, 'rowStart:', rowStart, 'rowEnd:', rowEnd);
+
+    // Conveyor-Overlap prüfen
+    for (let row = rowStart; row <= rowEnd; row++) {
+      for (let col = colStart; col <= colEnd; col++) {
+        if (
+          row >= 0 && row < this.gridRowCount &&
+          col >= 0 && col < this.gridColumns &&
+          this.conveyorGrid[row][col]
+        ) {
+          return true;
+        }
+      }
+    }
+
     return false;
   }
 
@@ -147,7 +186,7 @@ export class App implements AfterViewInit {
     this.mousePressed = true;
   }
 
-  // Stoping painting when mouse is released 
+  // Stoping painting when mouse is released
   @HostListener('document:mouseup')
   onDocumentMouseUp(): void {
     this.mousePressed = false;
@@ -226,7 +265,7 @@ export class App implements AfterViewInit {
             this.isDraggingItem = false;
             this.activeDraggedItemId = null;
           });
-          
+
           const element = event.target as HTMLElement;
           if (this.isOverlapping(element)) {
             // Zurücksetzen auf letzte gültige Position oder Startposition
@@ -235,7 +274,7 @@ export class App implements AfterViewInit {
             element.setAttribute('data-x', String(pos.x));
             element.setAttribute('data-y', String(pos.y));
           }
-          
+
           element.style.zIndex = '';
           element.style.position = '';
         },
