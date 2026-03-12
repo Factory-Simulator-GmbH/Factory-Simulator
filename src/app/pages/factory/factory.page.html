@@ -1,0 +1,40 @@
+<div class="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-800 text-white">
+  <div class="mx-auto flex min-h-screen w-[95%] flex-col px-4 py-8">
+    <header class="text-center" [class.opacity-30]="isDraggingItem">
+      <h1 class="text-4xl font-extrabold tracking-tight">Factory Simulator</h1>
+    </header>
+
+    <section class="mt-6 flex-1">
+      <div
+        class="factory-surface relative h-full rounded-3xl border border-white/10 bg-white/5 p-5 shadow-xl backdrop-blur">
+        @if (isDraggingItem) {
+          <div class="absolute inset-0 z-40 rounded-3xl bg-black/50 pointer-events-none"></div>
+        }
+
+        <div
+          #gridHost
+          class="rounded-2xl border border-white/10 bg-white/5"
+          [class.relative]="isDraggingItem"
+          [class.z-50]="isDraggingItem"
+        >
+          <app-playground-grid
+            [conveyorGrid]="conveyorGrid"
+            [gridCellSizePx]="gridCellSizePx"
+            [previewCells]="previewCells"
+            [getConveyorSymbol]="getConveyorSymbol"
+            (cellMouseDown)="onCellMouseDown($event.event, $event.rowIndex, $event.colIndex)"
+            (cellMouseEnter)="onCellMouseEnter($event.rowIndex, $event.colIndex)"
+          />
+        </div>
+
+        <app-items
+          [items]="items"
+          [activeDraggedItemId]="activeDraggedItemId"
+          [getItemSizePx]="getItemSizePx.bind(this)"
+          [isDraggingItem]="isDraggingItem"
+          (itemMouseDown)="onItemMouseDown($event)"
+        />
+      </div>
+    </section>
+  </div>
+</div>
