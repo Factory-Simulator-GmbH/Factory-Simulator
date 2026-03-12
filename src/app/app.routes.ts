@@ -1,5 +1,9 @@
-// Import the modules we need from Angular
-import { Routes } from '@angular/router';
+import {Routes} from '@angular/router';
+import {FactoryPage} from './pages/factory/factory.page';
 
-// Defined the route for the app
-export const routes: Routes = [];
+export const routes: Routes = [
+  {
+    path: '',
+    component: FactoryPage,
+  },
+];
