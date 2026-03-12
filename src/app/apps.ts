@@ -51,6 +51,7 @@ export class App implements AfterViewInit {
 
   conveyorGrid: ConveyorCell[][] = [];
 
+  // List of available Items
   items: DraggableItems[] = [
     {id: 'f1', label: 'Fabrik', size: 'large'},
     {id: 'f2', label: 'Fabrik', size: 'large'},
@@ -64,6 +65,7 @@ export class App implements AfterViewInit {
   // Ursprüngliche Basisposition jedes Items relativ zum Grid
   private itemBasePositions: Record<string, { x: number; y: number }> = {};
 
+  // Intern drawing states
   private paintMode: 'on' | 'off' | null = null;
   private previewCells = new Set<string>();
   private touchedCells = new Set<string>();
@@ -207,33 +209,67 @@ export class App implements AfterViewInit {
   }
 
   private isOverlapping(checkItem: HTMLElement): boolean {
+    return this.isOverlappingWithItem(checkItem) || this.isOverlappingWithConveyor(checkItem);
+  }
+
+  private isOverlappingWithItem(checkItem: HTMLElement) {
     const checkItemRect = checkItem.getBoundingClientRect();
-
-    for (const item of this.items) {
-      if (item.id === checkItem.id) continue;
-
+    for (let item of this.items) {
+      if (item.id === checkItem.id) continue; // Skip self
       const itemRect = document.getElementById(item.id)?.getBoundingClientRect();
       if (!itemRect) continue;
-
       if (
-        checkItemRect.top + 0.5 >= itemRect.bottom - 0.5 ||
+        checkItemRect.top + 0.5 >= itemRect.bottom - 0.5 || // 0.5px toleranz für weniger bugs
         checkItemRect.right - 0.5 <= itemRect.left + 0.5 ||
         checkItemRect.bottom - 0.5 <= itemRect.top + 0.5 ||
         checkItemRect.left + 0.5 >= itemRect.right - 0.5
-      ) {
-        continue;
-      }
+      ) continue; // kein overlap, weiter zum nächsten item
+      return true; // overlap gefunden
+    }
+    return false;
+  }
 
-      return true;
+  private isOverlappingWithConveyor(checkItem: HTMLElement) {
+    const checkItemRect = checkItem.getBoundingClientRect();
+    const conveyorTableRect = this.gridTableRef.nativeElement.getBoundingClientRect();
+
+    // Position relativ zum Grid
+    const x = checkItemRect.left - conveyorTableRect.left;
+    const y = checkItemRect.top - conveyorTableRect.top;
+    const width = checkItemRect.width;
+    const height = checkItemRect.height;
+
+    // Start- und End-Koordinaten im Grid
+    const colStart = Math.floor((x + 1) / this.gridCellSizePx); // 1px Toleranz für weniger Bugs
+    const rowStart = Math.floor((y + 1) / this.gridCellSizePx);
+    const colEnd = Math.floor((x + width - 1) / this.gridCellSizePx);
+    const rowEnd = Math.floor((y + height - 1) / this.gridCellSizePx);
+
+    console.log('x:', x, 'y:', y, 'width:', width, 'height:', height);
+    console.log('colStart:', colStart, 'colEnd:', colEnd, 'rowStart:', rowStart, 'rowEnd:', rowEnd);
+
+    // Conveyor-Overlap prüfen
+    for (let row = rowStart; row <= rowEnd; row++) {
+      for (let col = colStart; col <= colEnd; col++) {
+        if (
+          row >= 0 && row < this.gridRowCount &&
+          col >= 0 && col < this.gridColumns &&
+          this.conveyorGrid[row][col]
+        ) {
+          return true;
+        }
+      }
     }
 
     return false;
   }
 
+  // Eindeutiger Key für Zelle
   private key(r: number, c: number): string {
     return `${r}:${c}`;
   }
 
+  // Check if a cell is in the paint preview
   isPaintPreview(r: number, c: number): boolean {
     return this.previewCells.has(this.key(r, c));
   }
@@ -392,6 +428,7 @@ export class App implements AfterViewInit {
     this.activeDraggedItemId = itemId;
   }
 
+  // Document further Mouse-Down Listener
   @HostListener('document:mousedown')
   onDocumentMouseDown(): void {
     this.mousePressed = true;
@@ -412,12 +449,15 @@ export class App implements AfterViewInit {
     this.activeDraggedItemId = null;
   }
 
+  // suppreses standard context menu to allow right-click painting AND handles item reset
   @HostListener('document:contextmenu', ['$event'])
   onContextMenu(event: MouseEvent): void {
     event.preventDefault();
 
+    // Der viel simplere Weg: Wir prüfen das Element, das wir direkt angeklickt haben
     const target = event.target as HTMLElement;
 
+    // Wenn es ein ziehbares Item ist, setzen wir die Achsen auf 0 (Point Reset)
     if (target && target.classList.contains('draggable-item')) {
       target.style.transform = '';
       target.setAttribute('data-x', '0');
@@ -430,6 +470,7 @@ export class App implements AfterViewInit {
     }
   }
 
+  // configures interact.js Drag & Drop
   private setupInteractDragging(): void {
     interact('.draggable-item').unset();
 
