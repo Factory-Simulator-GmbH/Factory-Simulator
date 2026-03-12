@@ -254,7 +254,7 @@ export class App implements AfterViewInit {
         if (
           row >= 0 && row < this.gridRowCount &&
           col >= 0 && col < this.gridColumns &&
-          this.conveyorGrid[row][col]
+          this.conveyorGrid[row][col].active
         ) {
           return true;
         }
