@@ -7,8 +7,9 @@
 
     <!-- Main content: contains the game area -->
     <section class="mt-6 flex-1">
-      <div class="factory-surface relative h-full rounded-3xl border border-white/10 bg-white/5 p-5 shadow-xl backdrop-blur">
-        
+      <div
+        class="factory-surface relative h-full rounded-3xl border border-white/10 bg-white/5 p-5 shadow-xl backdrop-blur">
+
         @if (isDraggingItem) {
           <div class="absolute inset-0 z-40 rounded-3xl bg-black/50 pointer-events-none"></div>
         }
@@ -23,16 +24,16 @@
           <div class="h-[50vh] overflow-hidden rounded-2xl border-2 border-black bg-white/5 p-2">
             <table #gridTable class="h-full w-full table-fixed border-collapse">
               <!-- Loop over rows of the conveyor belt grid -->
-                @for (row of conveyorGrid; let rowIndex = $index; track rowIndex) {
+              @for (row of conveyorGrid; let rowIndex = $index; track rowIndex) {
                 <tr [style.height.px]="gridCellSizePx">
                   <!-- Loop over cells in a row -->
-                    @for (cell of row; let colIndex = $index; track colIndex) {
+                  @for (cell of row; let colIndex = $index; track colIndex) {
                     <td
                       [style.height.px]="gridCellSizePx"
                       [style.width.px]="gridCellSizePx"
-                      class="cursor-crosshair border border-white/10 transition-colors"
-                      [class.border-0]="conveyorGrid[rowIndex][colIndex] && !isPaintPreview(rowIndex, colIndex)"
-                      [class.bg-slate-300]="conveyorGrid[rowIndex][colIndex] && !isPaintPreview(rowIndex, colIndex)"
+                      class="cursor-crosshair border border-white/10 transition-colors text-center align-middle text-xl font-bold text-black"
+                      [class.border-0]="conveyorGrid[rowIndex][colIndex].active && !isPaintPreview(rowIndex, colIndex)"
+                      [class.bg-slate-300]="conveyorGrid[rowIndex][colIndex].active && !isPaintPreview(rowIndex, colIndex)"
                       [class.border-2]="isPaintPreview(rowIndex, colIndex)"
                       [class.border-slate-300]="isPaintPreview(rowIndex, colIndex)"
                       [class.bg-slate-400]="isPaintPreview(rowIndex, colIndex)"
@@ -40,7 +41,7 @@
                       (mouseenter)="onCellMouseEnter(rowIndex, colIndex)">
 
                       @if (conveyorGrid[rowIndex][colIndex].active) {
-                        <span>
+                        <span class="inline-flex items-center justify-center leading-none">
                           {{ getConveyorSymbol(conveyorGrid[rowIndex][colIndex]) }}
                         </span>
                       }
@@ -75,7 +76,7 @@
                 (mousedown)="onItemMouseDown(item.id)"
               >
                 {{ item.label }}
-              </div>  
+              </div>
             }
           </div>
         </div>

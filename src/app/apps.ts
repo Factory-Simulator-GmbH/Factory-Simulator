@@ -52,15 +52,15 @@ export class App implements AfterViewInit {
   conveyorGrid: ConveyorCell[][] = [];
 
   items: DraggableItems[] = [
-    { id: 'f1', label: 'Fabrik', size: 'large' },
-    { id: 'f2', label: 'Fabrik', size: 'large' },
-    { id: 'f3', label: 'Fabrik', size: 'large' },
-    { id: 'io1', label: 'I/O', size: 'small' },
-    { id: 'io2', label: 'I/O', size: 'small' },
+    {id: 'f1', label: 'Fabrik', size: 'large'},
+    {id: 'f2', label: 'Fabrik', size: 'large'},
+    {id: 'f3', label: 'Fabrik', size: 'large'},
+    {id: 'io1', label: 'I/O', size: 'small'},
+    {id: 'io2', label: 'I/O', size: 'small'},
   ];
 
-  // Gespeicherte Rasterposition
-private itemStates: Record<string, { col: number; row: number; isAtStartPosition: boolean }> = {};
+  // saved conveyor position
+  private itemStates: Record<string, { col: number; row: number; isAtStartPosition: boolean }> = {};
   // Ursprüngliche Basisposition jedes Items relativ zum Grid
   private itemBasePositions: Record<string, { x: number; y: number }> = {};
 
@@ -69,7 +69,8 @@ private itemStates: Record<string, { col: number; row: number; isAtStartPosition
   private touchedCells = new Set<string>();
   private pathCells: { row: number; col: number }[] = [];
 
-  constructor(private ngZone: NgZone) {}
+  constructor(private ngZone: NgZone) {
+  }
 
   ngOnInit(): void {
     this.updateGridCellSize();
@@ -84,16 +85,16 @@ private itemStates: Record<string, { col: number; row: number; isAtStartPosition
       this.setupInteractDragging();
     });
   }
-// Initialisiert die itemStates mit den Startpositionen der Items
+
   private initializeItemStates(): void {
-  for (const item of this.items) {
-    this.itemStates[item.id] = {
-      col: 0,
-      row: 0,
-      isAtStartPosition: true,
-    };
+    for (const item of this.items) {
+      this.itemStates[item.id] = {
+        col: 0,
+        row: 0,
+        isAtStartPosition: true,
+      };
+    }
   }
-}
 
   // calculates the number of columns and creates the grid
   private calculateColumnsAndCreateGrid(): void {
@@ -136,7 +137,7 @@ private itemStates: Record<string, { col: number; row: number; isAtStartPosition
   }
 
   private applyItemPosition(element: HTMLElement, col: number, row: number): void {
-    const base = this.itemBasePositions[element.id] ?? { x: 0, y: 0 };
+    const base = this.itemBasePositions[element.id] ?? {x: 0, y: 0};
 
     const targetX = col * this.gridCellSizePx;
     const targetY = row * this.gridCellSizePx;
@@ -150,41 +151,41 @@ private itemStates: Record<string, { col: number; row: number; isAtStartPosition
   }
 
   private saveItemGridPosition(element: HTMLElement): void {
-  const base = this.itemBasePositions[element.id] ?? { x: 0, y: 0 };
+    const base = this.itemBasePositions[element.id] ?? {x: 0, y: 0};
 
-  const translateX = Number(element.getAttribute('data-x') ?? '0');
-  const translateY = Number(element.getAttribute('data-y') ?? '0');
+    const translateX = Number(element.getAttribute('data-x') ?? '0');
+    const translateY = Number(element.getAttribute('data-y') ?? '0');
 
-  const absoluteX = base.x + translateX;
-  const absoluteY = base.y + translateY;
+    const absoluteX = base.x + translateX;
+    const absoluteY = base.y + translateY;
 
-  const col = this.pxToGrid(absoluteX);
-  const row = this.pxToGrid(absoluteY);
+    const col = this.pxToGrid(absoluteX);
+    const row = this.pxToGrid(absoluteY);
 
-  this.itemStates[element.id] = {
-    col,
-    row,
-    isAtStartPosition: false,
-  };
-}
+    this.itemStates[element.id] = {
+      col,
+      row,
+      isAtStartPosition: false,
+    };
+  }
 
   private repositionAllItems(): void {
-  for (const item of this.items) {
-    const element = document.getElementById(item.id);
-    if (!element) continue;
+    for (const item of this.items) {
+      const element = document.getElementById(item.id);
+      if (!element) continue;
 
-    const state = this.itemStates[item.id];
+      const state = this.itemStates[item.id];
 
-    if (!state || state.isAtStartPosition) {
-      element.style.transform = '';
-      element.setAttribute('data-x', '0');
-      element.setAttribute('data-y', '0');
-      continue;
+      if (!state || state.isAtStartPosition) {
+        element.style.transform = '';
+        element.setAttribute('data-x', '0');
+        element.setAttribute('data-y', '0');
+        continue;
+      }
+
+      this.applyItemPosition(element, state.col, state.row);
     }
-
-    this.applyItemPosition(element, state.col, state.row);
   }
-}
 
   getItemSizePx(size: 'small' | 'large'): number {
     return size === 'large' ? this.gridCellSizePx * 3 : this.gridCellSizePx;
@@ -266,8 +267,8 @@ private itemStates: Record<string, { col: number; row: number; isAtStartPosition
 
     this.touchedCells.add(k);
     this.previewCells.add(k);
-    this.conveyorGrid[rowIndex][colIndex] = this.paintMode === 'on';
-  
+    this.conveyorGrid[rowIndex][colIndex].active = this.paintMode === 'on';
+
 
     if (this.paintMode === 'off') {
       this.conveyorGrid[rowIndex][colIndex] = {
@@ -404,9 +405,9 @@ private itemStates: Record<string, { col: number; row: number; isAtStartPosition
     this.previewCells.clear();
     this.touchedCells.clear();
     this.pathCells = [];
-  
 
-  // suppreses standard context menu to allow right-click painting AND handles item reset
+
+    // suppreses standard context menu to allow right-click painting AND handles item reset
     this.isDraggingItem = false;
     this.activeDraggedItemId = null;
   }
@@ -443,7 +444,7 @@ private itemStates: Record<string, { col: number; row: number; isAtStartPosition
               y: this.gridCellSizePx,
             }),
           ],
-          relativePoints: [{ x: 0, y: 0 }],
+          relativePoints: [{x: 0, y: 0}],
         }),
         // grid boundaries restriction
         interact.modifiers.restrictRect({
