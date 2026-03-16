@@ -1,13 +1,26 @@
-<div class="rounded-2xl border border-white/10 bg-white/5 p-4">
-  <div class="mb-3 text-xs font-semibold tracking-wide text-white">Playground</div>
+<div class="transition-all relative"
+     [class.rounded-2xl]="!isFullscreen" [class.border]="!isFullscreen" [class.border-white/10]="!isFullscreen" [class.bg-white/5]="!isFullscreen" [class.p-4]="!isFullscreen">
+  
+  <div class="mb-3 flex items-center justify-between text-xs font-semibold tracking-wide text-white" [class.px-2]="isFullscreen" [class.pt-2]="isFullscreen">
+    <span>Playground</span>
+    <button (click)="onToggleFullscreen()" class="relative z-50 flex items-center gap-2 rounded border border-white/20 bg-white/10 px-3 py-1.5 transition-colors hover:bg-white/20 active:bg-white/30 cursor-pointer">
+      @if (isFullscreen) {
+        <span>🗗 Exit Fullscreen</span>
+      } @else {
+        <span>🖵 Fullscreen</span>
+      }
+    </button>
+  </div>
 
-  <div class="h-[50vh] overflow-hidden rounded-2xl border-2 border-black bg-white/5 p-2">
+  <div class="overflow-hidden border-2 border-black bg-white/5 transition-all duration-300"
+       [class.h-[50vh]]="!isFullscreen" [class.h-[88vh]]="isFullscreen"
+       [class.rounded-2xl]="!isFullscreen" [class.rounded-xl]="isFullscreen"
+       [class.p-2]="!isFullscreen">
+    
     <table #gridTable class="h-full w-full table-fixed border-collapse">
-      <!-- Loop over rows of the conveyor belt grid -->
       @for (row of conveyorGrid; let rowIndex = $index; track rowIndex) {
         <tr [style.height.px]="gridCellSizePx">
 
-          <!-- Loop over cells in a row -->
           @for (cell of row; let colIndex = $index; track colIndex) {
             <td
               [style.height.px]="gridCellSizePx"
