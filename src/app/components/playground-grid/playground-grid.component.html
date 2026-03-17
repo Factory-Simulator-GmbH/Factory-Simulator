@@ -5,14 +5,14 @@
     <table #gridTable class="h-full w-full table-fixed border-collapse">
       <!-- Loop over rows of the conveyor belt grid -->
       @for (row of conveyorGrid; let rowIndex = $index; track rowIndex) {
-        <tr [style.height.px]="gridCellSizePx">
+        <tr>
 
           <!-- Loop over cells in a row -->
           @for (cell of row; let colIndex = $index; track colIndex) {
             <td
               [style.height.px]="gridCellSizePx"
               [style.width.px]="gridCellSizePx"
-              class="cursor-crosshair border border-white/10 transition-colors text-center align-middle text-xl font-bold text-black"
+              class="relative cursor-crosshair border border-white/10 p-0 transition-colors text-black"
               [class.border-0]="conveyorGrid[rowIndex][colIndex].active && !isPaintPreview(rowIndex, colIndex)"
               [class.bg-slate-300]="conveyorGrid[rowIndex][colIndex].active && !isPaintPreview(rowIndex, colIndex)"
               [class.border-2]="isPaintPreview(rowIndex, colIndex)"
@@ -22,7 +22,7 @@
               (mouseenter)="onMouseEnter(rowIndex, colIndex)"
             >
               @if (conveyorGrid[rowIndex][colIndex].active) {
-                <span class="inline-flex items-center justify-center leading-none">
+                <span class="pointer-events-none absolute inset-0 inline-flex items-center justify-center text-sm leading-none font-bold">
                   {{ getConveyorSymbol(conveyorGrid[rowIndex][colIndex]) }}
                 </span>
               }
