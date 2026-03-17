@@ -67,11 +67,10 @@ export class FactoryPage implements AfterViewInit, OnInit {
 
   ngOnInit(): void {
     this.updateGridCellSize();
+    this.calculateColumnsAndCreateGrid();
   }
 
   ngAfterViewInit(): void {
-    this.calculateColumnsAndCreateGrid();
-
     requestAnimationFrame(() => {
       this.captureItemBasePositions();
       this.initializeItemStates();
@@ -85,7 +84,8 @@ export class FactoryPage implements AfterViewInit, OnInit {
 
   private calculateColumnsAndCreateGrid(): void {
     const container = this.gridHostRef.nativeElement;
-    const availableWidthPx = container?.clientWidth ?? window.innerWidth;
+    const containerWidthPx = container?.clientWidth ?? 0;
+    const availableWidthPx = containerWidthPx > 0 ? containerWidthPx : window.innerWidth;
 
     this.gridColumns = this.factoryGridService.calculateColumns(
       this.gridCellSizePx,
