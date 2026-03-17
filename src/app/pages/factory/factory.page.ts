@@ -42,11 +42,11 @@ export class FactoryPage implements AfterViewInit, OnInit {
   conveyorGrid: ConveyorSegment[][] = [];
 
   items: DraggableItems[] = [
-    {id: 'f1', label: 'Fabrik', size: 'large'},
-    {id: 'f2', label: 'Fabrik', size: 'large'},
-    {id: 'f3', label: 'Fabrik', size: 'large'},
-    {id: 'io1', label: 'I/O', size: 'small'},
-    {id: 'io2', label: 'I/O', size: 'small'},
+    {id: 'f1', label: 'Fabrik', size: 'large', helpText: 'Fabriken verarbeiten Materialien zu Produkten. Sie benötigen mindestens eine Input- und eine Output-Seite.', showHelpText: 'false'},
+    {id: 'f2', label: 'Fabrik', size: 'large', helpText: 'Fabriken verarbeiten Materialien zu Produkten. Sie benötigen mindestens eine Input- und eine Output-Seite.', showHelpText: 'false'},
+    {id: 'f3', label: 'Fabrik', size: 'large', helpText: 'Fabriken verarbeiten Materialien zu Produkten. Sie benötigen mindestens eine Input- und eine Output-Seite.', showHelpText: 'false'},
+    {id: 'io1', label: 'I/O', size: 'small', helpText: 'I/O-Module dienen als Schnittstellen für den Datenaustausch mit externen Systemen.', showHelpText: 'false'},
+    {id: 'io2', label: 'I/O', size: 'small', helpText: 'I/O-Module dienen als Schnittstellen für den Datenaustausch mit externen Systemen.', showHelpText: 'false'},
   ];
 
   private itemStates: Record<string, ItemState> = {};
