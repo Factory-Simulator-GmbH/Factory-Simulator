@@ -68,7 +68,20 @@
                [style.height]="minimapViewport.height">
           </div>
         </div>
+
       </div>
     </section>
+
+  @if (!isFullscreen) {
+    <div class="flex-none mt-4 relative z-50">
+      <app-items
+        [items]="items"
+        [activeDraggedItemId]="activeDraggedItemId"
+        [isDraggingItem]="isDraggingItem"
+        [getItemSizePx]="getItemSizePx"
+        (itemMouseDown)="onItemMouseDown($event)">
+      </app-items>
   </div>
+  }
+
 </div>
