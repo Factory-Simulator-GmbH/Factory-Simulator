@@ -4,12 +4,14 @@
        [class.px-4]="!isFullscreen" [class.py-8]="!isFullscreen"
        [class.p-2]="isFullscreen">
     
-    <header class="text-center transition-opacity" [class.hidden]="isFullscreen" [class.opacity-30]="isDraggingItem">
-      <h1 class="text-4xl font-extrabold tracking-tight">Factory Simulator</h1>
-    </header>
+    @if (!isFullscreen) {
+      <header class="text-center transition-opacity" [class.opacity-30]="isDraggingItem">
+        <h1 class="text-4xl font-extrabold tracking-tight">Factory Simulator</h1>
+      </header>
+    }
 
     <section class="flex-1 transition-all" [class.mt-6]="!isFullscreen" #gridHost>
-      <div class="factory-surface relative h-full backdrop-blur transition-all"
+      <div class="factory-surface relative h-full backdrop-blur transition-all overflow-hidden"
            [class.rounded-3xl]="!isFullscreen" [class.rounded-xl]="isFullscreen"
            [class.border]="!isFullscreen" [class.border-white/10]="!isFullscreen" 
            [class.bg-white/5]="!isFullscreen" [class.bg-black/20]="isFullscreen"
@@ -21,29 +23,51 @@
                [class.rounded-3xl]="!isFullscreen" [class.rounded-xl]="isFullscreen"></div>
         }
 
-        <app-playground-grid
-          [conveyorGrid]="conveyorGrid"
-          [gridCellSizePx]="gridCellSizePx"
-          [previewCells]="previewCells"
-          [getConveyorSymbol]="getConveyorSymbol"
-          [isFullscreen]="isFullscreen"
-          (toggleFullscreen)="toggleFullscreen()"
-          (cellMouseDown)="onCellMouseDown($event.event, $event.rowIndex, $event.colIndex)"
-          (cellMouseEnter)="onCellMouseEnter($event.rowIndex, $event.colIndex)">
-        </app-playground-grid>
-
-        <div class="relative mt-4 rounded-2xl border border-white/10 bg-white/5 p-4" [class.hidden]="isFullscreen">
-          <div class="mb-3 text-xs font-semibold tracking-wide text-white">Items</div>
+        <div #scrollContainer class="w-full h-full overflow-auto custom-scrollbar relative" 
+             (wheel)="onWheel($event)"
+             (scroll)="onScroll($event)">
           
-          <app-items
-            [items]="items"
-            [activeDraggedItemId]="activeDraggedItemId"
-            [isDraggingItem]="isDraggingItem"
-            [getItemSizePx]="getItemSizePx"
-            (itemMouseDown)="onItemMouseDown($event)">
-          </app-items>
+          <div class="origin-top-left transition-transform duration-100 ease-out"
+               [style.transform]="'scale(' + zoomLevel + ')'"
+               style="width: fit-content; height: fit-content;">
+               
+            <app-playground-grid
+              [conveyorGrid]="conveyorGrid"
+              [gridCellSizePx]="gridCellSizePx"
+              [previewCells]="previewCells"
+              [getConveyorSymbol]="getConveyorSymbol"
+              [isFullscreen]="isFullscreen"
+              (toggleFullscreen)="toggleFullscreen()"
+              (cellMouseDown)="onCellMouseDown($event.event, $event.rowIndex, $event.colIndex)"
+              (cellMouseEnter)="onCellMouseEnter($event.rowIndex, $event.colIndex)">
+            </app-playground-grid>
+          </div>
         </div>
 
+        @if (!isFullscreen) {
+          <div class="mt-4 relative z-10">
+            <app-items
+              [items]="items"
+              [activeDraggedItemId]="activeDraggedItemId"
+              [isDraggingItem]="isDraggingItem"
+              [getItemSizePx]="getItemSizePx"
+              (itemMouseDown)="onItemMouseDown($event)">
+            </app-items>
+          </div>
+        }
+
+        <div class="absolute bottom-6 right-6 w-48 h-32 bg-slate-900 border-2 border-white/20 rounded-lg z-50 shadow-2xl overflow-hidden pointer-events-none">
+          <div class="absolute top-0 left-0 w-full bg-black/40 px-2 py-0.5 text-[10px] text-white/50 uppercase font-bold z-10">
+            Minimap
+          </div>
+          <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPgo8cmVjdCB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSJub25lIj48L3JlY3Q+CjxwYXRoIGQ9Ik0wIDBMOCAwTDAgOFoiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgyNTUsIDI1NSwgMjU1LCAwLjA1KSIgc3Ryb2tlLXdpZHRoPSIxIj48L3BhdGg+Cjwvc3ZnPg==')] opacity-50"></div>
+          <div class="absolute border-2 border-blue-400 bg-blue-400/20 transition-all duration-75"
+               [style.left]="minimapViewport.left"
+               [style.top]="minimapViewport.top"
+               [style.width]="minimapViewport.width"
+               [style.height]="minimapViewport.height">
+          </div>
+        </div>
       </div>
     </section>
   </div>
