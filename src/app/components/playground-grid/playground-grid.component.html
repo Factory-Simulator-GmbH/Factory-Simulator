@@ -1,7 +1,6 @@
-<div class="transition-all relative"
-     [class.rounded-2xl]="!isFullscreen" [class.border]="!isFullscreen" [class.border-white/10]="!isFullscreen" [class.bg-white/5]="!isFullscreen" [class.p-4]="!isFullscreen">
+<div class="relative w-max h-max flex flex-col bg-black/40 border border-white/20 rounded-xl p-2">
   
-  <div class="mb-3 flex items-center justify-between text-xs font-semibold tracking-wide text-white" [class.px-2]="isFullscreen" [class.pt-2]="isFullscreen">
+  <div class="mb-2 flex items-center justify-between text-xs font-semibold tracking-wide text-white px-2">
     <span>Playground</span>
     <button (click)="onToggleFullscreen()" class="relative z-50 flex items-center gap-2 rounded border border-white/20 bg-white/10 px-3 py-1.5 transition-colors hover:bg-white/20 active:bg-white/30 cursor-pointer">
       @if (isFullscreen) {
@@ -12,15 +11,11 @@
     </button>
   </div>
 
-  <div class="overflow-hidden border-2 border-black bg-white/5 transition-all duration-300"
-       [class.h-[50vh]]="!isFullscreen" [class.h-[88vh]]="isFullscreen"
-       [class.rounded-2xl]="!isFullscreen" [class.rounded-xl]="isFullscreen"
-       [class.p-2]="!isFullscreen">
+  <div class="relative w-max h-max border-2 border-black bg-white/5">
     
-    <table #gridTable class="h-full w-full table-fixed border-collapse">
+    <table #gridTable class="border-collapse border-spacing-0">
       @for (row of conveyorGrid; let rowIndex = $index; track rowIndex) {
         <tr [style.height.px]="gridCellSizePx">
-
           @for (cell of row; let colIndex = $index; track colIndex) {
             <td
               [style.height.px]="gridCellSizePx"
@@ -41,9 +36,11 @@
               }
             </td>
           }
-
         </tr>
       }
     </table>
+
+    <div id="grid-items-container" class="absolute inset-0 z-50 pointer-events-none"></div>
+
   </div>
 </div>

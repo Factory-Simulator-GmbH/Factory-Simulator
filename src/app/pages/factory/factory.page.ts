@@ -33,24 +33,23 @@ export class FactoryPage implements AfterViewInit, OnInit {
   @ViewChild('scrollContainer') 
   scrollContainerRef!: ElementRef<HTMLElement>;
 
-  // --- UI & INTERAKTIONS-STATUS ---
+
   mousePressed = false;
   isDraggingItem = false;
   activeDraggedItemId: string | null = null;
   
-  // TICKET: Full screen Update
+
   isFullscreen = false;
 
-  // TICKET: Zoombare Spielfläche & Scrollbar
+
   zoomLevel = 1.0;
   readonly minZoom = 0.3;
   readonly maxZoom = 2.0;
   readonly zoomStep = 0.1;
   
-  // TICKET: Checkpoints/mini map
   minimapViewport = { left: '0%', top: '0%', width: '100%', height: '100%' };
 
-  // --- GRID KONSTANTEN ---
+
   readonly gridCellSizeVw = 2.5;
   gridCellSizePx = 0;
   readonly gridRowCount = 30;
@@ -69,7 +68,6 @@ export class FactoryPage implements AfterViewInit, OnInit {
   private itemStates: Record<string, ItemState> = {};
   private itemBasePositions: Record<string, ItemBasePosition> = {};
 
-  // --- MAL-MODUS STATUS ---
   private paintMode: 'on' | 'off' | null = null;
   previewCells = new Set<string>();
   private touchedCells = new Set<string>();
@@ -86,24 +84,32 @@ export class FactoryPage implements AfterViewInit, OnInit {
     this.updateGridCellSize();
   }
 
-  ngAfterViewInit(): void {
-    this.calculateColumnsAndCreateGrid();
+ngAfterViewInit(): void {
+    setTimeout(() => {
+      this.calculateColumnsAndCreateGrid();
 
-    requestAnimationFrame(() => {
-      this.captureItemBasePositions();
-      this.initializeItemStates();
-      this.setupInteractDragging();
-      this.updateMinimap(); 
-    });
+      requestAnimationFrame(() => {
+        this.captureItemBasePositions();
+        this.initializeItemStates();
+        this.setupInteractDragging();
+        this.updateMinimap(); 
+      });
+    }, 0);
   }
 
-  toggleFullscreen(): void {
+toggleFullscreen(): void {
     this.isFullscreen = !this.isFullscreen;
-    setTimeout(() => this.updateMinimap(), 100); 
+    
+    setTimeout(() => {
+      this.calculateColumnsAndCreateGrid(); 
+      this.captureItemBasePositions();      
+      this.repositionAllItems();            
+      this.setupInteractDragging();         
+      this.updateMinimap();                 
+    }, 0); 
   }
 
-  // UX-Fix: Zoomen nur mit STRG + Mausrad
-  onWheel(event: WheelEvent): void {
+onWheel(event: WheelEvent): void {
     if (event.ctrlKey || event.metaKey) {
       event.preventDefault(); 
 
@@ -113,13 +119,23 @@ export class FactoryPage implements AfterViewInit, OnInit {
         this.zoomLevel = Math.max(this.zoomLevel - this.zoomStep, this.minZoom);
       }
       
-      setTimeout(() => this.updateMinimap(), 10);
-      this.setupInteractDragging();
+      setTimeout(() => {
+        this.updateMinimap();
+        this.captureItemBasePositions();
+        this.repositionAllItems();
+        this.setupInteractDragging();
+      }, 10);
     }
   }
 
   onScroll(event: Event): void {
     this.updateMinimap(event.target as HTMLElement);
+    
+//Hier wird eine Anmat
+    requestAnimationFrame(() => {
+      this.captureItemBasePositions();
+      this.repositionAllItems();
+    });
   }
 
   private updateMinimap(container?: HTMLElement): void {
@@ -238,17 +254,24 @@ export class FactoryPage implements AfterViewInit, OnInit {
     this.activeDraggedItemId = null;
   }
 
-  // TICKET #24: Items Per rechtsklick entfernen
   @HostListener('document:contextmenu', ['$event'])
   onContextMenu(event: MouseEvent): void {
     event.preventDefault();
     const target = event.target as HTMLElement;
 
     if (target && target.classList.contains('draggable-item')) {
-      target.style.transform = '';
-      target.setAttribute('data-x', '0');
-      target.setAttribute('data-y', '0');
-      this.itemStates[target.id] = { col: 0, row: 0, isAtStartPosition: true };
+      const paletteContainer = document.getElementById('item-palette');
+      
+      if (paletteContainer) {
+        paletteContainer.appendChild(target); // Physisch zurückschieben
+        
+        target.style.position = 'relative';
+        target.style.transform = '';
+        target.setAttribute('data-x', '0');
+        target.setAttribute('data-y', '0');
+        
+        this.itemStates[target.id] = { col: 0, row: 0, isAtStartPosition: true };
+      }
     }
   }
 
@@ -290,21 +313,18 @@ export class FactoryPage implements AfterViewInit, OnInit {
       ondragleave: (event) => event.relatedTarget.classList.remove('can-drop')
     });
 
-    interact('.draggable-item').draggable({
-      origin: gridElement,
+interact('.draggable-item').draggable({
+      origin: 'parent', // WICHTIG: Origin auf parent, nicht mehr auf gridElement!
       modifiers: [
         interact.modifiers.snap({
           targets: [
             interact.createSnapGrid({
-              x: this.gridCellSizePx,
-              y: this.gridCellSizePx,
+              // MAGIE: Wir zwingen das Raster, den Zoom-Faktor mitzurechnen!
+              x: this.gridCellSizePx * this.zoomLevel,
+              y: this.gridCellSizePx * this.zoomLevel,
             }),
           ],
           relativePoints: [{x: 0, y: 0}],
-        }),
-        interact.modifiers.restrictRect({
-          restriction: '.factory-surface',
-          endOnly: true,
         }),
       ],
       listeners: {
@@ -317,57 +337,90 @@ export class FactoryPage implements AfterViewInit, OnInit {
             this.activeDraggedItemId = itemId;
           });
 
-          element.style.position = 'relative';
-          element.style.zIndex = '60';
+          // Wir schmeißen das 'fixed' weg! Das hat die Koordinaten zerstört.
+          element.style.zIndex = '9999';
           element.classList.remove('can-drop'); 
         },
 
         move: (event) => {
           const element = event.target as HTMLElement;
+          const isInGridContainer = element.parentElement?.id === 'grid-items-container';
 
           const currentX = Number(element.getAttribute('data-x') ?? '0');
           const currentY = Number(element.getAttribute('data-y') ?? '0');
 
-          const nextX = currentX + (event.dx / this.zoomLevel);
-          const nextY = currentY + (event.dy / this.zoomLevel);
+          // Wenn das Item im Grid liegt, müssen wir die Mausbewegung durch den Zoomfaktor teilen
+          const effectiveZoom = isInGridContainer ? this.zoomLevel : 1.0;
+
+          const nextX = currentX + (event.dx / effectiveZoom);
+          const nextY = currentY + (event.dy / effectiveZoom);
 
           element.style.transform = `translate(${nextX}px, ${nextY}px)`;
           element.setAttribute('data-x', String(nextX));
           element.setAttribute('data-y', String(nextY));
         },
 
-        end: (event) => {
+end: (event) => {
           this.ngZone.run(() => {
             this.isDraggingItem = false;
             this.activeDraggedItemId = null;
           });
 
           const element = event.target as HTMLElement;
+          const gridContainer = document.getElementById('grid-items-container');
+          const paletteContainer = document.getElementById('item-palette');
+
           element.style.zIndex = '';
-          element.style.position = '';
 
           const isInGrid = element.classList.contains('can-drop');
-          
           let overlap = false;
-          try {
-            overlap = this.isOverlapping(element);
-          } catch (e) {
-            console.warn('Kollisions-Service Fehler:', e);
-          }
+          try { overlap = this.isOverlapping(element); } catch(e) {}
 
-          if (!isInGrid || overlap) {
-            const state = this.itemStates[element.id];
-            if (!state || state.isAtStartPosition) {
-              element.style.transform = '';
-              element.setAttribute('data-x', '0');
-              element.setAttribute('data-y', '0');
-            } else {
-              this.applyItemPosition(element, state.col, state.row);
-            }
+          if (!isInGrid || overlap || !gridContainer) {
+  
+            if (paletteContainer) paletteContainer.appendChild(element);
+            
+            element.style.position = 'relative'; 
+            element.style.transform = '';
+            element.setAttribute('data-x', '0');
+            element.setAttribute('data-y', '0');
+            element.style.pointerEvents = 'auto';
+            this.itemStates[element.id] = { col: 0, row: 0, isAtStartPosition: true };
           } else {
-            this.saveItemGridPosition(element);
-            const pos = this.itemStates[element.id];
-            this.applyItemPosition(element, pos.col, pos.row);
+
+
+            const itemRect = element.getBoundingClientRect();
+            const gridRect = gridContainer.getBoundingClientRect();
+
+           
+            const relativeX = itemRect.left - gridRect.left;
+            const relativeY = itemRect.top - gridRect.top;
+            let targetCol = Math.round((relativeX / this.zoomLevel) / this.gridCellSizePx);
+            let targetRow = Math.round((relativeY / this.zoomLevel) / this.gridCellSizePx);
+
+
+            targetCol = Math.max(0, Math.min(targetCol, this.gridColumns - 1));
+            targetRow = Math.max(0, Math.min(targetRow, this.gridRowCount - 1));
+
+
+            this.itemStates[element.id] = { 
+              col: targetCol, 
+              row: targetRow, 
+              isAtStartPosition: false 
+            };
+
+            gridContainer.appendChild(element);
+
+            const finalX = targetCol * this.gridCellSizePx;
+            const finalY = targetRow * this.gridCellSizePx;
+
+            element.style.position = 'absolute';
+            element.style.left = '0px'; 
+            element.style.top = '0px';  
+            element.style.transform = `translate(${finalX}px, ${finalY}px)`;
+            element.setAttribute('data-x', String(finalX));
+            element.setAttribute('data-y', String(finalY));
+            element.style.pointerEvents = 'auto'; 
           }
         },
       },
