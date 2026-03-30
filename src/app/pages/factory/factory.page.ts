@@ -34,6 +34,10 @@ export class FactoryPage implements AfterViewInit, OnInit {
   isDraggingItem = false;
   activeDraggedItemId: string | null = null;
 
+  // Für den Doppelklick-Timer
+  private lastRightClickTime = 0;
+  private lastRightClickId: string | null = null;
+
   readonly gridCellSizeVw = 2.5;
   gridCellSizePx = 0;
   readonly gridRowCount = 30;
@@ -159,13 +163,32 @@ export class FactoryPage implements AfterViewInit, OnInit {
   };
 
   onItemMouseDown(itemId: string): void {
+    const state = this.itemStates[itemId];
+    
+    if (state && (state as any).isConnected) {
+      return; 
+    }
+
     this.isDraggingItem = true;
     this.activeDraggedItemId = itemId;
   }
 
-  @HostListener('document:mousedown')
-  onDocumentMouseDown(): void {
+  @HostListener('document:mousedown', ['$event'])
+  onDocumentMouseDown(event: MouseEvent): void {
     this.mousePressed = true;
+
+    const target = event.target as HTMLElement;
+    if (target && target.classList.contains('draggable-item')) {
+      const itemId = target.getAttribute('data-item-id') || target.id;
+      const state = this.itemStates[itemId];
+      
+      if (state && (state as any).isConnected) {
+        this.paintMode = event.button === 2 ? 'off' : 'on';
+        this.previewCells.clear();
+        this.touchedCells.clear();
+        this.pathCells = [];
+      }
+    }
   }
 
   @HostListener('document:mouseup')
@@ -178,7 +201,6 @@ export class FactoryPage implements AfterViewInit, OnInit {
     this.isDraggingItem = false;
     this.activeDraggedItemId = null;
 
-    // NEU: Wenn das Zeichnen eines Förderbands beendet ist, prüfen wir Verbindungen
     this.evaluateConnections();
   }
 
@@ -189,18 +211,38 @@ export class FactoryPage implements AfterViewInit, OnInit {
     const target = event.target as HTMLElement;
 
     if (target && target.classList.contains('draggable-item')) {
-      target.style.transform = '';
-      target.setAttribute('data-x', '0');
-      target.setAttribute('data-y', '0');
-      this.itemStates[target.id] = {
-        col: 0,
-        row: 0,
-        isAtStartPosition: true,
-      };
-      
-      // NEU: Item wurde entfernt -> Verbindungen aktualisieren (damit das Leuchten verschwindet)
-      this.evaluateConnections();
+      const itemId = target.getAttribute('data-item-id') || target.id;
+      const state = this.itemStates[itemId];
+      const isConnected = state && (state as any).isConnected;
+
+      if (isConnected) {
+        const now = Date.now();
+        if (this.lastRightClickId === itemId && now - this.lastRightClickTime < 400) {
+          this.removePlacedItem(target, itemId);
+          this.lastRightClickId = null;
+        } else {
+          this.lastRightClickTime = now;
+          this.lastRightClickId = itemId;
+        }
+      } else {
+        this.removePlacedItem(target, itemId);
+      }
     }
+  }
+
+  private removePlacedItem(target: HTMLElement, itemId: string): void {
+    target.style.transform = '';
+    target.setAttribute('data-x', '0');
+    target.setAttribute('data-y', '0');
+    this.itemStates[itemId] = { col: 0, row: 0, isAtStartPosition: true };
+    
+    const paletteContainer = document.getElementById('item-palette');
+    if (paletteContainer) {
+      paletteContainer.appendChild(target);
+      target.style.position = 'relative';
+    }
+
+    this.evaluateConnections();
   }
 
   private captureItemBasePositions(): void {
@@ -275,7 +317,13 @@ export class FactoryPage implements AfterViewInit, OnInit {
       listeners: {
         start: (event) => {
           const element = event.target as HTMLElement;
-          const itemId = element.getAttribute('data-item-id');
+          const itemId = element.getAttribute('data-item-id') || element.id;
+          const state = this.itemStates[itemId];
+
+          if (state && (state as any).isConnected) {
+            event.interaction.stop();
+            return;
+          }
 
           this.ngZone.run(() => {
             this.isDraggingItem = true;
@@ -327,7 +375,6 @@ export class FactoryPage implements AfterViewInit, OnInit {
           element.style.zIndex = '';
           element.style.position = '';
 
-          // NEU: Nachdem das Item gedroppt wurde, Verbindungen prüfen
           this.evaluateConnections();
         },
       },
@@ -339,7 +386,9 @@ export class FactoryPage implements AfterViewInit, OnInit {
       const state = this.itemStates[itemId];
       const element = document.getElementById(itemId);
       
-      if (!element) continue;
+      const itemData = this.items.find(i => i.id === itemId);
+      
+      if (!element || !itemData) continue;
 
       if (state.isAtStartPosition) {
         (state as any).isConnected = false;
@@ -347,27 +396,29 @@ export class FactoryPage implements AfterViewInit, OnInit {
         continue;
       }
 
-      const row = state.row;
-      const col = state.col;
+      const itemSizePx = this.getItemSizePx(itemData.size);
+      const cellSpan = Math.max(1, Math.round(itemSizePx / this.gridCellSizePx));
+
+      const startRow = state.row;
+      const startCol = state.col;
       let isConnected = false;
 
-
-      const neighbors = [
-        { r: row - 1, c: col },
-        { r: row + 1, c: col },
-        { r: row, c: col - 1 },
-        { r: row, c: col + 1 } 
-      ];
-
-      for (const neighbor of neighbors) {
-        if (neighbor.r >= 0 && neighbor.r < this.gridRowCount && 
-            neighbor.c >= 0 && neighbor.c < this.gridColumns) {
+      for (let r = startRow - 1; r <= startRow + cellSpan; r++) {
+        for (let c = startCol - 1; c <= startCol + cellSpan; c++) {
           
-          if (this.conveyorGrid[neighbor.r][neighbor.c]?.active) {
-            isConnected = true;
-            break; 
+          const isTopOrBottom = (r === startRow - 1 || r === startRow + cellSpan) && (c >= startCol && c < startCol + cellSpan);
+          const isLeftOrRight = (c === startCol - 1 || c === startCol + cellSpan) && (r >= startRow && r < startRow + cellSpan);
+
+          if (isTopOrBottom || isLeftOrRight) {
+            if (r >= 0 && r < this.gridRowCount && c >= 0 && c < this.gridColumns) {
+              if (this.conveyorGrid[r][c]?.active) {
+                isConnected = true;
+                break; 
+              }
+            }
           }
         }
+        if (isConnected) break; 
       }
 
       (state as any).isConnected = isConnected;
