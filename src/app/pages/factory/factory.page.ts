@@ -177,6 +177,9 @@ export class FactoryPage implements AfterViewInit, OnInit {
     this.pathCells = [];
     this.isDraggingItem = false;
     this.activeDraggedItemId = null;
+
+    // NEU: Wenn das Zeichnen eines Förderbands beendet ist, prüfen wir Verbindungen
+    this.evaluateConnections();
   }
 
   @HostListener('document:contextmenu', ['$event'])
@@ -194,6 +197,9 @@ export class FactoryPage implements AfterViewInit, OnInit {
         row: 0,
         isAtStartPosition: true,
       };
+      
+      // NEU: Item wurde entfernt -> Verbindungen aktualisieren (damit das Leuchten verschwindet)
+      this.evaluateConnections();
     }
   }
 
@@ -320,8 +326,64 @@ export class FactoryPage implements AfterViewInit, OnInit {
 
           element.style.zIndex = '';
           element.style.position = '';
+
+          // NEU: Nachdem das Item gedroppt wurde, Verbindungen prüfen
+          this.evaluateConnections();
         },
       },
     });
+  }
+
+  public evaluateConnections(): void {
+    for (const itemId in this.itemStates) {
+      const state = this.itemStates[itemId];
+      const element = document.getElementById(itemId);
+      
+      if (!element) continue;
+
+      if (state.isAtStartPosition) {
+        (state as any).isConnected = false;
+        this.updateVisualConnection(element, false);
+        continue;
+      }
+
+      const row = state.row;
+      const col = state.col;
+      let isConnected = false;
+
+
+      const neighbors = [
+        { r: row - 1, c: col },
+        { r: row + 1, c: col },
+        { r: row, c: col - 1 },
+        { r: row, c: col + 1 } 
+      ];
+
+      for (const neighbor of neighbors) {
+        if (neighbor.r >= 0 && neighbor.r < this.gridRowCount && 
+            neighbor.c >= 0 && neighbor.c < this.gridColumns) {
+          
+          if (this.conveyorGrid[neighbor.r][neighbor.c]?.active) {
+            isConnected = true;
+            break; 
+          }
+        }
+      }
+
+      (state as any).isConnected = isConnected;
+      this.updateVisualConnection(element, isConnected);
+    }
+  }
+
+  private updateVisualConnection(element: HTMLElement, isConnected: boolean): void {
+    if (isConnected) {
+      element.classList.add('ring-4', 'ring-green-500', 'shadow-[0_0_20px_rgba(34,197,94,0.6)]');
+      element.classList.remove('border-white/20');
+      element.setAttribute('data-connected', 'true');
+    } else {
+      element.classList.remove('ring-4', 'ring-green-500', 'shadow-[0_0_20px_rgba(34,197,94,0.6)]');
+      element.classList.add('border-white/20');
+      element.setAttribute('data-connected', 'false');
+    }
   }
 }
