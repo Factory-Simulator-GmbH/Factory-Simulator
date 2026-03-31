@@ -6,6 +6,7 @@ import {
   NgZone,
   OnInit,
   ViewChild,
+  ChangeDetectorRef
 } from '@angular/core';
 import interact from 'interactjs';
 import {ItemsComponent} from '../../components/items/items.component';
@@ -34,7 +35,6 @@ export class FactoryPage implements AfterViewInit, OnInit {
   isDraggingItem = false;
   activeDraggedItemId: string | null = null;
 
-  // Für den Doppelklick-Timer
   private lastRightClickTime = 0;
   private lastRightClickId: string | null = null;
 
@@ -66,6 +66,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
     private layoutService: LayoutService,
     private factoryGridService: FactoryGridService,
     private factoryItemsService: FactoryItemsService,
+    private cdr: ChangeDetectorRef
   ) {
   }
 
@@ -79,6 +80,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
       this.captureItemBasePositions();
       this.initializeItemStates();
       this.setupInteractDragging();
+      this.cdr.detectChanges();
     });
   }
 
@@ -124,6 +126,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
       this.captureItemBasePositions();
       this.repositionAllItems();
       this.setupInteractDragging();
+      this.cdr.detectChanges();
     });
   }
 
@@ -175,38 +178,64 @@ export class FactoryPage implements AfterViewInit, OnInit {
 
   @HostListener('document:mousedown', ['$event'])
   onDocumentMouseDown(event: MouseEvent): void {
+    if (this.isDraggingItem) return;
+
     this.mousePressed = true;
 
     const target = event.target as HTMLElement;
-    if (target && target.classList.contains('draggable-item')) {
-      const itemId = target.getAttribute('data-item-id') || target.id;
+    const itemElement = target.closest('.draggable-item') as HTMLElement | null;
+
+    if (itemElement) {
+      const itemId = itemElement.getAttribute('data-item-id') || itemElement.id;
       const state = this.itemStates[itemId];
       
-      if (state && (state as any).isConnected) {
-        this.paintMode = event.button === 2 ? 'off' : 'on';
+      if (state && (state as any).isConnected && event.button === 0) {
+        this.paintMode = 'on'; 
         this.previewCells.clear();
         this.touchedCells.clear();
-        this.pathCells = [];
+        
+        this.pathCells = [{ row: state.row, col: state.col }];
+        
+        itemElement.style.pointerEvents = 'none';
+        this.activeDraggedItemId = itemId;
       }
     }
   }
 
-  @HostListener('document:mouseup')
-  onDocumentMouseUp(): void {
+  private resetInteractions(): void {
     this.mousePressed = false;
     this.paintMode = null;
     this.previewCells.clear();
     this.touchedCells.clear();
     this.pathCells = [];
     this.isDraggingItem = false;
-    this.activeDraggedItemId = null;
 
+    if (this.activeDraggedItemId) {
+      const el = document.getElementById(this.activeDraggedItemId);
+      if (el) el.style.pointerEvents = 'auto';
+    }
+    this.activeDraggedItemId = null;
+  }
+
+  @HostListener('document:mouseup')
+  onDocumentMouseUp(): void {
+    this.resetInteractions();
     this.evaluateConnections();
+  }
+
+  @HostListener('window:blur')
+  @HostListener('document:mouseleave')
+  onInterrupt(): void {
+    this.resetInteractions();
   }
 
   @HostListener('document:contextmenu', ['$event'])
   onContextMenu(event: MouseEvent): void {
     event.preventDefault();
+
+    if (this.isDraggingItem || this.mousePressed) {
+      return;
+    }
 
     const target = event.target as HTMLElement;
 
@@ -234,15 +263,18 @@ export class FactoryPage implements AfterViewInit, OnInit {
     target.style.transform = '';
     target.setAttribute('data-x', '0');
     target.setAttribute('data-y', '0');
+    
+    target.style.position = ''; 
+
     this.itemStates[itemId] = { col: 0, row: 0, isAtStartPosition: true };
     
     const paletteContainer = document.getElementById('item-palette');
     if (paletteContainer) {
       paletteContainer.appendChild(target);
-      target.style.position = 'relative';
     }
 
     this.evaluateConnections();
+    this.cdr.detectChanges(); 
   }
 
   private captureItemBasePositions(): void {
@@ -351,7 +383,6 @@ export class FactoryPage implements AfterViewInit, OnInit {
         end: (event) => {
           this.ngZone.run(() => {
             this.isDraggingItem = false;
-            this.activeDraggedItemId = null;
           });
 
           const element = event.target as HTMLElement;
@@ -373,9 +404,12 @@ export class FactoryPage implements AfterViewInit, OnInit {
           }
 
           element.style.zIndex = '';
+          
+          // ZURÜCKGESETZT auf deine Version!
           element.style.position = '';
 
           this.evaluateConnections();
+          this.cdr.detectChanges(); // NEU: Behebt den Render-Absturz beim Platzieren
         },
       },
     });
