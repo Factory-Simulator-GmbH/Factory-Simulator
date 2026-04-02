@@ -1,12 +1,4 @@
-import {
-  AfterViewInit,
-  Component,
-  ElementRef,
-  HostListener,
-  NgZone,
-  OnInit,
-  ViewChild,
-} from '@angular/core';
+import {AfterViewInit, Component, ElementRef, HostListener, NgZone, OnInit, ViewChild,} from '@angular/core';
 import interact from 'interactjs';
 import {ItemsComponent} from '../../components/items/items.component';
 import {PlaygroundGridComponent} from '../../components/playground-grid/playground-grid.component';
@@ -47,7 +39,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
   readonly maxZoom = 2.0;
   readonly zoomStep = 0.1;
 
-  minimapViewport = { left: '0%', top: '0%', width: '100%', height: '100%' };
+  minimapViewport = {left: '0%', top: '0%', width: '100%', height: '100%'};
 
 
   readonly gridCellSizeVw = 2.5;
@@ -78,14 +70,15 @@ export class FactoryPage implements AfterViewInit, OnInit {
     private layoutService: LayoutService,
     private factoryGridService: FactoryGridService,
     private factoryItemsService: FactoryItemsService,
-  ) {}
+  ) {
+  }
 
   ngOnInit(): void {
     this.updateGridCellSize();
     this.calculateColumnsAndCreateGrid();
   }
 
-ngAfterViewInit(): void {
+  ngAfterViewInit(): void {
     setTimeout(() => {
 
       requestAnimationFrame(() => {
@@ -97,19 +90,21 @@ ngAfterViewInit(): void {
     }, 0);
   }
 
-toggleFullscreen(): void {
+  toggleFullscreen(): void {
     this.isFullscreen = !this.isFullscreen;
 
-    setTimeout(() => {
-      this.calculateColumnsAndCreateGrid();
-      this.captureItemBasePositions();
-      this.repositionAllItems();
-      this.setupInteractDragging();
-      this.updateMinimap();
-    }, 0);
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        this.calculateColumnsAndCreateGrid();
+        this.captureItemBasePositions();
+        this.repositionAllItems();
+        this.setupInteractDragging();
+        this.updateMinimap();
+      }, 50);
+    });
   }
 
-onWheel(event: WheelEvent): void {
+  onWheel(event: WheelEvent): void {
     if (event.ctrlKey || event.metaKey) {
       event.preventDefault();
 
@@ -163,14 +158,28 @@ onWheel(event: WheelEvent): void {
     this.itemStates = this.factoryItemsService.initializeItemStates(this.items);
   }
 
+  private getContainerPadding(element: HTMLElement): number {
+    const style = window.getComputedStyle(element);
+    return parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+  }
+
   private calculateColumnsAndCreateGrid(): void {
-    const container = this.gridHostRef.nativeElement;
-    const availableWidthPx = container?.clientWidth ?? window.innerWidth;
+    const scrollContainer = this.scrollContainerRef?.nativeElement;
+
+    // scrollContainer.clientWidth = sichtbare Breite ohne Scrollbar
+    const availableWidthPx = scrollContainer?.clientWidth ?? window.innerWidth;
+
+    // Padding des inneren p-8 Containers dynamisch lesen
+    const innerContainer = scrollContainer?.firstElementChild as HTMLElement | null;
+    const horizontalPadding = innerContainer
+      ? this.getContainerPadding(innerContainer)
+      : 0;
+
+    const effectiveWidth = availableWidthPx - horizontalPadding;
 
     this.gridColumns = this.factoryGridService.calculateColumns(
       this.gridCellSizePx,
-      availableWidthPx,
-    );
+      effectiveWidth,);
 
     this.conveyorGrid = this.factoryGridService.createOrResizeGrid(
       this.conveyorGrid,
@@ -178,6 +187,7 @@ onWheel(event: WheelEvent): void {
       this.gridColumns,
     );
   }
+
 
   private getGridTableRect(): DOMRect {
     return this.playgroundGridComponent.gridTableRef.nativeElement.getBoundingClientRect();
@@ -270,7 +280,7 @@ onWheel(event: WheelEvent): void {
         target.setAttribute('data-x', '0');
         target.setAttribute('data-y', '0');
 
-        this.itemStates[target.id] = { col: 0, row: 0, isAtStartPosition: true };
+        this.itemStates[target.id] = {col: 0, row: 0, isAtStartPosition: true};
       }
     }
   }
@@ -313,7 +323,7 @@ onWheel(event: WheelEvent): void {
       ondragleave: (event) => event.relatedTarget.classList.remove('can-drop')
     });
 
-interact('.draggable-item').draggable({
+    interact('.draggable-item').draggable({
       origin: 'parent', // WICHTIG: Origin auf parent, nicht mehr auf gridElement!
       modifiers: [
         interact.modifiers.snap({
@@ -360,7 +370,7 @@ interact('.draggable-item').draggable({
           element.setAttribute('data-y', String(nextY));
         },
 
-end: (event) => {
+        end: (event) => {
           this.ngZone.run(() => {
             this.isDraggingItem = false;
             this.activeDraggedItemId = null;
@@ -374,7 +384,10 @@ end: (event) => {
 
           const isInGrid = element.classList.contains('can-drop');
           let overlap = false;
-          try { overlap = this.isOverlapping(element); } catch(e) {}
+          try {
+            overlap = this.isOverlapping(element);
+          } catch (e) {
+          }
 
           if (!isInGrid || overlap || !gridContainer) {
 
@@ -385,7 +398,7 @@ end: (event) => {
             element.setAttribute('data-x', '0');
             element.setAttribute('data-y', '0');
             element.style.pointerEvents = 'auto';
-            this.itemStates[element.id] = { col: 0, row: 0, isAtStartPosition: true };
+            this.itemStates[element.id] = {col: 0, row: 0, isAtStartPosition: true};
           } else {
 
 

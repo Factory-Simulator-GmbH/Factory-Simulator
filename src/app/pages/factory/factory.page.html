@@ -8,23 +8,24 @@
   }
 
   <section class="flex-1 relative min-h-0 min-w-0 transition-all" #gridHost>
-    
+
     <div class="absolute inset-0 flex flex-col backdrop-blur overflow-hidden transition-all"
          [class.rounded-3xl]="!isFullscreen" [class.rounded-none]="isFullscreen"
-         [class.border]="!isFullscreen" [class.border-white/10]="!isFullscreen" 
+         [class.border]="!isFullscreen" [class.border-white/10]="!isFullscreen"
          [class.bg-white/5]="!isFullscreen" [class.bg-black/20]="isFullscreen">
-      
+
       @if (isDraggingItem) {
         <div class="absolute inset-0 z-30 bg-black/50 pointer-events-none"></div>
       }
 
-      <div #scrollContainer class="absolute inset-0 overflow-auto custom-scrollbar z-10" 
+      <div #scrollContainer class="absolute inset-0 overflow-auto custom-scrollbar z-10"
+           [class.overflow-x-hidden]="isFullscreen"
            (wheel)="onWheel($event)"
            (scroll)="onScroll($event)">
-        
+
         <div class="origin-top-left w-max h-max p-8 transition-transform duration-100 ease-out"
              [style.transform]="'scale(' + zoomLevel + ')'">
-             
+
           <app-playground-grid
             [conveyorGrid]="conveyorGrid"
             [gridCellSizePx]="gridCellSizePx"
