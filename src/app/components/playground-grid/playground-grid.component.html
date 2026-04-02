@@ -1,18 +1,19 @@
 <div class="relative w-max h-max flex flex-col bg-black/40 border border-white/20 rounded-xl p-2">
-  
+
   <div class="mb-2 flex items-center justify-between text-xs font-semibold tracking-wide text-white px-2">
     <span>Playground</span>
-    <button (click)="onToggleFullscreen()" class="relative z-50 flex items-center gap-2 rounded border border-white/20 bg-white/10 px-3 py-1.5 transition-colors hover:bg-white/20 active:bg-white/30 cursor-pointer">
-      @if (isFullscreen) {
-        <span>🗗 Exit Fullscreen</span>
-      } @else {
-        <span>🖵 Fullscreen</span>
-      }
-    </button>
   </div>
 
+  <button (click)="onToggleFullscreen()" class="absolute top-10 left-4 z-50 flex items-center gap-2 rounded border border-white/20 bg-white/10 px-3 py-1.5 transition-colors hover:bg-white/20 active:bg-white/30 cursor-pointer">
+    @if (isFullscreen) {
+      <span>🗗 Exit Fullscreen</span>
+    } @else {
+      <span>🖵 Fullscreen</span>
+    }
+  </button>
+
   <div class="relative w-max h-max border-2 border-black bg-white/5">
-    
+
     <table #gridTable class="border-collapse border-spacing-0">
       @for (row of conveyorGrid; let rowIndex = $index; track rowIndex) {
         <tr [style.height.px]="gridCellSizePx">
