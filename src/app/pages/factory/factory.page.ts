@@ -42,11 +42,11 @@ export class FactoryPage implements AfterViewInit, OnInit {
   conveyorGrid: ConveyorSegment[][] = [];
 
   items: DraggableItems[] = [
-    {id: 'f1', label: 'Fabrik', size: 'large'},
-    {id: 'f2', label: 'Fabrik', size: 'large'},
-    {id: 'f3', label: 'Fabrik', size: 'large'},
-    {id: 'io1', label: 'I/O', size: 'small'},
-    {id: 'io2', label: 'I/O', size: 'small'},
+    {id: 'f1', label: 'Fabrik', size: 'large', helpText: '<strong>Maschine</strong><br>Verarbeitet Materialien zu Produkten.<br>Benötigt mindestens eine Input- und eine Output-Seite.<br><bold>Rezept:</bold><br><img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRSyZz79wlfw2jtpya-0ZmYsGeKqK6Mkpzy8g&s" alst="Rezept für Diaschwert" style="width: 100%;">'},
+    {id: 'f2', label: 'Fabrik', size: 'large', helpText: '<strong>Maschine</strong><br>Verarbeitet Materialien zu Produkten.<br>Benötigt mindestens eine Input- und eine Output-Seite.<br><bold>Rezept:</bold><br><img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRSyZz79wlfw2jtpya-0ZmYsGeKqK6Mkpzy8g&s" alt="Rezept für Diaschwert" style="width: 100%;">'},
+    {id: 'f3', label: 'Fabrik', size: 'large', helpText: '<strong>Maschine</strong><br>Verarbeitet Materialien zu Produkten.<br>Benötigt mindestens eine Input- und eine Output-Seite.<br><bold>Rezept:</bold><br><img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRSyZz79wlfw2jtpya-0ZmYsGeKqK6Mkpzy8g&s" alt="Rezept für Diaschwert" style="width: 100%;">'},
+    {id: 'io1', label: 'I/O', size: 'small', helpText: '<strong>I/O-Modul</strong><br>Schnittstelle für den Ressourcen austausch zwischen Rollbändern und Maschinen.'},
+    {id: 'io2', label: 'I/O', size: 'small', helpText: '<strong>I/O-Modul</strong><br>Schnittstelle für den Ressourcen austausch zwischen Rollbändern und Maschinen.'},
   ];
 
   private itemStates: Record<string, ItemState> = {};
