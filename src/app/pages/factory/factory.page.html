@@ -13,6 +13,14 @@
          [class.rounded-3xl]="!isFullscreen" [class.rounded-none]="isFullscreen"
          [class]="!isFullscreen ? 'border border-white/10 bg-white/5' : 'bg-black/20'">
 
+      <button (click)="toggleFullscreen()" class="absolute top-3 right-8 z-50 flex items-center gap-2 rounded border border-white/20 bg-white/10 px-3 py-1.5 transition-colors hover:bg-white/20 active:bg-white/30 cursor-pointer">
+        @if (isFullscreen) {
+          <span>🗗 Exit Fullscreen</span>
+        } @else {
+          <span>🖵 Fullscreen</span>
+        }
+      </button>
+
       @if (isDraggingItem) {
         <div class="absolute inset-0 z-30 bg-black/50 pointer-events-none"></div>
       }
@@ -30,8 +38,6 @@
             [gridCellSizePx]="gridCellSizePx"
             [previewCells]="previewCells"
             [getConveyorSymbol]="getConveyorSymbol"
-            [isFullscreen]="isFullscreen"
-            (toggleFullscreen)="toggleFullscreen()"
             (cellMouseDown)="onCellMouseDown($event.event, $event.rowIndex, $event.colIndex)"
             (cellMouseEnter)="onCellMouseEnter($event.rowIndex, $event.colIndex)">
           </app-playground-grid>
