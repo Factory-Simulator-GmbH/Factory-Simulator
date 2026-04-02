@@ -30,14 +30,14 @@ export class FactoryPage implements AfterViewInit, OnInit {
   @ViewChild(PlaygroundGridComponent)
   playgroundGridComponent!: PlaygroundGridComponent;
 
-  @ViewChild('scrollContainer') 
+  @ViewChild('scrollContainer')
   scrollContainerRef!: ElementRef<HTMLElement>;
 
 
   mousePressed = false;
   isDraggingItem = false;
   activeDraggedItemId: string | null = null;
-  
+
 
   isFullscreen = false;
 
@@ -46,7 +46,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
   readonly minZoom = 0.3;
   readonly maxZoom = 2.0;
   readonly zoomStep = 0.1;
-  
+
   minimapViewport = { left: '0%', top: '0%', width: '100%', height: '100%' };
 
 
@@ -82,43 +82,43 @@ export class FactoryPage implements AfterViewInit, OnInit {
 
   ngOnInit(): void {
     this.updateGridCellSize();
+    this.calculateColumnsAndCreateGrid();
   }
 
 ngAfterViewInit(): void {
     setTimeout(() => {
-      this.calculateColumnsAndCreateGrid();
 
       requestAnimationFrame(() => {
         this.captureItemBasePositions();
         this.initializeItemStates();
         this.setupInteractDragging();
-        this.updateMinimap(); 
+        this.updateMinimap();
       });
     }, 0);
   }
 
 toggleFullscreen(): void {
     this.isFullscreen = !this.isFullscreen;
-    
+
     setTimeout(() => {
-      this.calculateColumnsAndCreateGrid(); 
-      this.captureItemBasePositions();      
-      this.repositionAllItems();            
-      this.setupInteractDragging();         
-      this.updateMinimap();                 
-    }, 0); 
+      this.calculateColumnsAndCreateGrid();
+      this.captureItemBasePositions();
+      this.repositionAllItems();
+      this.setupInteractDragging();
+      this.updateMinimap();
+    }, 0);
   }
 
 onWheel(event: WheelEvent): void {
     if (event.ctrlKey || event.metaKey) {
-      event.preventDefault(); 
+      event.preventDefault();
 
       if (event.deltaY < 0) {
         this.zoomLevel = Math.min(this.zoomLevel + this.zoomStep, this.maxZoom);
       } else {
         this.zoomLevel = Math.max(this.zoomLevel - this.zoomStep, this.minZoom);
       }
-      
+
       setTimeout(() => {
         this.updateMinimap();
         this.captureItemBasePositions();
@@ -130,7 +130,7 @@ onWheel(event: WheelEvent): void {
 
   onScroll(event: Event): void {
     this.updateMinimap(event.target as HTMLElement);
-    
+
 //Hier wird eine Anmat
     requestAnimationFrame(() => {
       this.captureItemBasePositions();
@@ -203,7 +203,7 @@ onWheel(event: WheelEvent): void {
       this.updateMinimap();
     });
   }
-  
+
   onCellMouseDown(event: MouseEvent, rowIndex: number, colIndex: number): void {
     if (this.isDraggingItem) return;
 
@@ -261,15 +261,15 @@ onWheel(event: WheelEvent): void {
 
     if (target && target.classList.contains('draggable-item')) {
       const paletteContainer = document.getElementById('item-palette');
-      
+
       if (paletteContainer) {
         paletteContainer.appendChild(target); // Physisch zurückschieben
-        
+
         target.style.position = 'relative';
         target.style.transform = '';
         target.setAttribute('data-x', '0');
         target.setAttribute('data-y', '0');
-        
+
         this.itemStates[target.id] = { col: 0, row: 0, isAtStartPosition: true };
       }
     }
@@ -302,13 +302,13 @@ onWheel(event: WheelEvent): void {
   }
 
   private setupInteractDragging(): void {
-    interact('.draggable-item').unset(); 
+    interact('.draggable-item').unset();
 
     const gridElement = this.playgroundGridComponent.gridTableRef.nativeElement;
 
     interact(gridElement).dropzone({
       accept: '.draggable-item',
-      overlap: 0.5, 
+      overlap: 0.5,
       ondragenter: (event) => event.relatedTarget.classList.add('can-drop'),
       ondragleave: (event) => event.relatedTarget.classList.remove('can-drop')
     });
@@ -339,7 +339,7 @@ interact('.draggable-item').draggable({
 
           // Wir schmeißen das 'fixed' weg! Das hat die Koordinaten zerstört.
           element.style.zIndex = '9999';
-          element.classList.remove('can-drop'); 
+          element.classList.remove('can-drop');
         },
 
         move: (event) => {
@@ -377,10 +377,10 @@ end: (event) => {
           try { overlap = this.isOverlapping(element); } catch(e) {}
 
           if (!isInGrid || overlap || !gridContainer) {
-  
+
             if (paletteContainer) paletteContainer.appendChild(element);
-            
-            element.style.position = 'relative'; 
+
+            element.style.position = 'relative';
             element.style.transform = '';
             element.setAttribute('data-x', '0');
             element.setAttribute('data-y', '0');
@@ -392,7 +392,7 @@ end: (event) => {
             const itemRect = element.getBoundingClientRect();
             const gridRect = gridContainer.getBoundingClientRect();
 
-           
+
             const relativeX = itemRect.left - gridRect.left;
             const relativeY = itemRect.top - gridRect.top;
             let targetCol = Math.round((relativeX / this.zoomLevel) / this.gridCellSizePx);
@@ -403,10 +403,10 @@ end: (event) => {
             targetRow = Math.max(0, Math.min(targetRow, this.gridRowCount - 1));
 
 
-            this.itemStates[element.id] = { 
-              col: targetCol, 
-              row: targetRow, 
-              isAtStartPosition: false 
+            this.itemStates[element.id] = {
+              col: targetCol,
+              row: targetRow,
+              isAtStartPosition: false
             };
 
             gridContainer.appendChild(element);
@@ -415,12 +415,12 @@ end: (event) => {
             const finalY = targetRow * this.gridCellSizePx;
 
             element.style.position = 'absolute';
-            element.style.left = '0px'; 
-            element.style.top = '0px';  
+            element.style.left = '0px';
+            element.style.top = '0px';
             element.style.transform = `translate(${finalX}px, ${finalY}px)`;
             element.setAttribute('data-x', String(finalX));
             element.setAttribute('data-y', String(finalY));
-            element.style.pointerEvents = 'auto'; 
+            element.style.pointerEvents = 'auto';
           }
         },
       },
