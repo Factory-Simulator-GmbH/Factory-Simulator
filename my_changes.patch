@@ -1,0 +1,1194 @@
+diff --git a/public/assets/items.json b/public/assets/items.json
+deleted file mode 100644
+index db411f1..0000000
+--- a/public/assets/items.json
++++ /dev/null
+@@ -1,44 +0,0 @@
+-[
+-    {
+-        "id": "f1",
+-        "label": "Maschine",
+-        "size": "large",
+-        "helpText": "<strong>Maschine</strong><br>Verarbeitet Materialien zu Produkten.<br>Benötigt mindestens eine Input- und eine Output-Seite.<br><bold>Rezept:</bold><br><img src=\"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRSyZz79wlfw2jtpya-0ZmYsGeKqK6Mkpzy8g&s\" alt=\"Rezept für Diaschwert\" style=\"width: 100%;\">"
+-    },
+-    {
+-        "id": "f2",
+-        "label": "Maschine",
+-        "size": "large",
+-        "helpText": "<strong>Maschine</strong><br>Verarbeitet Materialien zu Produkten.<br>Benötigt mindestens eine Input- und eine Output-Seite.<br><bold>Rezept:</bold><br><img src=\"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRSyZz79wlfw2jtpya-0ZmYsGeKqK6Mkpzy8g&s\" alt=\"Rezept für Diaschwert\" style=\"width: 100%;\">"
+-    },
+-    {
+-        "id": "f3",
+-        "label": "Maschine",
+-        "size": "large",
+-        "helpText": "<strong>Maschine</strong><br>Verarbeitet Materialien zu Produkten.<br>Benötigt mindestens eine Input- und eine Output-Seite.<br><bold>Rezept:</bold><br><img src=\"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRSyZz79wlfw2jtpya-0ZmYsGeKqK6Mkpzy8g&s\" alt=\"Rezept für Diaschwert\" style=\"width: 100%;\">"
+-    },
+-    {
+-        "id": "input1",
+-        "label": "Input",
+-        "size": "small",
+-        "helpText": "<strong>Input-Modul</strong><br>Schnittstelle für den Ressourcen austausch zwischen Rollbändern und Maschinen."
+-    },
+-    {
+-        "id": "input2",
+-        "label": "Input",
+-        "size": "small",
+-        "helpText": "<strong>Input-Modul</strong><br>Schnittstelle für den Ressourcen austausch zwischen Rollbändern und Maschinen."
+-    },
+-    {
+-        "id": "output1",
+-        "label": "Output",
+-        "size": "small",
+-        "helpText": "<strong>Output-Modul</strong><br>Schnittstelle für den Ressourcen austausch zwischen Rollbändern und Maschinen."
+-    },
+-    {
+-        "id": "output2",
+-        "label": "Output",
+-        "size": "small",
+-        "helpText": "<strong>Output-Modul</strong><br>Schnittstelle für den Ressourcen austausch zwischen Rollbändern und Maschinen."
+-    }
+-]
+diff --git a/src/app/components/items/items.component.html b/src/app/components/items/items.component.html
+index 46b2de9..b053c4c 100644
+--- a/src/app/components/items/items.component.html
++++ b/src/app/components/items/items.component.html
+@@ -18,7 +18,6 @@
+         [style.width.px]="getItemSizePx(item.size)"
+         [style.height.px]="getItemSizePx(item.size)"
+         [id]="item.id"
+-        [appTooltip]="item.helpText"
+         (mousedown)="onMouseDown(item.id)"
+       >
+         {{ item.label }}
+diff --git a/src/app/components/items/items.component.ts b/src/app/components/items/items.component.ts
+index 2113a72..e1d3b81 100644
+--- a/src/app/components/items/items.component.ts
++++ b/src/app/components/items/items.component.ts
+@@ -1,11 +1,9 @@
+ import {Component, EventEmitter, Input, Output} from '@angular/core';
+ import {DraggableItems, ItemSize} from '../../models/draggable-item.model';
+-import {TooltipDirective} from '../../directives/tooltip.directive';
+ 
+ @Component({
+   selector: 'app-items',
+   standalone: true,
+-  imports: [TooltipDirective],
+   templateUrl: './items.component.html',
+ })
+ export class ItemsComponent {
+@@ -19,4 +17,4 @@ export class ItemsComponent {
+   onMouseDown(itemId: string): void {
+     this.itemMouseDown.emit(itemId);
+   }
+-}
++}
+\ No newline at end of file
+diff --git a/src/app/components/playground-grid/playground-grid.component.html b/src/app/components/playground-grid/playground-grid.component.html
+index 1bbebb3..0d35835 100644
+--- a/src/app/components/playground-grid/playground-grid.component.html
++++ b/src/app/components/playground-grid/playground-grid.component.html
+@@ -1,14 +1,11 @@
+-<div class="relative w-max h-max flex flex-col bg-black/40 border border-white/20 rounded-xl p-2">
++<div class="rounded-2xl border border-white/10 bg-white/5 p-4">
++  <div class="mb-3 text-xs font-semibold tracking-wide text-white">Playground</div>
+ 
+-  <div class="mb-2 flex items-center justify-between text-xs font-semibold tracking-wide text-white px-2">
+-    <span>Playground</span>
+-  </div>
+-
+-  <div class="relative w-max h-max border-2 border-black bg-white/5">
+-
+-    <table #gridTable class="border-collapse border-spacing-0">
++  <div class="h-[50vh] overflow-hidden rounded-2xl border-2 border-black bg-white/5 p-2">
++    <table #gridTable class="h-full w-full table-fixed border-collapse">
++      <!-- Loop over rows of the conveyor belt grid -->
+       @for (row of conveyorGrid; let rowIndex = $index; track rowIndex) {
+-        <tr [style.height.px]="gridCellSizePx">
++        <tr>
+ 
+           <!-- Loop over cells in a row -->
+           @for (cell of row; let colIndex = $index; track colIndex) {
+@@ -31,11 +28,9 @@
+               }
+             </td>
+           }
++
+         </tr>
+       }
+     </table>
+-
+-    <div id="grid-items-container" class="absolute inset-0 z-50 pointer-events-none"></div>
+-
+   </div>
+ </div>
+diff --git a/src/app/components/playground-grid/playground-grid.component.ts b/src/app/components/playground-grid/playground-grid.component.ts
+index b2c9c90..0db5997 100644
+--- a/src/app/components/playground-grid/playground-grid.component.ts
++++ b/src/app/components/playground-grid/playground-grid.component.ts
+@@ -16,8 +16,6 @@ export class PlaygroundGridComponent {
+   @Input({required: true}) gridCellSizePx!: number;
+   @Input({required: true}) previewCells!: Set<string>;
+   @Input({required: true}) getConveyorSymbol!: (cell: ConveyorSegment) => string;
+-  @Input() isFullscreen = false;
+-  @Output() toggleFullscreen = new EventEmitter<void>();
+ 
+   @Output() cellMouseDown = new EventEmitter<{ event: MouseEvent; rowIndex: number; colIndex: number }>();
+   @Output() cellMouseEnter = new EventEmitter<{ rowIndex: number; colIndex: number }>();
+@@ -41,9 +39,4 @@ export class PlaygroundGridComponent {
+   onMouseEnter(rowIndex: number, colIndex: number): void {
+     this.cellMouseEnter.emit({rowIndex, colIndex});
+   }
+-
+-  onToggleFullscreen(): void {
+-    this.toggleFullscreen.emit();
+-  }
+-  
+ }
+diff --git a/src/app/directives/tooltip.directive.ts b/src/app/directives/tooltip.directive.ts
+deleted file mode 100644
+index d8de90b..0000000
+--- a/src/app/directives/tooltip.directive.ts
++++ /dev/null
+@@ -1,90 +0,0 @@
+-import {Directive, HostListener, Input, OnDestroy, Renderer2} from '@angular/core';
+-
+-@Directive({
+-  selector: '[appTooltip]',
+-  standalone: true,
+-})
+-export class TooltipDirective implements OnDestroy {
+-  @Input('appTooltip') content: string = '';
+-
+-  private tooltipEl: HTMLElement | null = null;
+-  private timer: ReturnType<typeof setTimeout> | null = null;
+-  private mouseX = 0;
+-  private mouseY = 0;
+-
+-  constructor(private renderer: Renderer2) {}
+-
+-  @HostListener('mouseenter')
+-  onMouseEnter(): void {
+-    if (!this.content) return;
+-    this.timer = setTimeout(() => this.show(), 1000);
+-  }
+-  
+-  @HostListener('mousemove', ['$event'])
+-  onMouseMove(event: MouseEvent): void {
+-    this.mouseX = event.clientX;
+-    this.mouseY = event.clientY;
+-    if (this.tooltipEl) {
+-      this.positionTooltip();
+-    }
+-  }
+-
+-  @HostListener('mouseleave')
+-  onMouseLeave(): void {
+-    this.hide();
+-  }
+-
+-  @HostListener('contextmenu')
+-  onRightClick(): void {
+-    this.hide();
+-  }
+-
+-  private show(): void {
+-    if (!this.content || this.tooltipEl) return;
+-
+-    this.tooltipEl = this.renderer.createElement('div');
+-    this.tooltipEl!.className =
+-      'fixed z-[9999] max-w-xs rounded-xl border border-white/20 bg-slate-900/95 backdrop-blur-sm p-3 text-sm text-white shadow-xl pointer-events-none';
+-
+-    // Content ist developer-kontrolliert (nicht User-Input), direktes innerHTML ist sicher
+-    this.tooltipEl!.innerHTML = this.content;
+-
+-    this.renderer.appendChild(document.body, this.tooltipEl);
+-    this.positionTooltip();
+-  }
+-
+-  private positionTooltip(): void {
+-    if (!this.tooltipEl) return;
+-    const offset = 15;
+-    const tooltipW = this.tooltipEl.offsetWidth;
+-    const tooltipH = this.tooltipEl.offsetHeight;
+-
+-    let left = this.mouseX + offset;
+-    let top = this.mouseY + offset;
+-
+-    if (left + tooltipW > window.innerWidth - 8) {
+-      left = this.mouseX - tooltipW - offset;
+-    }
+-    if (top + tooltipH > window.innerHeight - 8) {
+-      top = this.mouseY - tooltipH - offset;
+-    }
+-
+-    this.tooltipEl.style.left = left + 'px';
+-    this.tooltipEl.style.top = top + 'px';
+-  }
+-
+-  private hide(): void {
+-    if (this.timer) {
+-      clearTimeout(this.timer);
+-      this.timer = null;
+-    }
+-    if (this.tooltipEl) {
+-      document.body.removeChild(this.tooltipEl);
+-      this.tooltipEl = null;
+-    }
+-  }
+-
+-  ngOnDestroy(): void {
+-    this.hide();
+-  }
+-}
+diff --git a/src/app/models/draggable-item.model.ts b/src/app/models/draggable-item.model.ts
+index 5167f9f..985e81f 100644
+--- a/src/app/models/draggable-item.model.ts
++++ b/src/app/models/draggable-item.model.ts
+@@ -4,6 +4,4 @@ export interface DraggableItems {
+   id: string;
+   label: string;
+   size: ItemSize;
+-  helpText: string;
+-  showHelpText?: boolean;
+ }
+diff --git a/src/app/pages/factory/factory.page.html b/src/app/pages/factory/factory.page.html
+index 4dd79f1..4e13096 100644
+--- a/src/app/pages/factory/factory.page.html
++++ b/src/app/pages/factory/factory.page.html
+@@ -1,88 +1,43 @@
+-<div
+-  class="absolute inset-0 overflow-hidden bg-gradient-to-b from-slate-950 via-slate-900 to-slate-800 text-white flex flex-col transition-all"
+-  [class.p-4]="!isFullscreen" [class.p-0]="isFullscreen">
+-
+-  @if (!isFullscreen) {
+-    <header class="flex-none text-center mb-4 transition-opacity" [class.opacity-30]="isDraggingItem">
++<div class="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-800 text-white">
++  <div class="mx-auto flex min-h-screen w-[95%] flex-col px-4 py-4">
++    <header class="text-center" [class.opacity-30]="isDraggingItem">
+       <h1 class="text-4xl font-extrabold tracking-tight">Factory Simulator</h1>
+     </header>
+-  }
+-
+-  <section class="flex-1 relative min-h-0 min-w-0 transition-all" #gridHost>
+-
+-    <div class="absolute inset-0 flex flex-col backdrop-blur overflow-hidden transition-all"
+-         [class.rounded-3xl]="!isFullscreen" [class.rounded-none]="isFullscreen"
+-         [class]="!isFullscreen ? 'border border-white/10 bg-white/5' : 'bg-black/20'">
+ 
+-      <button (click)="toggleFullscreen()"
+-              class="absolute top-3 right-8 z-50 flex items-center gap-2 rounded border border-white/20 bg-white/10 px-3 py-1.5 transition-colors hover:bg-white/20 active:bg-white/30 cursor-pointer">
+-        @if (isFullscreen) {
+-          <span>🗗 Exit Fullscreen</span>
+-        } @else {
+-          <span>🖵 Fullscreen</span>
++    <section class="mt-6 flex-1">
++      <div
++        class="factory-surface relative h-full rounded-3xl border border-white/10 bg-white/5 p-5 shadow-xl backdrop-blur">
++        @if (isDraggingItem) {
++          <div class="absolute inset-0 z-40 rounded-3xl bg-black/50 pointer-events-none"></div>
+         }
+-      </button>
+-
+-      @if (isDraggingItem) {
+-        <div class="absolute inset-0 z-30 bg-black/50 pointer-events-none"></div>
+-      }
+-
+-      <div #scrollContainer class="absolute inset-0 overflow-auto custom-scrollbar z-10"
+-           [class.overflow-x-hidden]="isFullscreen"
+-           (wheel)="onWheel($event)"
+-           (scroll)="onScroll($event)">
+-
+-        <div class="origin-top-left w-max h-max p-8 transition-transform duration-100 ease-out"
+-             [style.transform]="'scale(' + zoomLevel + ')'">
+-
+-          <div
+-            #gridHost
+-            class="rounded-2xl border border-white/10 bg-white/5"
+-            [class.relative]="isDraggingItem"
+-            [class.z-50]="isDraggingItem"
+-
+-          >
+-            <app-playground-grid
+-              [conveyorGrid]="conveyorGrid"
+-              [gridCellSizePx]="gridCellSizePx"
+-              [previewCells]="previewCells"
+-              [getConveyorSymbol]="getConveyorSymbol"
+-              (cellMouseDown)="onCellMouseDown($event.event, $event.rowIndex, $event.colIndex)"
+-              (cellMouseEnter)="onCellMouseEnter($event.rowIndex, $event.colIndex)">
+-            </app-playground-grid>
+-          </div>
+-        </div>
+-
+-      </div>
+ 
+-      <div
+-        class="absolute bottom-6 right-6 w-48 h-32 bg-slate-900 border-2 border-white/20 rounded-lg z-[60] shadow-2xl overflow-hidden pointer-events-none">
+         <div
+-          class="absolute top-0 left-0 w-full bg-black/40 px-2 py-0.5 text-[10px] text-white/50 uppercase font-bold z-10">
+-          Minimap
+-        </div>
+-        <div
+-          class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPgo8cmVjdCB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSJub25lIj48L3JlY3Q+CjxwYXRoIGQ9Ik0wIDBMOCAwTDAgOFoiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgyNTUsIDI1NSwgMjU1LCAwLjA1KSIgc3Ryb2tlLXdpZHRoPSIxIj48L3BhdGg+Cjwvc3ZnPg==')] opacity-50"></div>
+-        <div class="absolute border-2 border-blue-400 bg-blue-400/20 transition-all duration-75"
+-             [style.left]="minimapViewport.left"
+-             [style.top]="minimapViewport.top"
+-             [style.width]="minimapViewport.width"
+-             [style.height]="minimapViewport.height">
++          #gridHost
++          class="rounded-2xl border border-white/10 bg-white/5"
++          [class.relative]="isDraggingItem"
++          [class.z-50]="isDraggingItem"
++        >
++          <app-playground-grid
++            [conveyorGrid]="conveyorGrid"
++            [gridCellSizePx]="gridCellSizePx"
++            [previewCells]="previewCells"
++            [getConveyorSymbol]="getConveyorSymbol"
++            (cellMouseDown)="onCellMouseDown($event.event, $event.rowIndex, $event.colIndex)"
++            (cellMouseEnter)="onCellMouseEnter($event.rowIndex, $event.colIndex)"
++          />
+         </div>
++
++        
++        <app-items
++          [items]="items"
++          [activeDraggedItemId]="activeDraggedItemId"
++          [getItemSizePx]="getItemSizePx.bind(this)"
++          [isDraggingItem]="isDraggingItem"
++          (itemMouseDown)="onItemMouseDown($event)"
++        />
+       </div>
+-    </div>
+-  </section>
++    </section>
++  </div>
++</div>
+ 
+-  @if (!isFullscreen) {
+-    <div class="flex-none mt-4 relative z-50">
+-      <app-items
+-        [items]="items"
+-        [activeDraggedItemId]="activeDraggedItemId"
+-        [isDraggingItem]="isDraggingItem"
+-        [getItemSizePx]="getItemSizePx"
+-        (itemMouseDown)="onItemMouseDown($event)">
+-      </app-items>
+-    </div>
+-  }
+ 
+-</div>
+diff --git a/src/app/pages/factory/factory.page.ts b/src/app/pages/factory/factory.page.ts
+index 248c7d5..261f5bc 100644
+--- a/src/app/pages/factory/factory.page.ts
++++ b/src/app/pages/factory/factory.page.ts
+@@ -1,6 +1,14 @@
+-import {AfterViewInit, Component, ElementRef, HostListener, NgZone, OnInit, ViewChild,} from '@angular/core';
++import {
++  AfterViewInit,
++  Component,
++  ElementRef,
++  HostListener,
++  NgZone,
++  OnInit,
++  ViewChild,
++  ChangeDetectorRef
++} from '@angular/core';
+ import interact from 'interactjs';
+-import itemsData from '../../../../public/assets/items.json';
+ import {ItemsComponent} from '../../components/items/items.component';
+ import {PlaygroundGridComponent} from '../../components/playground-grid/playground-grid.component';
+ import {ConveyorSegment} from '../../models/conveyor-segment.model';
+@@ -23,25 +31,12 @@ export class FactoryPage implements AfterViewInit, OnInit {
+   @ViewChild(PlaygroundGridComponent)
+   playgroundGridComponent!: PlaygroundGridComponent;
+ 
+-  @ViewChild('scrollContainer')
+-  scrollContainerRef!: ElementRef<HTMLElement>;
+-
+-
+   mousePressed = false;
+   isDraggingItem = false;
+   activeDraggedItemId: string | null = null;
+ 
+-
+-  isFullscreen = false;
+-
+-
+-  zoomLevel = 1.0;
+-  readonly minZoom = 0.3;
+-  readonly maxZoom = 2.0;
+-  readonly zoomStep = 0.1;
+-
+-  minimapViewport = {left: '0%', top: '0%', width: '100%', height: '100%'};
+-
++  private lastRightClickTime = 0;
++  private lastRightClickId: string | null = null;
+ 
+   readonly gridCellSizeVw = 2.5;
+   gridCellSizePx = 0;
+@@ -50,7 +45,13 @@ export class FactoryPage implements AfterViewInit, OnInit {
+ 
+   conveyorGrid: ConveyorSegment[][] = [];
+ 
+-  items: DraggableItems[] = itemsData as DraggableItems[];
++  items: DraggableItems[] = [
++    {id: 'f1', label: 'Fabrik', size: 'large'},
++    {id: 'f2', label: 'Fabrik', size: 'large'},
++    {id: 'f3', label: 'Fabrik', size: 'large'},
++    {id: 'io1', label: 'I/O', size: 'small'},
++    {id: 'io2', label: 'I/O', size: 'small'},
++  ];
+ 
+   private itemStates: Record<string, ItemState> = {};
+   private itemBasePositions: Record<string, ItemBasePosition> = {};
+@@ -65,116 +66,40 @@ export class FactoryPage implements AfterViewInit, OnInit {
+     private layoutService: LayoutService,
+     private factoryGridService: FactoryGridService,
+     private factoryItemsService: FactoryItemsService,
+-  ) {
+-  }
++    private cdr: ChangeDetectorRef
++  ) {}
+ 
++  // Setup beim allerersten Start der Seite
+   ngOnInit(): void {
+     this.updateGridCellSize();
+     this.calculateColumnsAndCreateGrid();
+   }
+ 
++  // Wird aufgerufen, sobald das HTML fertig gezeichnet ist
+   ngAfterViewInit(): void {
+-    setTimeout(() => {
+-
+-      requestAnimationFrame(() => {
+-        this.captureItemBasePositions();
+-        this.initializeItemStates();
+-        this.setupInteractDragging();
+-        this.updateMinimap();
+-      });
+-    }, 0);
+-  }
+-
+-  toggleFullscreen(): void {
+-    this.isFullscreen = !this.isFullscreen;
+-
+-    requestAnimationFrame(() => {
+-      setTimeout(() => {
+-        this.calculateColumnsAndCreateGrid();
+-        this.captureItemBasePositions();
+-        this.repositionAllItems();
+-        this.setupInteractDragging();
+-        this.updateMinimap();
+-      }, 50);
+-    });
+-  }
+-
+-  onWheel(event: WheelEvent): void {
+-    if (event.ctrlKey || event.metaKey) {
+-      event.preventDefault();
+-
+-      if (event.deltaY < 0) {
+-        this.zoomLevel = Math.min(this.zoomLevel + this.zoomStep, this.maxZoom);
+-      } else {
+-        this.zoomLevel = Math.max(this.zoomLevel - this.zoomStep, this.minZoom);
+-      }
+-
+-      setTimeout(() => {
+-        this.updateMinimap();
+-        this.captureItemBasePositions();
+-        this.repositionAllItems();
+-        this.setupInteractDragging();
+-      }, 10);
+-    }
+-  }
+-
+-  onScroll(event: Event): void {
+-    this.updateMinimap(event.target as HTMLElement);
+-
+-//Hier wird eine Anmat
+     requestAnimationFrame(() => {
+       this.captureItemBasePositions();
+-      this.repositionAllItems();
++      this.initializeItemStates();
++      this.setupInteractDragging();
++      this.cdr.detectChanges();
+     });
+   }
+ 
+-  private updateMinimap(container?: HTMLElement): void {
+-    const el = container || this.scrollContainerRef?.nativeElement;
+-    if (!el) return;
+-
+-    const scrollLeft = el.scrollLeft;
+-    const scrollTop = el.scrollTop;
+-    const scrollWidth = el.scrollWidth;
+-    const scrollHeight = el.scrollHeight;
+-    const clientWidth = el.clientWidth;
+-    const clientHeight = el.clientHeight;
+-
+-    if (scrollWidth === 0 || scrollHeight === 0) return;
+-
+-    this.minimapViewport = {
+-      left: `${(scrollLeft / scrollWidth) * 100}%`,
+-      top: `${(scrollTop / scrollHeight) * 100}%`,
+-      width: `${(clientWidth / scrollWidth) * 100}%`,
+-      height: `${(clientHeight / scrollHeight) * 100}%`
+-    };
+-  }
+-
++  // Items auf ihre Startposition im Inventar setzen
+   private initializeItemStates(): void {
+     this.itemStates = this.factoryItemsService.initializeItemStates(this.items);
+   }
+ 
+-  private getContainerPadding(element: HTMLElement): number {
+-    const style = window.getComputedStyle(element);
+-    return parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+-  }
+-
++  // Raster aufbauen (Spalten anhand der Bildschirmbreite berechnen)
+   private calculateColumnsAndCreateGrid(): void {
+-    const scrollContainer = this.scrollContainerRef?.nativeElement;
+-
+-    // scrollContainer.clientWidth = sichtbare Breite ohne Scrollbar
+-    const availableWidthPx = scrollContainer?.clientWidth ?? window.innerWidth;
+-
+-    // Padding des inneren p-8 Containers dynamisch lesen
+-    const innerContainer = scrollContainer?.firstElementChild as HTMLElement | null;
+-    const horizontalPadding = innerContainer
+-      ? this.getContainerPadding(innerContainer)
+-      : 0;
+-
+-    const effectiveWidth = availableWidthPx - horizontalPadding;
++    const container = this.gridHostRef.nativeElement;
++    const containerWidthPx = container?.clientWidth ?? 0;
++    const availableWidthPx = containerWidthPx > 0 ? containerWidthPx : window.innerWidth;
+ 
+     this.gridColumns = this.factoryGridService.calculateColumns(
+       this.gridCellSizePx,
+-      effectiveWidth,);
++      availableWidthPx,
++    );
+ 
+     this.conveyorGrid = this.factoryGridService.createOrResizeGrid(
+       this.conveyorGrid,
+@@ -183,19 +108,22 @@ export class FactoryPage implements AfterViewInit, OnInit {
+     );
+   }
+ 
+-
++  // Abmessungen des Spielfelds holen
+   private getGridTableRect(): DOMRect {
+     return this.playgroundGridComponent.gridTableRef.nativeElement.getBoundingClientRect();
+   }
+ 
+-  getItemSizePx = (size: ItemSize): number => {
++  // Größe eines Items in Pixeln abfragen
++  getItemSizePx(size: ItemSize): number {
+     return this.layoutService.getItemSizePx(size, this.gridCellSizePx);
+-  };
++  }
+ 
++  // Einzelne Rasterzellen-Größe für den aktuellen Bildschirm berechnen
+   private updateGridCellSize(): void {
+-    this.gridCellSizePx = (window.innerWidth * this.gridCellSizeVw) / 100;
++    this.gridCellSizePx = Math.floor((window.innerWidth * this.gridCellSizeVw) / 100);
+   }
+ 
++  // Reagiert, wenn der Nutzer das Browser-Fenster größer/kleiner macht
+   @HostListener('window:resize')
+   onResize(): void {
+     this.updateGridCellSize();
+@@ -205,14 +133,16 @@ export class FactoryPage implements AfterViewInit, OnInit {
+       this.captureItemBasePositions();
+       this.repositionAllItems();
+       this.setupInteractDragging();
+-      this.updateMinimap();
++      this.cdr.detectChanges();
+     });
+   }
+ 
++  // Klick auf das Raster (Startet das Fließband-Bauen)
+   onCellMouseDown(event: MouseEvent, rowIndex: number, colIndex: number): void {
+     if (this.isDraggingItem) return;
+ 
+     this.paintMode = event.button === 2 ? 'off' : 'on';
++
+     event.preventDefault();
+     this.mousePressed = true;
+     this.previewCells.clear();
+@@ -222,142 +152,290 @@ export class FactoryPage implements AfterViewInit, OnInit {
+     this.applyPreview(rowIndex, colIndex);
+   }
+ 
++  // Mit gedrückter Maus über das Raster wischen (Fließband malen)
+   onCellMouseEnter(rowIndex: number, colIndex: number): void {
+     if (!this.mousePressed || this.isDraggingItem || !this.paintMode) return;
+     this.applyPreview(rowIndex, colIndex);
+   }
+ 
++  // Zeigt eine Vorschau der Fließbänder, bevor sie fest platziert werden
+   private applyPreview(rowIndex: number, colIndex: number): void {
+     this.factoryGridService.applyPreview(
+-      this.conveyorGrid, rowIndex, colIndex, this.paintMode as 'on' | 'off',
+-      this.touchedCells, this.previewCells, this.pathCells,
++      this.conveyorGrid,
++      rowIndex,
++      colIndex,
++      this.paintMode as 'on' | 'off',
++      this.touchedCells,
++      this.previewCells,
++      this.pathCells,
+     );
+   }
+ 
++  // Holt das richtige Symbol für das Fließband (Gerade, Kurve, etc.)
+   getConveyorSymbol = (cell: ConveyorSegment): string => {
+     return this.factoryGridService.getConveyorSymbol(cell);
+   };
+ 
++  // Klick auf ein Item (Drag & Drop starten)
+   onItemMouseDown(itemId: string): void {
++    const state = this.itemStates[itemId];
++    const stateAny = state as any;
++
++    if (stateAny && stateAny.isConnected) {
++      return;
++    }
++
+     this.isDraggingItem = true;
+     this.activeDraggedItemId = itemId;
+   }
+ 
+-  @HostListener('document:mousedown')
+-  onDocumentMouseDown(): void {
++  // Prüft Klicks auf der ganzen Seite (Z.B. um aus Fabriken Fließbänder zu ziehen)
++  @HostListener('document:mousedown', ['$event'])
++  onDocumentMouseDown(event: MouseEvent): void {
+     this.mousePressed = true;
++
++    const target = event.target as HTMLElement;
++    const itemElement = target.closest('.draggable-item') as HTMLElement | null;
++
++    if (itemElement) {
++      const itemId = itemElement.getAttribute('data-item-id') || itemElement.id;
++      const state = this.itemStates[itemId];
++      const stateAny = state as any;
++
++      if (stateAny && stateAny.isConnected && event.button === 0) {
++        this.paintMode = 'on';
++        this.previewCells.clear();
++        this.touchedCells.clear();
++
++        this.pathCells = [{ row: state.row, col: state.col }];
++
++        itemElement.style.pointerEvents = 'none';
++        this.activeDraggedItemId = itemId;
++      }
++    }
+   }
+ 
+-  @HostListener('document:mouseup')
+-  onDocumentMouseUp(): void {
++  // Setzt alle Klicks und Drag-Aktionen zurück (Aufräumen)
++  private resetInteractions(): void {
+     this.mousePressed = false;
+     this.paintMode = null;
+     this.previewCells.clear();
+     this.touchedCells.clear();
+     this.pathCells = [];
+     this.isDraggingItem = false;
++
++    if (this.activeDraggedItemId) {
++      const el = document.getElementById(this.activeDraggedItemId);
++      if (el) el.style.pointerEvents = '';
++    }
+     this.activeDraggedItemId = null;
+   }
+ 
++  // Maus loslassen (Aktion beenden & Verbindungen prüfen)
++  @HostListener('document:mouseup')
++  onDocumentMouseUp(): void {
++    this.resetInteractions();
++    this.evaluateConnections();
++  }
++
++  // Maus verlässt das Fenster (Sicherheits-Abbruch)
++  @HostListener('window:blur')
++  @HostListener('document:mouseleave')
++  onInterrupt(): void {
++    this.resetInteractions();
++  }
++
++  // Rechtsklick auf ein Item (Item von Grid löschen)
+   @HostListener('document:contextmenu', ['$event'])
+   onContextMenu(event: MouseEvent): void {
+     event.preventDefault();
++
++    if (this.isDraggingItem || this.mousePressed) {
++      return;
++    }
++
+     const target = event.target as HTMLElement;
+ 
+     if (target && target.classList.contains('draggable-item')) {
+-      const paletteContainer = document.getElementById('item-palette');
++      const itemId = target.getAttribute('data-item-id') || target.id;
++      const state = this.itemStates[itemId];
++      const stateAny = state as any;
++      const isConnected = stateAny && stateAny.isConnected;
++
++      if (isConnected) {
++        const now = Date.now();
++        if (this.lastRightClickId === itemId && now - this.lastRightClickTime < 400) {
++          this.removePlacedItem(target, itemId);
++          this.lastRightClickId = null;
++        } else {
++          this.lastRightClickTime = now;
++          this.lastRightClickId = itemId;
++        }
++      } else {
++        this.removePlacedItem(target, itemId);
++      }
++    }
++  }
+ 
+-      if (paletteContainer) {
+-        paletteContainer.appendChild(target); // Physisch zurückschieben
++  // Legt ein gelöschtes Item zurück ins Inventar
++  private removePlacedItem(target: HTMLElement, itemId: string): void {
++    target.style.transform = '';
++    target.setAttribute('data-x', '0');
++    target.setAttribute('data-y', '0');
+ 
+-        target.style.position = 'relative';
+-        target.style.transform = '';
+-        target.setAttribute('data-x', '0');
+-        target.setAttribute('data-y', '0');
++    // col/row auf -1 setzen, damit das Item nie fälschlicherweise als Nachbar von Gitterzelle (0,0) erkannt wird
++    this.itemStates[itemId] = { col: -1, row: -1, isAtStartPosition: true };
+ 
+-        this.itemStates[target.id] = {col: 0, row: 0, isAtStartPosition: true};
+-      }
++    const paletteContainer = document.getElementById('item-palette');
++    if (paletteContainer) {
++      paletteContainer.appendChild(target);
++      target.style.position = 'relative';
+     }
++
++    this.evaluateConnections();
++    this.cdr.detectChanges();
++
++    // Nach DOM-Änderung: alle platzierten Items neu positionieren (frische DOM-Messung)
++    requestAnimationFrame(() => {
++      this.captureItemBasePositions();
++      this.repositionAllItems();
++    });
+   }
+ 
++  // Speichert, wo die Items im Inventar liegen
+   private captureItemBasePositions(): void {
+-    this.itemBasePositions = this.factoryItemsService.captureItemBasePositions(this.items, this.getGridTableRect());
++    this.itemBasePositions = this.factoryItemsService.captureItemBasePositions(
++      this.items,
++      this.getGridTableRect(),
++      this.itemStates,
++      this.itemBasePositions,
++    );
+   }
+ 
++  // Bewegt ein Item optisch auf eine bestimmte Grid Zelle
+   private applyItemPosition(element: HTMLElement, col: number, row: number): void {
+-    this.factoryItemsService.applyItemPosition(element, col, row, this.itemBasePositions, this.gridCellSizePx);
++    this.factoryItemsService.applyItemPosition(
++      element,
++      col,
++      row,
++      this.itemBasePositions,
++      this.gridCellSizePx,
++      this.getGridTableRect(),
++    );
+   }
+ 
++  // Speichert ab, auf welcher Raster-Zelle ein Item aktuell liegt
+   private saveItemGridPosition(element: HTMLElement): void {
+-    this.factoryItemsService.saveItemGridPosition(element, this.itemBasePositions, this.itemStates, this.gridCellSizePx);
++    this.factoryItemsService.saveItemGridPosition(
++      element,
++      this.itemBasePositions,
++      this.itemStates,
++      this.gridCellSizePx,
++    );
++  }
++
++  // Verhindert, dass das Item beim nächsten Anklicken springt
++  private syncDataAttributes(element: HTMLElement): void {
++    const transform = element.style.transform;
++    const match = transform.match(/translate(?:3d)?\(\s*(-?\d+(?:\.\d+)?)px,\s*(-?\d+(?:\.\d+)?)px/);
++    if (match) {
++      element.setAttribute('data-x', match[1]);
++      element.setAttribute('data-y', match[2]);
++    }
+   }
+ 
++  // Rückt alle Items zurecht (z.B. nach einem Fenster-Resize)
+   private repositionAllItems(): void {
+-    this.factoryItemsService.repositionAllItems(this.items, this.itemStates, this.itemBasePositions, this.gridCellSizePx);
++    this.factoryItemsService.repositionAllItems(
++      this.items,
++      this.itemStates,
++      this.itemBasePositions,
++      this.gridCellSizePx,
++      this.getGridTableRect(),
++    );
+   }
+ 
++  // Kollisionserkennung: Ist der Platz besetzt ?
+   private isOverlapping(checkItem: HTMLElement): boolean {
+     return (
+       this.factoryItemsService.isOverlappingWithItem(checkItem, this.items) ||
+       this.factoryItemsService.isOverlappingWithConveyor(
+-        checkItem, this.getGridTableRect(), this.gridCellSizePx,
+-        this.gridRowCount, this.gridColumns, this.conveyorGrid,
++        checkItem,
++        this.getGridTableRect(),
++        this.gridCellSizePx,
++        this.gridRowCount,
++        this.gridColumns,
++        this.conveyorGrid,
+       )
+     );
+   }
+ 
++  // Core Logik für das Drag & Drop (interact.js)
+   private setupInteractDragging(): void {
+     interact('.draggable-item').unset();
+ 
+-    const gridElement = this.playgroundGridComponent.gridTableRef.nativeElement;
+-
+-    interact(gridElement).dropzone({
+-      accept: '.draggable-item',
+-      overlap: 0.5,
+-      ondragenter: (event) => event.relatedTarget.classList.add('can-drop'),
+-      ondragleave: (event) => event.relatedTarget.classList.remove('can-drop')
+-    });
++    const gridRect = this.getGridTableRect();
+ 
+     interact('.draggable-item').draggable({
+-      origin: this.playgroundGridComponent.gridTableRef.nativeElement,
+       modifiers: [
+         interact.modifiers.snap({
+           targets: [
+             interact.createSnapGrid({
+-              x: this.gridCellSizePx * this.zoomLevel,
+-              y: this.gridCellSizePx * this.zoomLevel,
++              x: this.gridCellSizePx,
++              y: this.gridCellSizePx,
++              offset: {
++                x: gridRect.left % this.gridCellSizePx,
++                y: gridRect.top % this.gridCellSizePx,
++              },
+             }),
+           ],
+           relativePoints: [{x: 0, y: 0}],
+         }),
++        interact.modifiers.restrictRect({
++          restriction: '.factory-surface',
++          endOnly: true,
++        }),
+       ],
+       listeners: {
+         start: (event) => {
+           const element = event.target as HTMLElement;
+-          const itemId = element.getAttribute('data-item-id');
++          const itemId = element.getAttribute('data-item-id') || element.id;
++          const state = this.itemStates[itemId];
++          const stateAny = state as any;
++
++          if (stateAny && stateAny.isConnected) {
++            event.interaction.stop();
++            return;
++          }
+ 
+           this.ngZone.run(() => {
+             this.isDraggingItem = true;
+             this.activeDraggedItemId = itemId;
+           });
+ 
+-          // Wir schmeißen das 'fixed' weg! Das hat die Koordinaten zerstört.
+-          element.style.zIndex = '9999';
+-          element.classList.remove('can-drop');
++          // Sicherstellen, dass data-x/data-y mit dem aktuellen Transform übereinstimmt
++          const transform = element.style.transform;
++          const match = transform.match(/translate(?:3d)?\(\s*(-?\d+(?:\.\d+)?)px,\s*(-?\d+(?:\.\d+)?)px/);
++          if (match) {
++            element.setAttribute('data-x', match[1]);
++            element.setAttribute('data-y', match[2]);
++          } else {
++            element.setAttribute('data-x', '0');
++            element.setAttribute('data-y', '0');
++          }
++
++          element.style.position = 'relative';
++          element.style.zIndex = '60';
+         },
+ 
+         move: (event) => {
+           const element = event.target as HTMLElement;
+-          const isInGridContainer = element.parentElement?.id === 'grid-items-container';
+ 
+           const currentX = Number(element.getAttribute('data-x') ?? '0');
+           const currentY = Number(element.getAttribute('data-y') ?? '0');
+ 
+-          // Wenn das Item im Grid liegt, müssen wir die Mausbewegung durch den Zoomfaktor teilen
+-          const effectiveZoom = isInGridContainer ? this.zoomLevel : 1.0;
+-
+-          const nextX = currentX + (event.dx / effectiveZoom);
+-          const nextY = currentY + (event.dy / effectiveZoom);
++          const nextX = currentX + event.dx;
++          const nextY = currentY + event.dy;
+ 
+           element.style.transform = `translate(${nextX}px, ${nextY}px)`;
+           element.setAttribute('data-x', String(nextX));
+@@ -371,66 +449,93 @@ export class FactoryPage implements AfterViewInit, OnInit {
+           });
+ 
+           const element = event.target as HTMLElement;
+-          const gridContainer = document.getElementById('grid-items-container');
+-          const paletteContainer = document.getElementById('item-palette');
+ 
+-          element.style.zIndex = '';
+-
+-          const isInGrid = element.classList.contains('can-drop');
+-          let overlap = false;
+-          try {
+-            overlap = this.isOverlapping(element);
+-          } catch (e) {
++          if (this.isOverlapping(element)) {
++            const state = this.itemStates[element.id];
++            const stateAny = state as any;
++
++            if (!stateAny || stateAny.isAtStartPosition) {
++              element.style.transform = '';
++              element.setAttribute('data-x', '0');
++              element.setAttribute('data-y', '0');
++            } else {
++              this.applyItemPosition(element, state.col, state.row);
++              this.syncDataAttributes(element);
++            }
++          } else {
++            this.saveItemGridPosition(element);
++            const pos = this.itemStates[element.id];
++            this.applyItemPosition(element, pos.col, pos.row);
++            this.syncDataAttributes(element);
+           }
+ 
+-          if (!isInGrid || overlap || !gridContainer) {
+-
+-            if (paletteContainer) paletteContainer.appendChild(element);
++          element.style.zIndex = '';
++          element.style.position = '';
+ 
+-            element.style.position = 'relative';
+-            element.style.transform = '';
+-            element.setAttribute('data-x', '0');
+-            element.setAttribute('data-y', '0');
+-            element.style.pointerEvents = 'auto';
+-            this.itemStates[element.id] = {col: 0, row: 0, isAtStartPosition: true};
+-          } else {
++          this.evaluateConnections();
++          this.cdr.detectChanges();
++        },
++      },
++    });
++  }
+ 
++  //prüft ob eine Fabrik am Fließband angrenzt
++  public evaluateConnections(): void {
++    for (const itemId in this.itemStates) {
++      const state = this.itemStates[itemId];
++      const stateAny = state as any;
++      const element = document.getElementById(itemId);
+ 
+-            const itemRect = element.getBoundingClientRect();
+-            const gridRect = gridContainer.getBoundingClientRect();
++      const itemData = this.items.find(i => i.id === itemId);
+ 
++      if (!element || !itemData) continue;
+ 
+-            const relativeX = itemRect.left - gridRect.left;
+-            const relativeY = itemRect.top - gridRect.top;
+-            let targetCol = Math.round((relativeX / this.zoomLevel) / this.gridCellSizePx);
+-            let targetRow = Math.round((relativeY / this.zoomLevel) / this.gridCellSizePx);
++      if (state.isAtStartPosition) {
++        stateAny.isConnected = false;
++        this.updateVisualConnection(element, false);
++        continue;
++      }
+ 
++      const itemSizePx = this.getItemSizePx(itemData.size);
++      const cellSpan = Math.max(1, Math.round(itemSizePx / this.gridCellSizePx));
+ 
+-            targetCol = Math.max(0, Math.min(targetCol, this.gridColumns - 1));
+-            targetRow = Math.max(0, Math.min(targetRow, this.gridRowCount - 1));
++      const startRow = state.row;
++      const startCol = state.col;
++      let isConnected = false;
+ 
++      for (let r = startRow - 1; r <= startRow + cellSpan; r++) {
++        for (let c = startCol - 1; c <= startCol + cellSpan; c++) {
+ 
+-            this.itemStates[element.id] = {
+-              col: targetCol,
+-              row: targetRow,
+-              isAtStartPosition: false
+-            };
++          const isTopOrBottom = (r === startRow - 1 || r === startRow + cellSpan) && (c >= startCol && c < startCol + cellSpan);
++          const isLeftOrRight = (c === startCol - 1 || c === startCol + cellSpan) && (r >= startRow && r < startRow + cellSpan);
+ 
+-            gridContainer.appendChild(element);
++          if (isTopOrBottom || isLeftOrRight) {
++            if (r >= 0 && r < this.gridRowCount && c >= 0 && c < this.gridColumns) {
++              if (this.conveyorGrid[r][c]?.active) {
++                isConnected = true;
++                break;
++              }
++            }
++          }
++        }
++        if (isConnected) break;
++      }
+ 
+-            const finalX = targetCol * this.gridCellSizePx;
+-            const finalY = targetRow * this.gridCellSizePx;
++      stateAny.isConnected = isConnected;
++      this.updateVisualConnection(element, isConnected);
++    }
++  }
+ 
+-            element.style.position = 'absolute';
+-            element.style.left = '0px';
+-            element.style.top = '0px';
+-            element.style.transform = `translate(${finalX}px, ${finalY}px)`;
+-            element.setAttribute('data-x', String(finalX));
+-            element.setAttribute('data-y', String(finalY));
+-            element.style.pointerEvents = 'auto';
+-          }
+-        },
+-      },
+-    });
++  // Grünes Leuchten bei verbundener Fabrik aktivieren oder deaktivieren
++  private updateVisualConnection(element: HTMLElement, isConnected: boolean): void {
++    if (isConnected) {
++      element.classList.add('ring-4', 'ring-green-500', 'shadow-[0_0_20px_rgba(34,197,94,0.6)]');
++      element.classList.remove('border-white/20');
++      element.setAttribute('data-connected', 'true');
++    } else {
++      element.classList.remove('ring-4', 'ring-green-500', 'shadow-[0_0_20px_rgba(34,197,94,0.6)]');
++      element.classList.add('border-white/20');
++      element.setAttribute('data-connected', 'false');
++    }
+   }
+ }
+diff --git a/src/app/services/factory-grid.service.ts b/src/app/services/factory-grid.service.ts
+index af7952c..ec7b3e9 100644
+--- a/src/app/services/factory-grid.service.ts
++++ b/src/app/services/factory-grid.service.ts
+@@ -10,7 +10,7 @@ export class FactoryGridService {
+   }
+ 
+   calculateColumns(gridCellSizePx: number, availableWidthPx: number): number {
+-    return Math.max(1, Math.floor(availableWidthPx / gridCellSizePx))*2;
++    return Math.max(1, Math.floor(availableWidthPx / gridCellSizePx));
+   }
+ 
+   createOrResizeGrid(
+diff --git a/src/app/services/factory-items.service.ts b/src/app/services/factory-items.service.ts
+index 27ca6d4..9d01f01 100644
+--- a/src/app/services/factory-items.service.ts
++++ b/src/app/services/factory-items.service.ts
+@@ -28,6 +28,8 @@ export class FactoryItemsService {
+   captureItemBasePositions(
+     items: DraggableItems[],
+     gridRect: DOMRect,
++    itemStates?: Record<string, ItemState>,
++    existingPositions?: Record<string, ItemBasePosition>,
+   ): Record<string, ItemBasePosition> {
+     const itemBasePositions: Record<string, ItemBasePosition> = {};
+ 
+@@ -35,6 +37,15 @@ export class FactoryItemsService {
+       const element = document.getElementById(item.id);
+       if (!element) continue;
+ 
++      const state = itemStates?.[item.id];
++
++      // Bereits platzierte Items behalten ihre bestehende base-Position —
++      // sonst würde das temporäre Entfernen des Transforms die Basis verfälschen
++      if (state && !state.isAtStartPosition && existingPositions?.[item.id]) {
++        itemBasePositions[item.id] = existingPositions[item.id];
++        continue;
++      }
++
+       const oldTransform = element.style.transform;
+       element.style.transform = '';
+ 
+@@ -57,12 +68,29 @@ export class FactoryItemsService {
+     row: number,
+     itemBasePositions: Record<string, ItemBasePosition>,
+     gridCellSizePx: number,
++    gridRect?: DOMRect,
+   ): void {
+-    const base = itemBasePositions[element.id] ?? {x: 0, y: 0};
++    // Wenn gridRect übergeben wird, messen wir die aktuelle DOM-Position frisch —
++    // so ist der Translate korrekt, egal was im DOM passiert ist (Flex-Wrap, appendChild, etc.)
++    let baseX: number;
++    let baseY: number;
++
++    if (gridRect) {
++      const oldTransform = element.style.transform;
++      element.style.transform = '';
++      const rect = element.getBoundingClientRect();
++      element.style.transform = oldTransform;
++      baseX = rect.left - gridRect.left;
++      baseY = rect.top - gridRect.top;
++    } else {
++      const base = itemBasePositions[element.id] ?? {x: 0, y: 0};
++      baseX = base.x;
++      baseY = base.y;
++    }
+ 
+     const translate = this.layoutService.getTranslateForGridPosition(
+-      base.x,
+-      base.y,
++      baseX,
++      baseY,
+       col,
+       row,
+       gridCellSizePx,
+@@ -102,6 +130,7 @@ export class FactoryItemsService {
+     itemStates: Record<string, ItemState>,
+     itemBasePositions: Record<string, ItemBasePosition>,
+     gridCellSizePx: number,
++    gridRect?: DOMRect,
+   ): void {
+     for (const item of items) {
+       const element = document.getElementById(item.id);
+@@ -122,6 +151,7 @@ export class FactoryItemsService {
+         state.row,
+         itemBasePositions,
+         gridCellSizePx,
++        gridRect,
+       );
+     }
+   }
+diff --git a/src/styles.scss b/src/styles.scss
+index c376ca9..e7baf12 100644
+--- a/src/styles.scss
++++ b/src/styles.scss
+@@ -14,4 +14,5 @@
+   .draggable {
+     user-select: none;
+   }
++
+ }
+\ No newline at end of file

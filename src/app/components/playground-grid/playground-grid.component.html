@@ -1,14 +1,11 @@
-<div class="relative w-max h-max flex flex-col bg-black/40 border border-white/20 rounded-xl p-2">
+<div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+  <div class="mb-3 text-xs font-semibold tracking-wide text-white">Playground</div>
 
-  <div class="mb-2 flex items-center justify-between text-xs font-semibold tracking-wide text-white px-2">
-    <span>Playground</span>
-  </div>
-
-  <div class="relative w-max h-max border-2 border-black bg-white/5">
-
-    <table #gridTable class="border-collapse border-spacing-0">
+  <div class="h-[50vh] overflow-hidden rounded-2xl border-2 border-black bg-white/5 p-2">
+    <table #gridTable class="h-full w-full table-fixed border-collapse">
+      <!-- Loop over rows of the conveyor belt grid -->
       @for (row of conveyorGrid; let rowIndex = $index; track rowIndex) {
-        <tr [style.height.px]="gridCellSizePx">
+        <tr>
 
           <!-- Loop over cells in a row -->
           @for (cell of row; let colIndex = $index; track colIndex) {
@@ -31,11 +28,9 @@
               }
             </td>
           }
+
         </tr>
       }
     </table>
-
-    <div id="grid-items-container" class="absolute inset-0 z-50 pointer-events-none"></div>
-
   </div>
 </div>
