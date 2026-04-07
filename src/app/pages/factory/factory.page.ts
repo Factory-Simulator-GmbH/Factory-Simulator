@@ -319,12 +319,11 @@ export class FactoryPage implements AfterViewInit, OnInit {
     });
 
     interact('.draggable-item').draggable({
-      origin: 'parent', // WICHTIG: Origin auf parent, nicht mehr auf gridElement!
+      origin: this.playgroundGridComponent.gridTableRef.nativeElement,
       modifiers: [
         interact.modifiers.snap({
           targets: [
             interact.createSnapGrid({
-              // MAGIE: Wir zwingen das Raster, den Zoom-Faktor mitzurechnen!
               x: this.gridCellSizePx * this.zoomLevel,
               y: this.gridCellSizePx * this.zoomLevel,
             }),
