@@ -1,11 +1,9 @@
 import {Component, EventEmitter, Input, Output} from '@angular/core';
 import {DraggableItems, ItemSize} from '../../models/draggable-item.model';
-import {TooltipDirective} from '../../directives/tooltip.directive';
 
 @Component({
   selector: 'app-items',
   standalone: true,
-  imports: [TooltipDirective],
   templateUrl: './items.component.html',
 })
 export class ItemsComponent {

@@ -1,87 +1,43 @@
-<div
-  class="absolute inset-0 overflow-hidden bg-gradient-to-b from-slate-950 via-slate-900 to-slate-800 text-white flex flex-col transition-all"
-  [class.p-4]="!isFullscreen" [class.p-0]="isFullscreen">
-
-  @if (!isFullscreen) {
-    <header class="flex-none text-center mb-4 transition-opacity" [class.opacity-30]="isDraggingItem">
+<div class="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-800 text-white">
+  <div class="mx-auto flex min-h-screen w-[95%] flex-col px-4 py-4">
+    <header class="text-center" [class.opacity-30]="isDraggingItem">
       <h1 class="text-4xl font-extrabold tracking-tight">Factory Simulator</h1>
     </header>
-  }
 
-  <section class="flex-1 relative min-h-0 min-w-0 transition-all">
-
-    <div class="absolute inset-0 flex flex-col backdrop-blur overflow-hidden transition-all"
-         [class.rounded-3xl]="!isFullscreen" [class.rounded-none]="isFullscreen"
-         [class]="!isFullscreen ? 'border border-white/10 bg-white/5' : 'bg-black/20'">
-
-      <button (click)="toggleFullscreen()"
-              class="absolute top-3 right-8 z-50 flex items-center gap-2 rounded border border-white/20 bg-white/10 px-3 py-1.5 transition-colors hover:bg-white/20 active:bg-white/30 cursor-pointer">
-        @if (isFullscreen) {
-          <span>🗗 Exit Fullscreen</span>
-        } @else {
-          <span>🖵 Fullscreen</span>
-        }
-      </button>
-
-      @if (isDraggingItem) {
-        <div class="absolute inset-0 z-30 bg-black/50 pointer-events-none"></div>
-      }
-
-      <div #scrollContainer class="absolute inset-0 overflow-auto custom-scrollbar z-10"
-           [class.overflow-x-hidden]="isFullscreen"
-           (wheel)="onWheel($event)"
-           (scroll)="onScroll($event)">
-
-        <div class="origin-top-left w-max h-max p-8 transition-transform duration-100 ease-out"
-             [style.transform]="'scale(' + zoomLevel + ')'">
-
-          <div
-            class="rounded-2xl border border-white/10 bg-white/5"
-            [class.relative]="isDraggingItem"
-            [class.z-50]="isDraggingItem"
-          >
-
-            <app-playground-grid
-              [conveyorGrid]="conveyorGrid"
-              [gridCellSizePx]="gridCellSizePx"
-              [previewCells]="previewCells"
-              [getConveyorSymbol]="getConveyorSymbol"
-              (cellMouseDown)="onCellMouseDown($event.event, $event.rowIndex, $event.colIndex)"
-              (cellMouseEnter)="onCellMouseEnter($event.rowIndex, $event.colIndex)">
-            </app-playground-grid>
-          </div>
-        </div>
-
-      </div>
-
+    <section class="mt-6 flex-1">
       <div
-        class="absolute bottom-6 right-6 w-48 h-32 bg-slate-900 border-2 border-white/20 rounded-lg z-[60] shadow-2xl overflow-hidden pointer-events-none">
+        class="factory-surface relative h-full rounded-3xl border border-white/10 bg-white/5 p-5 shadow-xl backdrop-blur">
+        @if (isDraggingItem) {
+          <div class="absolute inset-0 z-40 rounded-3xl bg-black/50 pointer-events-none"></div>
+        }
+
         <div
-          class="absolute top-0 left-0 w-full bg-black/40 px-2 py-0.5 text-[10px] text-white/50 uppercase font-bold z-10">
-          Minimap
+          #gridHost
+          class="rounded-2xl border border-white/10 bg-white/5"
+          [class.relative]="isDraggingItem"
+          [class.z-50]="isDraggingItem"
+        >
+          <app-playground-grid
+            [conveyorGrid]="conveyorGrid"
+            [gridCellSizePx]="gridCellSizePx"
+            [previewCells]="previewCells"
+            [getConveyorSymbol]="getConveyorSymbol"
+            (cellMouseDown)="onCellMouseDown($event.event, $event.rowIndex, $event.colIndex)"
+            (cellMouseEnter)="onCellMouseEnter($event.rowIndex, $event.colIndex)"
+          />
         </div>
-        <div
-          class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPgo8cmVjdCB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSJub25lIj48L3JlY3Q+CjxwYXRoIGQ9Ik0wIDBMOCAwTDAgOFoiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgyNTUsIDI1NSwgMjU1LCAwLjA1KSIgc3Ryb2tlLXdpZHRoPSIxIj48L3BhdGg+Cjwvc3ZnPg==')] opacity-50"></div>
-        <div class="absolute border-2 border-blue-400 bg-blue-400/20 transition-all duration-75"
-             [style.left]="minimapViewport.left"
-             [style.top]="minimapViewport.top"
-             [style.width]="minimapViewport.width"
-             [style.height]="minimapViewport.height">
-        </div>
+
+        
+        <app-items
+          [items]="items"
+          [activeDraggedItemId]="activeDraggedItemId"
+          [getItemSizePx]="getItemSizePx.bind(this)"
+          [isDraggingItem]="isDraggingItem"
+          (itemMouseDown)="onItemMouseDown($event)"
+        />
       </div>
-    </div>
-  </section>
-
-  @if (!isFullscreen) {
-    <div class="flex-none mt-4 relative z-50">
-      <app-items
-        [items]="items"
-        [activeDraggedItemId]="activeDraggedItemId"
-        [isDraggingItem]="isDraggingItem"
-        [getItemSizePx]="getItemSizePx"
-        (itemMouseDown)="onItemMouseDown($event)">
-      </app-items>
-    </div>
-  }
-
+    </section>
+  </div>
 </div>
+
+
