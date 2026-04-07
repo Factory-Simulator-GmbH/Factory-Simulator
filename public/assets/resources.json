@@ -1,0 +1,14 @@
+[
+    {
+        "id": "metall",
+        "label": "Metall"
+    },
+    {
+        "id": "kupfer",
+        "label": "Kupfer"
+    },
+    {
+        "id": "kunststoff",
+        "label": "Kunststoff"
+    }
+]

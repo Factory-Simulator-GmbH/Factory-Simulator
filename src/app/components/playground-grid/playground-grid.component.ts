@@ -16,6 +16,8 @@ export class PlaygroundGridComponent {
   @Input({required: true}) gridCellSizePx!: number;
   @Input({required: true}) previewCells!: Set<string>;
   @Input({required: true}) getConveyorSymbol!: (cell: ConveyorSegment) => string;
+  @Input() isFullscreen = false;
+  @Output() toggleFullscreen = new EventEmitter<void>();
 
   @Output() cellMouseDown = new EventEmitter<{ event: MouseEvent; rowIndex: number; colIndex: number }>();
   @Output() cellMouseEnter = new EventEmitter<{ rowIndex: number; colIndex: number }>();
@@ -39,4 +41,9 @@ export class PlaygroundGridComponent {
   onMouseEnter(rowIndex: number, colIndex: number): void {
     this.cellMouseEnter.emit({rowIndex, colIndex});
   }
+
+  onToggleFullscreen(): void {
+    this.toggleFullscreen.emit();
+  }
+  
 }
