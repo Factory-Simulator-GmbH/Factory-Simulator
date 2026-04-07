@@ -8,6 +8,7 @@ import {
   ViewChild,
 } from '@angular/core';
 import interact from 'interactjs';
+import itemsData from '../../../../public/assets/items.json';
 import {ItemsComponent} from '../../components/items/items.component';
 import {PlaygroundGridComponent} from '../../components/playground-grid/playground-grid.component';
 import {ConveyorSegment} from '../../models/conveyor-segment.model';
@@ -41,13 +42,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
 
   conveyorGrid: ConveyorSegment[][] = [];
 
-  items: DraggableItems[] = [
-    {id: 'f1', label: 'Maschine', size: 'large', helpText: '<strong>Maschine</strong><br>Verarbeitet Materialien zu Produkten.<br>Benötigt mindestens eine Input- und eine Output-Seite.<br><bold>Rezept:</bold><br><img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRSyZz79wlfw2jtpya-0ZmYsGeKqK6Mkpzy8g&s" alt="Rezept für Diaschwert" style="width: 100%;">'},
-    {id: 'f2', label: 'Maschine', size: 'large', helpText: '<strong>Maschine</strong><br>Verarbeitet Materialien zu Produkten.<br>Benötigt mindestens eine Input- und eine Output-Seite.<br><bold>Rezept:</bold><br><img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRSyZz79wlfw2jtpya-0ZmYsGeKqK6Mkpzy8g&s" alt="Rezept für Diaschwert" style="width: 100%;">'},
-    {id: 'f3', label: 'Maschine', size: 'large', helpText: '<strong>Maschine</strong><br>Verarbeitet Materialien zu Produkten.<br>Benötigt mindestens eine Input- und eine Output-Seite.<br><bold>Rezept:</bold><br><img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRSyZz79wlfw2jtpya-0ZmYsGeKqK6Mkpzy8g&s" alt="Rezept für Diaschwert" style="width: 100%;">'},
-    {id: 'io1', label: 'I/O', size: 'small', helpText: '<strong>I/O-Modul</strong><br>Schnittstelle für den Ressourcen austausch zwischen Rollbändern und Maschinen.'},
-    {id: 'io2', label: 'I/O', size: 'small', helpText: '<strong>I/O-Modul</strong><br>Schnittstelle für den Ressourcen austausch zwischen Rollbändern und Maschinen.'},
-  ];
+  items: DraggableItems[] = itemsData as DraggableItems[];
 
   private itemStates: Record<string, ItemState> = {};
   private itemBasePositions: Record<string, ItemBasePosition> = {};
