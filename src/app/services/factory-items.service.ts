@@ -28,12 +28,23 @@ export class FactoryItemsService {
   captureItemBasePositions(
     items: DraggableItems[],
     gridRect: DOMRect,
+    itemStates?: Record<string, ItemState>,
+    existingPositions?: Record<string, ItemBasePosition>,
   ): Record<string, ItemBasePosition> {
     const itemBasePositions: Record<string, ItemBasePosition> = {};
 
     for (const item of items) {
       const element = document.getElementById(item.id);
       if (!element) continue;
+
+      const state = itemStates?.[item.id];
+
+      // Bereits platzierte Items behalten ihre bestehende base-Position —
+      // sonst würde das temporäre Entfernen des Transforms die Basis verfälschen
+      if (state && !state.isAtStartPosition && existingPositions?.[item.id]) {
+        itemBasePositions[item.id] = existingPositions[item.id];
+        continue;
+      }
 
       const oldTransform = element.style.transform;
       element.style.transform = '';
@@ -57,12 +68,29 @@ export class FactoryItemsService {
     row: number,
     itemBasePositions: Record<string, ItemBasePosition>,
     gridCellSizePx: number,
+    gridRect?: DOMRect,
   ): void {
-    const base = itemBasePositions[element.id] ?? {x: 0, y: 0};
+    // Wenn gridRect übergeben wird, messen wir die aktuelle DOM-Position frisch —
+    // so ist der Translate korrekt, egal was im DOM passiert ist (Flex-Wrap, appendChild, etc.)
+    let baseX: number;
+    let baseY: number;
+
+    if (gridRect) {
+      const oldTransform = element.style.transform;
+      element.style.transform = '';
+      const rect = element.getBoundingClientRect();
+      element.style.transform = oldTransform;
+      baseX = rect.left - gridRect.left;
+      baseY = rect.top - gridRect.top;
+    } else {
+      const base = itemBasePositions[element.id] ?? {x: 0, y: 0};
+      baseX = base.x;
+      baseY = base.y;
+    }
 
     const translate = this.layoutService.getTranslateForGridPosition(
-      base.x,
-      base.y,
+      baseX,
+      baseY,
       col,
       row,
       gridCellSizePx,
@@ -102,6 +130,7 @@ export class FactoryItemsService {
     itemStates: Record<string, ItemState>,
     itemBasePositions: Record<string, ItemBasePosition>,
     gridCellSizePx: number,
+    gridRect?: DOMRect,
   ): void {
     for (const item of items) {
       const element = document.getElementById(item.id);
@@ -122,6 +151,7 @@ export class FactoryItemsService {
         state.row,
         itemBasePositions,
         gridCellSizePx,
+        gridRect,
       );
     }
   }
