@@ -10,7 +10,7 @@ export class FactoryGridService {
   }
 
   calculateColumns(gridCellSizePx: number, availableWidthPx: number): number {
-    return Math.max(1, Math.floor(availableWidthPx / gridCellSizePx))*2;
+    return Math.max(1, Math.floor(availableWidthPx / gridCellSizePx));
   }
 
   createOrResizeGrid(
