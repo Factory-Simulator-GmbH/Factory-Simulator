@@ -180,9 +180,9 @@ export class FactoryPage implements AfterViewInit, OnInit {
   onItemMouseDown(itemId: string): void {
     const state = this.itemStates[itemId];
     const stateAny = state as any;
-    
+
     if (stateAny && stateAny.isConnected) {
-      return; 
+      return;
     }
 
     this.isDraggingItem = true;
@@ -201,14 +201,14 @@ export class FactoryPage implements AfterViewInit, OnInit {
       const itemId = itemElement.getAttribute('data-item-id') || itemElement.id;
       const state = this.itemStates[itemId];
       const stateAny = state as any;
-      
+
       if (stateAny && stateAny.isConnected && event.button === 0) {
-        this.paintMode = 'on'; 
+        this.paintMode = 'on';
         this.previewCells.clear();
         this.touchedCells.clear();
-        
+
         this.pathCells = [{ row: state.row, col: state.col }];
-        
+
         itemElement.style.pointerEvents = 'none';
         this.activeDraggedItemId = itemId;
       }
@@ -226,7 +226,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
 
     if (this.activeDraggedItemId) {
       const el = document.getElementById(this.activeDraggedItemId);
-      if (el) el.style.pointerEvents = ''; 
+      if (el) el.style.pointerEvents = '';
     }
     this.activeDraggedItemId = null;
   }
@@ -282,17 +282,24 @@ export class FactoryPage implements AfterViewInit, OnInit {
     target.style.transform = '';
     target.setAttribute('data-x', '0');
     target.setAttribute('data-y', '0');
-    
-    this.itemStates[itemId] = { col: 0, row: 0, isAtStartPosition: true };
-    
+
+    // col/row auf -1 setzen, damit das Item nie fälschlicherweise als Nachbar von Gitterzelle (0,0) erkannt wird
+    this.itemStates[itemId] = { col: -1, row: -1, isAtStartPosition: true };
+
     const paletteContainer = document.getElementById('item-palette');
     if (paletteContainer) {
       paletteContainer.appendChild(target);
-      target.style.position = 'relative'; 
+      target.style.position = 'relative';
     }
 
     this.evaluateConnections();
-    this.cdr.detectChanges(); 
+    this.cdr.detectChanges();
+
+    // Nach DOM-Änderung: alle platzierten Items neu positionieren (frische DOM-Messung)
+    requestAnimationFrame(() => {
+      this.captureItemBasePositions();
+      this.repositionAllItems();
+    });
   }
 
   // Speichert, wo die Items im Inventar liegen
@@ -300,6 +307,8 @@ export class FactoryPage implements AfterViewInit, OnInit {
     this.itemBasePositions = this.factoryItemsService.captureItemBasePositions(
       this.items,
       this.getGridTableRect(),
+      this.itemStates,
+      this.itemBasePositions,
     );
   }
 
@@ -311,6 +320,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
       row,
       this.itemBasePositions,
       this.gridCellSizePx,
+      this.getGridTableRect(),
     );
   }
 
@@ -341,6 +351,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
       this.itemStates,
       this.itemBasePositions,
       this.gridCellSizePx,
+      this.getGridTableRect(),
     );
   }
 
@@ -363,14 +374,19 @@ export class FactoryPage implements AfterViewInit, OnInit {
   private setupInteractDragging(): void {
     interact('.draggable-item').unset();
 
+    const gridRect = this.getGridTableRect();
+
     interact('.draggable-item').draggable({
-      origin: this.playgroundGridComponent.gridTableRef.nativeElement,
       modifiers: [
         interact.modifiers.snap({
           targets: [
             interact.createSnapGrid({
               x: this.gridCellSizePx,
               y: this.gridCellSizePx,
+              offset: {
+                x: gridRect.left % this.gridCellSizePx,
+                y: gridRect.top % this.gridCellSizePx,
+              },
             }),
           ],
           relativePoints: [{x: 0, y: 0}],
@@ -397,6 +413,17 @@ export class FactoryPage implements AfterViewInit, OnInit {
             this.activeDraggedItemId = itemId;
           });
 
+          // Sicherstellen, dass data-x/data-y mit dem aktuellen Transform übereinstimmt
+          const transform = element.style.transform;
+          const match = transform.match(/translate(?:3d)?\(\s*(-?\d+(?:\.\d+)?)px,\s*(-?\d+(?:\.\d+)?)px/);
+          if (match) {
+            element.setAttribute('data-x', match[1]);
+            element.setAttribute('data-y', match[2]);
+          } else {
+            element.setAttribute('data-x', '0');
+            element.setAttribute('data-y', '0');
+          }
+
           element.style.position = 'relative';
           element.style.zIndex = '60';
         },
@@ -418,7 +445,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
         end: (event) => {
           this.ngZone.run(() => {
             this.isDraggingItem = false;
-            this.activeDraggedItemId = null; 
+            this.activeDraggedItemId = null;
           });
 
           const element = event.target as HTMLElement;
@@ -433,20 +460,20 @@ export class FactoryPage implements AfterViewInit, OnInit {
               element.setAttribute('data-y', '0');
             } else {
               this.applyItemPosition(element, state.col, state.row);
-              this.syncDataAttributes(element); 
+              this.syncDataAttributes(element);
             }
           } else {
             this.saveItemGridPosition(element);
             const pos = this.itemStates[element.id];
             this.applyItemPosition(element, pos.col, pos.row);
-            this.syncDataAttributes(element); 
+            this.syncDataAttributes(element);
           }
 
           element.style.zIndex = '';
           element.style.position = '';
 
           this.evaluateConnections();
-          this.cdr.detectChanges(); 
+          this.cdr.detectChanges();
         },
       },
     });
@@ -458,9 +485,9 @@ export class FactoryPage implements AfterViewInit, OnInit {
       const state = this.itemStates[itemId];
       const stateAny = state as any;
       const element = document.getElementById(itemId);
-      
+
       const itemData = this.items.find(i => i.id === itemId);
-      
+
       if (!element || !itemData) continue;
 
       if (state.isAtStartPosition) {
@@ -478,7 +505,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
 
       for (let r = startRow - 1; r <= startRow + cellSpan; r++) {
         for (let c = startCol - 1; c <= startCol + cellSpan; c++) {
-          
+
           const isTopOrBottom = (r === startRow - 1 || r === startRow + cellSpan) && (c >= startCol && c < startCol + cellSpan);
           const isLeftOrRight = (c === startCol - 1 || c === startCol + cellSpan) && (r >= startRow && r < startRow + cellSpan);
 
@@ -486,12 +513,12 @@ export class FactoryPage implements AfterViewInit, OnInit {
             if (r >= 0 && r < this.gridRowCount && c >= 0 && c < this.gridColumns) {
               if (this.conveyorGrid[r][c]?.active) {
                 isConnected = true;
-                break; 
+                break;
               }
             }
           }
         }
-        if (isConnected) break; 
+        if (isConnected) break;
       }
 
       stateAny.isConnected = isConnected;
