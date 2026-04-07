@@ -34,6 +34,11 @@ export class TooltipDirective implements OnDestroy {
     this.hide();
   }
 
+  @HostListener('contextmenu')
+  onRightClick(): void {
+    this.hide();
+  }
+
   private show(): void {
     if (!this.content || this.tooltipEl) return;
 
