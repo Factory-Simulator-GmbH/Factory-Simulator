@@ -11,6 +11,7 @@ export class ConveyorGridService {
         active: false,
         entry: null,
         exit: null,
+        resource: null,
       })),
     );
   }
@@ -28,6 +29,7 @@ export class ConveyorGridService {
           active: grid[row][col].active,
           entry: grid[row][col].entry,
           exit: grid[row][col].exit,
+          resource: grid[row][col].resource,
         };
       }
     }
