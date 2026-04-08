@@ -134,10 +134,8 @@ export class FactoryPage implements AfterViewInit, OnInit {
   onScroll(event: Event): void {
     this.updateMinimap(event.target as HTMLElement);
 
-//Hier wird eine Anmat
     requestAnimationFrame(() => {
       this.captureItemBasePositions();
-      this.initializeItemStates();
       this.setupInteractDragging();
       this.cdr.detectChanges();
       this.repositionAllItems();
@@ -164,7 +162,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
       height: `${(clientHeight / scrollHeight) * 100}%`
     };
   }
-  
+
   // Items auf ihre Startposition im Inventar setzen
   private initializeItemStates(): void {
     this.itemStates = this.factoryItemsService.initializeItemStates(this.items);
@@ -387,6 +385,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
     requestAnimationFrame(() => {
       this.captureItemBasePositions();
       this.repositionAllItems();
+      this.setupInteractDragging();
     });
   }
 
@@ -595,7 +594,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
             element.setAttribute('data-y', String(finalY));
             element.style.pointerEvents = 'auto';
           }
-          
+
           this.evaluateConnections();
           this.cdr.detectChanges();
         },
