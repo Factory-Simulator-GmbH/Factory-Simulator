@@ -4,4 +4,5 @@ export interface ConveyorSegment {
   active: boolean;
   entry: Direction | null;
   exit: Direction | null;
+  resource: string | null;
 }
