@@ -296,6 +296,42 @@ export class FactoryPage implements AfterViewInit, OnInit {
     this.factoryItemsService.repositionAllItems(this.items, this.itemStates, this.itemBasePositions, this.gridCellSizePx);
   }
 
+  private checkAdjacentOutput(spawnerCol: number, spawnerRow: number): { col: number; row: number } | null {
+    const spawnerSize = 3; // large = 3x3 Zellen
+    const minCol = spawnerCol - 1;
+    const maxCol = spawnerCol + spawnerSize;
+    const minRow = spawnerRow - 1;
+    const maxRow = spawnerRow + spawnerSize;
+    for (const item of this.items) {
+      if (item.type !== 'output') continue;
+      const state = this.itemStates[item.id];
+      if (!state || state.isAtStartPosition) continue;
+      const c = state.col;
+      const r = state.row;
+      const inRing = c >= minCol && c <= maxCol && r >= minRow && r <= maxRow;
+      const insideSpawner =
+        c >= spawnerCol && c < spawnerCol + spawnerSize &&
+        r >= spawnerRow && r < spawnerRow + spawnerSize;
+      const isCorner =
+        (c === minCol && r === minRow) ||
+        (c === maxCol && r === minRow) ||
+        (c === minCol && r === maxRow) ||
+        (c === maxCol && r === maxRow);
+      if (inRing && !insideSpawner && !isCorner) return { col: c, row: r };
+    }
+    return null;
+  }
+
+  private onSpawnerPlaced(id: string, col: number, row: number, adjacentOutput: { col: number; row: number } | null): void {
+    if (adjacentOutput) {
+      console.log(`Spawner "${id}" platziert bei (${col}, ${row}). Output nebenan bei (${adjacentOutput.col}, ${adjacentOutput.row})`);
+      this.conveyorGrid.grid[adjacentOutput.row][adjacentOutput.col].resource = this.items.find(i => i.id === id)?.spawningResource ?? null;
+      console.log(`Ressource "${this.conveyorGrid.grid[adjacentOutput.row][adjacentOutput.col].resource}" in Conveyor bei (${adjacentOutput.col}, ${adjacentOutput.row}) platziert.`);
+    } else {
+      console.log(`Spawner "${id}" platziert bei (${col}, ${row}). Kein Output nebenan.`);
+    }
+  }
+
   private isOverlapping(checkItem: HTMLElement): boolean {
     return (
       this.factoryItemsService.isOverlappingWithItem(checkItem, this.items) ||
@@ -415,6 +451,12 @@ export class FactoryPage implements AfterViewInit, OnInit {
               row: targetRow,
               isAtStartPosition: false
             };
+
+            const placedItem = this.items.find(i => i.id === element.id);
+            if (placedItem?.spawningResource) {
+              const adjacentOutput = this.checkAdjacentOutput(targetCol, targetRow);
+              this.onSpawnerPlaced(element.id, targetCol, targetRow, adjacentOutput);
+            }
 
             gridContainer.appendChild(element);
 
