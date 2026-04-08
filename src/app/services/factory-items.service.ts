@@ -166,10 +166,10 @@ export class FactoryItemsService {
       if (!itemRect) continue;
 
       if (
-        checkItemRect.top + 0.5 >= itemRect.bottom - 0.5 ||
-        checkItemRect.right - 0.5 <= itemRect.left + 0.5 ||
-        checkItemRect.bottom - 0.5 <= itemRect.top + 0.5 ||
-        checkItemRect.left + 0.5 >= itemRect.right - 0.5
+        checkItemRect.top + 1.5 >= itemRect.bottom - 1.5 ||
+        checkItemRect.right - 1.5 <= itemRect.left + 1.5 ||
+        checkItemRect.bottom - 1.5 <= itemRect.top + 1.5 ||
+        checkItemRect.left + 1.5 >= itemRect.right - 1.5
       ) {
         continue;
       }

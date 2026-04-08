@@ -1,12 +1,12 @@
 import {
   AfterViewInit,
+  ChangeDetectorRef,
   Component,
   ElementRef,
   HostListener,
   NgZone,
   OnInit,
-  ViewChild,
-  ChangeDetectorRef
+  ViewChild
 } from '@angular/core';
 import interact from 'interactjs';
 import itemsData from '../../../../public/assets/items.json';
@@ -77,7 +77,8 @@ export class FactoryPage implements AfterViewInit, OnInit {
     private factoryGridService: FactoryGridService,
     private factoryItemsService: FactoryItemsService,
     private cdr: ChangeDetectorRef
-  ) {}
+  ) {
+  }
 
   // Setup beim allerersten Start der Seite
   ngOnInit(): void {
@@ -90,12 +91,17 @@ export class FactoryPage implements AfterViewInit, OnInit {
     setTimeout(() => {
 
       requestAnimationFrame(() => {
-        this.captureItemBasePositions();
-        this.initializeItemStates();
-        this.setupInteractDragging();
-        this.updateMinimap();
+        requestAnimationFrame(() => {
+          // DOM-Reflow erzwingen
+          void this.playgroundGridComponent.gridTableRef.nativeElement.getBoundingClientRect();
+
+          this.captureItemBasePositions();
+          this.initializeItemStates();
+          this.setupInteractDragging();
+          this.updateMinimap();
+        });
       });
-    }, 0);
+    }, 100);
   }
 
   toggleFullscreen(): void {
@@ -263,8 +269,8 @@ export class FactoryPage implements AfterViewInit, OnInit {
   };
 
   // Klick auf ein Item (Drag & Drop starten)
-  onItemMouseDown(data: {itemId: string, event: MouseEvent}): void {
-    if(data.event.button === 2) return; // Rechtsklicks hier ignorieren
+  onItemMouseDown(data: { itemId: string, event: MouseEvent }): void {
+    if (data.event.button === 2) return; // Rechtsklicks hier ignorieren
 
     const state = this.itemStates[data.itemId];
     const stateAny = state as any;
@@ -295,7 +301,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
         this.previewCells.clear();
         this.touchedCells.clear();
 
-        this.pathCells = [{ row: state.row, col: state.col }];
+        this.pathCells = [{row: state.row, col: state.col}];
 
         itemElement.style.pointerEvents = 'none';
         this.activeDraggedItemId = itemId;
@@ -372,7 +378,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
     target.setAttribute('data-y', '0');
 
     // col/row auf -1 setzen, damit das Item nie fälschlicherweise als Nachbar von Gitterzelle (0,0) erkannt wird
-    this.itemStates[itemId] = { col: -1, row: -1, isAtStartPosition: true };
+    this.itemStates[itemId] = {col: -1, row: -1, isAtStartPosition: true};
 
     const paletteContainer = document.getElementById('item-palette');
     if (paletteContainer) {
