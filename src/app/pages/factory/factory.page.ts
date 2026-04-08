@@ -1,4 +1,13 @@
-import {AfterViewInit, Component, ElementRef, HostListener, NgZone, OnInit, ViewChild,} from '@angular/core';
+import {
+  AfterViewInit,
+  ChangeDetectorRef,
+  Component,
+  ElementRef,
+  HostListener,
+  NgZone,
+  OnInit,
+  ViewChild
+} from '@angular/core';
 import interact from 'interactjs';
 import itemsData from '../../../../public/assets/items.json';
 import {ItemsComponent} from '../../components/items/items.component';
@@ -31,6 +40,8 @@ export class FactoryPage implements AfterViewInit, OnInit {
   isDraggingItem = false;
   activeDraggedItemId: string | null = null;
 
+  private lastRightClickTime = 0;
+  private lastRightClickId: string | null = null;
 
   isFullscreen = false;
 
@@ -65,24 +76,32 @@ export class FactoryPage implements AfterViewInit, OnInit {
     private layoutService: LayoutService,
     private factoryGridService: FactoryGridService,
     private factoryItemsService: FactoryItemsService,
+    private cdr: ChangeDetectorRef
   ) {
   }
 
+  // Setup beim allerersten Start der Seite
   ngOnInit(): void {
     this.updateGridCellSize();
     this.calculateColumnsAndCreateGrid();
   }
 
+  // Wird aufgerufen, sobald das HTML fertig gezeichnet ist
   ngAfterViewInit(): void {
     setTimeout(() => {
 
       requestAnimationFrame(() => {
-        this.captureItemBasePositions();
-        this.initializeItemStates();
-        this.setupInteractDragging();
-        this.updateMinimap();
+        requestAnimationFrame(() => {
+          // DOM-Reflow erzwingen
+          void this.playgroundGridComponent.gridTableRef.nativeElement.getBoundingClientRect();
+
+          this.captureItemBasePositions();
+          this.initializeItemStates();
+          this.setupInteractDragging();
+          this.updateMinimap();
+        });
       });
-    }, 0);
+    }, 100);
   }
 
   toggleFullscreen(): void {
@@ -121,9 +140,10 @@ export class FactoryPage implements AfterViewInit, OnInit {
   onScroll(event: Event): void {
     this.updateMinimap(event.target as HTMLElement);
 
-//Hier wird eine Anmat
     requestAnimationFrame(() => {
       this.captureItemBasePositions();
+      this.setupInteractDragging();
+      this.cdr.detectChanges();
       this.repositionAllItems();
     });
   }
@@ -149,6 +169,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
     };
   }
 
+  // Items auf ihre Startposition im Inventar setzen
   private initializeItemStates(): void {
     this.itemStates = this.factoryItemsService.initializeItemStates(this.items);
   }
@@ -158,6 +179,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
     return parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
   }
 
+  // Raster aufbauen (Spalten anhand der Bildschirmbreite berechnen)
   private calculateColumnsAndCreateGrid(): void {
     const scrollContainer = this.scrollContainerRef?.nativeElement;
 
@@ -183,19 +205,22 @@ export class FactoryPage implements AfterViewInit, OnInit {
     );
   }
 
-
+  // Abmessungen des Spielfelds holen
   private getGridTableRect(): DOMRect {
     return this.playgroundGridComponent.gridTableRef.nativeElement.getBoundingClientRect();
   }
 
+  // Größe eines Items in Pixeln abfragen
   getItemSizePx = (size: ItemSize): number => {
     return this.layoutService.getItemSizePx(size, this.gridCellSizePx);
   };
 
+  // Einzelne Rasterzellen-Größe für den aktuellen Bildschirm berechnen
   private updateGridCellSize(): void {
-    this.gridCellSizePx = (window.innerWidth * this.gridCellSizeVw) / 100;
+    this.gridCellSizePx = Math.floor((window.innerWidth * this.gridCellSizeVw) / 100);
   }
 
+  // Reagiert, wenn der Nutzer das Browser-Fenster größer/kleiner macht
   @HostListener('window:resize')
   onResize(): void {
     this.updateGridCellSize();
@@ -205,10 +230,12 @@ export class FactoryPage implements AfterViewInit, OnInit {
       this.captureItemBasePositions();
       this.repositionAllItems();
       this.setupInteractDragging();
+      this.cdr.detectChanges();
       this.updateMinimap();
     });
   }
 
+  // Klick auf das Raster (Startet das Fließband-Bauen)
   onCellMouseDown(event: MouseEvent, rowIndex: number, colIndex: number): void {
     if (this.isDraggingItem) return;
 
@@ -222,11 +249,13 @@ export class FactoryPage implements AfterViewInit, OnInit {
     this.applyPreview(rowIndex, colIndex);
   }
 
+  // Mit gedrückter Maus über das Raster wischen (Fließband malen)
   onCellMouseEnter(rowIndex: number, colIndex: number): void {
     if (!this.mousePressed || this.isDraggingItem || !this.paintMode) return;
     this.applyPreview(rowIndex, colIndex);
   }
 
+  // Zeigt eine Vorschau der Fließbänder, bevor sie fest platziert werden
   private applyPreview(rowIndex: number, colIndex: number): void {
     this.factoryGridService.applyPreview(
       this.conveyorGrid, rowIndex, colIndex, this.paintMode as 'on' | 'off',
@@ -234,68 +263,186 @@ export class FactoryPage implements AfterViewInit, OnInit {
     );
   }
 
+  // Holt das richtige Symbol für das Fließband (Gerade, Kurve, etc.)
   getConveyorSymbol = (cell: ConveyorSegment): string => {
     return this.factoryGridService.getConveyorSymbol(cell);
   };
 
-  onItemMouseDown(itemId: string): void {
+  // Klick auf ein Item (Drag & Drop starten)
+  onItemMouseDown(data: { itemId: string, event: MouseEvent }): void {
+    if (data.event.button === 2) return; // Rechtsklicks hier ignorieren
+
+    const state = this.itemStates[data.itemId];
+    const stateAny = state as any;
+
+    if (stateAny && stateAny.isConnected) {
+      return;
+    }
+
     this.isDraggingItem = true;
-    this.activeDraggedItemId = itemId;
+    this.activeDraggedItemId = data.itemId;
   }
 
-  @HostListener('document:mousedown')
-  onDocumentMouseDown(): void {
+  // Prüft Klicks auf der ganzen Seite (Z.B. um aus Fabriken Fließbänder zu ziehen)
+  @HostListener('document:mousedown', ['$event'])
+  onDocumentMouseDown(event: MouseEvent): void {
     this.mousePressed = true;
+
+    const target = event.target as HTMLElement;
+    const itemElement = target.closest('.draggable-item') as HTMLElement | null;
+
+    if (itemElement) {
+      const itemId = itemElement.getAttribute('data-item-id') || itemElement.id;
+      const state = this.itemStates[itemId];
+      const stateAny = state as any;
+
+      if (stateAny && stateAny.isConnected && event.button === 0) {
+        this.paintMode = 'on';
+        this.previewCells.clear();
+        this.touchedCells.clear();
+
+        this.pathCells = [{row: state.row, col: state.col}];
+      }
+    }
   }
 
-  @HostListener('document:mouseup')
-  onDocumentMouseUp(): void {
+  // Setzt alle Klicks und Drag-Aktionen zurück (Aufräumen)
+  private resetInteractions(): void {
     this.mousePressed = false;
     this.paintMode = null;
     this.previewCells.clear();
     this.touchedCells.clear();
     this.pathCells = [];
     this.isDraggingItem = false;
+
+    if (this.activeDraggedItemId) {
+      const el = document.getElementById(this.activeDraggedItemId);
+      if (el) el.style.pointerEvents = '';
+    }
     this.activeDraggedItemId = null;
   }
 
+  // Maus loslassen (Aktion beenden & Verbindungen prüfen)
+  @HostListener('document:mouseup')
+  onDocumentMouseUp(): void {
+    this.resetInteractions();
+    this.evaluateConnections();
+  }
+
+  // Maus verlässt das Fenster (Sicherheits-Abbruch)
+  @HostListener('window:blur')
+  @HostListener('document:mouseleave')
+  onInterrupt(): void {
+    this.resetInteractions();
+  }
+
+  // Rechtsklick auf ein Item (Item von Grid löschen)
   @HostListener('document:contextmenu', ['$event'])
   onContextMenu(event: MouseEvent): void {
     event.preventDefault();
+
+    if (this.isDraggingItem || this.mousePressed) {
+      return;
+    }
+
     const target = event.target as HTMLElement;
 
     if (target && target.classList.contains('draggable-item')) {
-      const paletteContainer = document.getElementById('item-palette');
+      const itemId = target.getAttribute('data-item-id') || target.id;
+      const state = this.itemStates[itemId];
+      const stateAny = state as any;
+      const isConnected = stateAny && stateAny.isConnected;
 
-      if (paletteContainer) {
-        paletteContainer.appendChild(target); // Physisch zurückschieben
-
-        target.style.position = 'relative';
-        target.style.transform = '';
-        target.setAttribute('data-x', '0');
-        target.setAttribute('data-y', '0');
-
-        this.itemStates[target.id] = {col: 0, row: 0, isAtStartPosition: true};
+      if (isConnected) {
+        const now = Date.now();
+        if (this.lastRightClickId === itemId && now - this.lastRightClickTime < 400) {
+          this.removePlacedItem(target, itemId);
+          this.lastRightClickId = null;
+        } else {
+          this.lastRightClickTime = now;
+          this.lastRightClickId = itemId;
+        }
+      } else {
+        this.removePlacedItem(target, itemId);
       }
     }
   }
 
+  // Legt ein gelöschtes Item zurück ins Inventar
+  private removePlacedItem(target: HTMLElement, itemId: string): void {
+    target.style.transform = '';
+    target.setAttribute('data-x', '0');
+    target.setAttribute('data-y', '0');
+
+    // col/row auf -1 setzen, damit das Item nie fälschlicherweise als Nachbar von Gitterzelle (0,0) erkannt wird
+    this.itemStates[itemId] = {col: -1, row: -1, isAtStartPosition: true};
+
+    const paletteContainer = document.getElementById('item-palette');
+    if (paletteContainer) {
+      paletteContainer.appendChild(target);
+      target.style.position = 'relative';
+    }
+
+    this.evaluateConnections();
+    this.cdr.detectChanges();
+
+    // Nach DOM-Änderung: alle platzierten Items neu positionieren (frische DOM-Messung)
+    requestAnimationFrame(() => {
+      this.captureItemBasePositions();
+      this.repositionAllItems();
+      this.setupInteractDragging();
+    });
+  }
+
+  // Speichert, wo die Items im Inventar liegen
   private captureItemBasePositions(): void {
-    this.itemBasePositions = this.factoryItemsService.captureItemBasePositions(this.items, this.getGridTableRect());
+    this.itemBasePositions = this.factoryItemsService.captureItemBasePositions(
+      this.items,
+      this.getGridTableRect(),
+      this.itemStates,
+      this.itemBasePositions,
+    );
   }
 
+  // Bewegt ein Item optisch auf eine bestimmte Grid Zelle
   private applyItemPosition(element: HTMLElement, col: number, row: number): void {
-    this.factoryItemsService.applyItemPosition(element, col, row, this.itemBasePositions, this.gridCellSizePx);
+    this.factoryItemsService.applyItemPosition(
+      element,
+      col,
+      row,
+      this.itemBasePositions,
+      this.gridCellSizePx,
+      this.getGridTableRect(),
+    );
   }
 
+  // Speichert ab, auf welcher Raster-Zelle ein Item aktuell liegt
   private saveItemGridPosition(element: HTMLElement): void {
     this.factoryItemsService.saveItemGridPosition(element, this.itemBasePositions, this.itemStates, this.gridCellSizePx);
   }
 
-  private repositionAllItems(): void {
-    this.factoryItemsService.repositionAllItems(this.items, this.itemStates, this.itemBasePositions, this.gridCellSizePx);
+  // Verhindert, dass das Item beim nächsten Anklicken springt
+  private syncDataAttributes(element: HTMLElement): void {
+    const transform = element.style.transform;
+    const match = transform.match(/translate(?:3d)?\(\s*(-?\d+(?:\.\d+)?)px,\s*(-?\d+(?:\.\d+)?)px/);
+    if (match) {
+      element.setAttribute('data-x', match[1]);
+      element.setAttribute('data-y', match[2]);
+    }
   }
 
+  // Rückt alle Items zurecht (z.B. nach einem Fenster-Resize)
+  private repositionAllItems(): void {
+    this.factoryItemsService.repositionAllItems(
+      this.items,
+      this.itemStates,
+      this.itemBasePositions,
+      this.gridCellSizePx,
+      this.getGridTableRect(),
+    );
+  }
+
+  // Kollisionserkennung: Ist der Platz besetzt ?
   private isOverlapping(checkItem: HTMLElement): boolean {
     return (
       this.factoryItemsService.isOverlappingWithItem(checkItem, this.items) ||
@@ -306,9 +453,11 @@ export class FactoryPage implements AfterViewInit, OnInit {
     );
   }
 
+  // Core Logik für das Drag & Drop (interact.js)
   private setupInteractDragging(): void {
     interact('.draggable-item').unset();
 
+    const gridRect = this.getGridTableRect();
     const gridElement = this.playgroundGridComponent.gridTableRef.nativeElement;
 
     interact(gridElement).dropzone({
@@ -319,13 +468,16 @@ export class FactoryPage implements AfterViewInit, OnInit {
     });
 
     interact('.draggable-item').draggable({
-      origin: this.playgroundGridComponent.gridTableRef.nativeElement,
       modifiers: [
         interact.modifiers.snap({
           targets: [
             interact.createSnapGrid({
               x: this.gridCellSizePx * this.zoomLevel,
               y: this.gridCellSizePx * this.zoomLevel,
+              offset: {
+                x: gridRect.left % this.gridCellSizePx,
+                y: gridRect.top % this.gridCellSizePx,
+              },
             }),
           ],
           relativePoints: [{x: 0, y: 0}],
@@ -334,14 +486,32 @@ export class FactoryPage implements AfterViewInit, OnInit {
       listeners: {
         start: (event) => {
           const element = event.target as HTMLElement;
-          const itemId = element.getAttribute('data-item-id');
+          const itemId = element.getAttribute('data-item-id') || element.id;
+          const state = this.itemStates[itemId];
+          const stateAny = state as any;
+
+          if (stateAny && stateAny.isConnected) {
+            event.interaction.stop();
+            return;
+          }
 
           this.ngZone.run(() => {
             this.isDraggingItem = true;
             this.activeDraggedItemId = itemId;
           });
 
-          // Wir schmeißen das 'fixed' weg! Das hat die Koordinaten zerstört.
+          // Sicherstellen, dass data-x/data-y mit dem aktuellen Transform übereinstimmt
+          const transform = element.style.transform;
+          const match = transform.match(/translate(?:3d)?\(\s*(-?\d+(?:\.\d+)?)px,\s*(-?\d+(?:\.\d+)?)px/);
+          if (match) {
+            element.setAttribute('data-x', match[1]);
+            element.setAttribute('data-y', match[2]);
+          } else {
+            element.setAttribute('data-x', '0');
+            element.setAttribute('data-y', '0');
+          }
+
+          element.style.position = 'relative';
           element.style.zIndex = '9999';
           element.classList.remove('can-drop');
         },
@@ -429,8 +599,71 @@ export class FactoryPage implements AfterViewInit, OnInit {
             element.setAttribute('data-y', String(finalY));
             element.style.pointerEvents = 'auto';
           }
+
+          this.evaluateConnections();
+          this.cdr.detectChanges();
         },
       },
     });
+  }
+
+  //prüft ob eine Fabrik am Fließband angrenzt
+  public evaluateConnections(): void {
+    for (const itemId in this.itemStates) {
+      const state = this.itemStates[itemId];
+      const stateAny = state as any;
+      const element = document.getElementById(itemId);
+
+      const itemData = this.items.find(i => i.id === itemId);
+
+      if (!element || !itemData) continue;
+
+      if (state.isAtStartPosition) {
+        stateAny.isConnected = false;
+        this.updateVisualConnection(element, false);
+        continue;
+      }
+
+      const itemSizePx = this.getItemSizePx(itemData.size);
+      const cellSpan = Math.max(1, Math.round(itemSizePx / this.gridCellSizePx));
+
+      const startRow = state.row;
+      const startCol = state.col;
+      let isConnected = false;
+
+      for (let r = startRow - 1; r <= startRow + cellSpan; r++) {
+        for (let c = startCol - 1; c <= startCol + cellSpan; c++) {
+
+          const isTopOrBottom = (r === startRow - 1 || r === startRow + cellSpan) && (c >= startCol && c < startCol + cellSpan);
+          const isLeftOrRight = (c === startCol - 1 || c === startCol + cellSpan) && (r >= startRow && r < startRow + cellSpan);
+
+          if (isTopOrBottom || isLeftOrRight) {
+            if (r >= 0 && r < this.gridRowCount && c >= 0 && c < this.gridColumns) {
+              if (this.conveyorGrid[r][c]?.active) {
+                isConnected = true;
+                break;
+              }
+            }
+          }
+        }
+        if (isConnected) break;
+      }
+
+      stateAny.isConnected = isConnected;
+      this.updateVisualConnection(element, isConnected);
+    }
+  }
+
+  // Grünes Leuchten bei verbundener Fabrik aktivieren oder deaktivieren
+  private updateVisualConnection(element: HTMLElement, isConnected: boolean): void {
+    if (isConnected) {
+      element.classList.add('ring-4', 'ring-green-500', 'shadow-[0_0_20px_rgba(34,197,94,0.6)]');
+      element.classList.remove('border-white/20');
+      element.setAttribute('data-connected', 'true');
+    } else {
+      element.classList.remove('ring-4', 'ring-green-500', 'shadow-[0_0_20px_rgba(34,197,94,0.6)]');
+      element.classList.add('border-white/20');
+      element.setAttribute('data-connected', 'false');
+    }
   }
 }

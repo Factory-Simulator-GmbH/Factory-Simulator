@@ -19,7 +19,7 @@
         [style.height.px]="getItemSizePx(item.size)"
         [id]="item.id"
         [appTooltip]="item.helpText"
-        (mousedown)="onMouseDown(item.id)"
+        (mousedown)="onMouseDown(item.id, $event)"
       >
         {{ item.label }}
       </div>

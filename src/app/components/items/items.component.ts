@@ -14,9 +14,9 @@ export class ItemsComponent {
   @Input({required: true}) getItemSizePx!: (size: ItemSize) => number;
   @Input({required: true}) isDraggingItem!: boolean;
 
-  @Output() itemMouseDown = new EventEmitter<string>();
+  @Output() itemMouseDown = new EventEmitter<{ itemId: string; event: MouseEvent }>();
 
-  onMouseDown(itemId: string): void {
-    this.itemMouseDown.emit(itemId);
+  onMouseDown(itemId: string, event: MouseEvent): void {
+    this.itemMouseDown.emit({ itemId, event });
   }
 }
