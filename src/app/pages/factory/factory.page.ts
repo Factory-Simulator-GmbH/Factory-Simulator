@@ -263,8 +263,10 @@ export class FactoryPage implements AfterViewInit, OnInit {
   };
 
   // Klick auf ein Item (Drag & Drop starten)
-  onItemMouseDown(itemId: string): void {
-    const state = this.itemStates[itemId];
+  onItemMouseDown(data: {itemId: string, event: MouseEvent}): void {
+    if(data.event.button === 2) return; // Rechtsklicks hier ignorieren
+
+    const state = this.itemStates[data.itemId];
     const stateAny = state as any;
 
     if (stateAny && stateAny.isConnected) {
@@ -272,7 +274,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
     }
 
     this.isDraggingItem = true;
-    this.activeDraggedItemId = itemId;
+    this.activeDraggedItemId = data.itemId;
   }
 
   // Prüft Klicks auf der ganzen Seite (Z.B. um aus Fabriken Fließbänder zu ziehen)
