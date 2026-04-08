@@ -278,9 +278,6 @@ export class FactoryPage implements AfterViewInit, OnInit {
     if (stateAny && stateAny.isConnected) {
       return;
     }
-
-    this.isDraggingItem = true;
-    this.activeDraggedItemId = data.itemId;
   }
 
   // Prüft Klicks auf der ganzen Seite (Z.B. um aus Fabriken Fließbänder zu ziehen)
