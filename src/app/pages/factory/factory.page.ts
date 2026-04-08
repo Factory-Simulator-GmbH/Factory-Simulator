@@ -302,9 +302,6 @@ export class FactoryPage implements AfterViewInit, OnInit {
         this.touchedCells.clear();
 
         this.pathCells = [{row: state.row, col: state.col}];
-
-        itemElement.style.pointerEvents = 'none';
-        this.activeDraggedItemId = itemId;
       }
     }
   }
