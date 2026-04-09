@@ -342,8 +342,11 @@ export class FactoryPage implements AfterViewInit, OnInit {
       const outputState = this.itemStates[adjacentOutput.itemid];
       console.log(`Spawner "${id}" platziert bei (${col}, ${row}). Output "${adjacentOutput.itemid}" nebenan bei (${outputState?.col}, ${outputState?.row})`);
       if (outputState) {
-        this.conveyorGrid[outputState.row][outputState.col].resource = this.items.find(i => i.id === id)?.spawningResource ?? null;
-        console.log(`Ressource "${this.conveyorGrid[outputState.row][outputState.col].resource}" in Output bei (${outputState.col}, ${outputState.row}) platziert.`);
+        const outputItem = this.items.find(i => i.id === adjacentOutput.itemid);
+        if (outputItem) {
+          outputItem.resource = this.items.find(i => i.id === id)?.spawningResource ?? null;
+          console.log(`Ressource "${outputItem.resource}" in Output "${adjacentOutput.itemid}" gespeichert.`);
+        }
       }
     } else {
       console.log(`Spawner "${id}" platziert bei (${col}, ${row}). Kein Output nebenan.`);
@@ -352,7 +355,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
   private onOutputPlaced(id: string, col: number, row: number, adjacentConveyor: { col: number; row: number } | null): void {
     if (adjacentConveyor) {
       console.log(`Output "${id}" platziert bei (${col}, ${row}). Rollband nebenan bei (${adjacentConveyor.col}, ${adjacentConveyor.row})`);
-      this.conveyorGrid[adjacentConveyor.row][adjacentConveyor.col].resource = this.conveyorGrid[row][col].resource;
+      this.conveyorGrid[adjacentConveyor.row][adjacentConveyor.col].resource = this.items.find(i => i.id === id)?.resource ?? null;
       console.log(`Ressource "${this.conveyorGrid[adjacentConveyor.row][adjacentConveyor.col].resource}" in Rollband bei (${adjacentConveyor.col}, ${adjacentConveyor.row}) platziert.`);
     } else {
       console.log(`Output "${id}" platziert bei (${col}, ${row}). Kein Rollband nebenan.`);

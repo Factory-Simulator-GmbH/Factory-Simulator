@@ -13,4 +13,5 @@ export interface DraggableItems {
   rate?: number;
   entry?: Direction | null;
   exit?: Direction | null;
+  resource?: string | null;
 }
