@@ -11,7 +11,7 @@
   >
     @for (item of items; track item.id) {
       <div
-        class="draggable-item grid select-none place-items-center rounded-xl border border-white/20 bg-white/10 text-white shadow-sm backdrop-blur touch-none"
+        class="grid select-none place-items-center rounded-xl border border-white/20 bg-white/10 text-white shadow-sm backdrop-blur touch-none"
         [attr.data-item-id]="item.id"
         [class.relative]="activeDraggedItemId === item.id"
         [class.z-50]="activeDraggedItemId === item.id"
