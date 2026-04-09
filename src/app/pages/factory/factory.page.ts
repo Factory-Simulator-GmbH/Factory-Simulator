@@ -296,7 +296,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
     this.factoryItemsService.repositionAllItems(this.items, this.itemStates, this.itemBasePositions, this.gridCellSizePx);
   }
 
-  private checkAdjacentOutput(spawnerCol: number, spawnerRow: number): { col: number; row: number } | null {
+  private checkAdjacentOutput(spawnerCol: number, spawnerRow: number): { itemid: string } | null {
     const spawnerSize = 3; // large = 3x3 Zellen
     const minCol = spawnerCol - 1;
     const maxCol = spawnerCol + spawnerSize;
@@ -317,18 +317,45 @@ export class FactoryPage implements AfterViewInit, OnInit {
         (c === maxCol && r === minRow) ||
         (c === minCol && r === maxRow) ||
         (c === maxCol && r === maxRow);
-      if (inRing && !insideSpawner && !isCorner) return { col: c, row: r };
+      if (inRing && !insideSpawner && !isCorner) return { itemid: item.id };
     }
     return null;
   }
 
-  private onSpawnerPlaced(id: string, col: number, row: number, adjacentOutput: { col: number; row: number } | null): void {
+  private checkAdjacentConveyor(outputCol: number, outputRow: number): { col: number; row: number } | null {
+    const neighbors = [
+      { col: outputCol,     row: outputRow - 1 }, // oben
+      { col: outputCol,     row: outputRow + 1 }, // unten
+      { col: outputCol - 1, row: outputRow     }, // links
+      { col: outputCol + 1, row: outputRow     }, // rechts
+    ];
+    for (const n of neighbors) {
+      if (this.conveyorGrid[n.row]?.[n.col]?.active) {
+        return { col: n.col, row: n.row };
+      }
+    }
+    return null;
+  }
+
+  private onSpawnerPlaced(id: string, col: number, row: number, adjacentOutput: { itemid: string } | null): void {
     if (adjacentOutput) {
-      console.log(`Spawner "${id}" platziert bei (${col}, ${row}). Output nebenan bei (${adjacentOutput.col}, ${adjacentOutput.row})`);
-      this.conveyorGrid.grid[adjacentOutput.row][adjacentOutput.col].resource = this.items.find(i => i.id === id)?.spawningResource ?? null;
-      console.log(`Ressource "${this.conveyorGrid.grid[adjacentOutput.row][adjacentOutput.col].resource}" in Conveyor bei (${adjacentOutput.col}, ${adjacentOutput.row}) platziert.`);
+      const outputState = this.itemStates[adjacentOutput.itemid];
+      console.log(`Spawner "${id}" platziert bei (${col}, ${row}). Output "${adjacentOutput.itemid}" nebenan bei (${outputState?.col}, ${outputState?.row})`);
+      if (outputState) {
+        this.conveyorGrid[outputState.row][outputState.col].resource = this.items.find(i => i.id === id)?.spawningResource ?? null;
+        console.log(`Ressource "${this.conveyorGrid[outputState.row][outputState.col].resource}" in Output bei (${outputState.col}, ${outputState.row}) platziert.`);
+      }
     } else {
       console.log(`Spawner "${id}" platziert bei (${col}, ${row}). Kein Output nebenan.`);
+    }
+  }
+  private onOutputPlaced(id: string, col: number, row: number, adjacentConveyor: { col: number; row: number } | null): void {
+    if (adjacentConveyor) {
+      console.log(`Output "${id}" platziert bei (${col}, ${row}). Rollband nebenan bei (${adjacentConveyor.col}, ${adjacentConveyor.row})`);
+      this.conveyorGrid[adjacentConveyor.row][adjacentConveyor.col].resource = this.conveyorGrid[row][col].resource;
+      console.log(`Ressource "${this.conveyorGrid[adjacentConveyor.row][adjacentConveyor.col].resource}" in Rollband bei (${adjacentConveyor.col}, ${adjacentConveyor.row}) platziert.`);
+    } else {
+      console.log(`Output "${id}" platziert bei (${col}, ${row}). Kein Rollband nebenan.`);
     }
   }
 
@@ -452,11 +479,21 @@ export class FactoryPage implements AfterViewInit, OnInit {
               isAtStartPosition: false
             };
 
+            // Check for spawner placement and output
             const placedItem = this.items.find(i => i.id === element.id);
             if (placedItem?.spawningResource) {
-              const adjacentOutput = this.checkAdjacentOutput(targetCol, targetRow);
+              const adjacentOutput = this.checkAdjacentOutput(targetCol, targetRow); //wenn nebenan ein Output liegt, dann kommt die koordinaten des Outputs zurück, ansonsten null
               this.onSpawnerPlaced(element.id, targetCol, targetRow, adjacentOutput);
             }
+            // Check for output placement and conveyorbelt
+            else {
+              if (placedItem?.type === 'output') {
+                const adjecentOutput = this.checkAdjacentConveyor(targetCol, targetRow);
+                this.onOutputPlaced(element.id, targetCol, targetRow, adjecentOutput);
+                this.conveyorGrid[targetRow][targetCol].resource = null;
+              }
+            }
+
 
             gridContainer.appendChild(element);
 
