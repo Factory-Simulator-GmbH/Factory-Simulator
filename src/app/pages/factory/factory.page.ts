@@ -324,13 +324,13 @@ export class FactoryPage implements AfterViewInit, OnInit {
 
   private checkAdjacentConveyor(outputCol: number, outputRow: number): { col: number; row: number } | null {
     const neighbors = [
-      { col: outputCol,     row: outputRow - 1 }, // oben
-      { col: outputCol,     row: outputRow + 1 }, // unten
-      { col: outputCol - 1, row: outputRow     }, // links
-      { col: outputCol + 1, row: outputRow     }, // rechts
+      { col: outputCol,     row: outputRow - 1, entry: 'down'}, // oben
+      { col: outputCol,     row: outputRow + 1, entry: 'up'}, // unten
+      { col: outputCol - 1, row: outputRow,     entry: 'right'}, // links
+      { col: outputCol + 1, row: outputRow,     entry: 'left'}, // rechts
     ];
     for (const n of neighbors) {
-      if (this.conveyorGrid[n.row]?.[n.col]?.active) {
+      if (this.conveyorGrid[n.row]?.[n.col]?.active && this.conveyorGrid[n.row]?.[n.col]?.entry === n.entry) {
         return { col: n.col, row: n.row };
       }
     }
