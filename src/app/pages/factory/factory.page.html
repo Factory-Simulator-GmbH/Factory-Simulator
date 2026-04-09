@@ -23,10 +23,6 @@
         }
       </button>
 
-      @if (isDraggingItem) {
-        <div class="absolute inset-0 z-30 bg-black/50 pointer-events-none"></div>
-      }
-
       <div #scrollContainer class="absolute inset-0 overflow-auto custom-scrollbar z-10"
            [class.overflow-x-hidden]="isFullscreen"
            (wheel)="onWheel($event)"
@@ -75,6 +71,12 @@
 
   @if (!isFullscreen) {
     <div class="flex-none mt-4 relative z-50">
+
+
+      @if (isDraggingItem) {
+        <div class="absolute inset-0 z-30 bg-black/50 pointer-events-none rounded-xl"></div>
+      }
+
       <app-items
         [items]="items"
         [activeDraggedItemId]="activeDraggedItemId"
