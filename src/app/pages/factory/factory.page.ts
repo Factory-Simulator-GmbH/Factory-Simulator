@@ -667,12 +667,10 @@ export class FactoryPage implements AfterViewInit, OnInit {
       element.classList.add('ring-4', 'ring-green-500', 'shadow-[0_0_20px_rgba(34,197,94,0.6)]');
       element.classList.remove('border-white/20');
       element.setAttribute('data-connected', 'true');
-      element.style.cursor = 'default';
     } else {
       element.classList.remove('ring-4', 'ring-green-500', 'shadow-[0_0_20px_rgba(34,197,94,0.6)]');
       element.classList.add('border-white/20');
       element.setAttribute('data-connected', 'false');
-      element.style.cursor = '';
     }
   }
 }
