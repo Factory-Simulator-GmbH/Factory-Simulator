@@ -465,6 +465,16 @@ export class FactoryPage implements AfterViewInit, OnInit {
     });
 
     interact('.draggable-item').draggable({
+      cursorChecker: (_action, _interactable, element) => {
+        const itemId = (element as HTMLElement).getAttribute('data-item-id') || (element as HTMLElement).id;
+        const state = this.itemStates[itemId];
+        const stateAny = state as any;
+        if (stateAny?.isConnected) {
+          return 'default';
+        }
+        return 'move';
+      },
+
       modifiers: [
         interact.modifiers.snap({
           targets: [
