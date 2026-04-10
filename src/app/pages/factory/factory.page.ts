@@ -236,11 +236,23 @@ export class FactoryPage implements AfterViewInit, OnInit {
     this.calculateColumnsAndCreateGrid();
 
     requestAnimationFrame(() => {
-      this.captureItemBasePositions();
-      this.repositionAllItems();
-      this.setupInteractDragging();
-      this.cdr.detectChanges();
-      this.updateMinimap();
+      setTimeout(() => {
+        this.updateGridCellSize();
+        this.captureItemBasePositions();
+
+        for (const item of this.clonedItems) {
+          const ref = this.componentRefs.get(item.id);
+          if (ref) {
+            ref.instance.sizePx = this.getItemSizePx(item.size);
+            ref.changeDetectorRef.detectChanges();
+          }
+        }
+
+        this.repositionAllItems();
+        this.setupInteractDragging();
+        this.cdr.detectChanges();
+        this.updateMinimap();
+      }, 50);
     });
   }
 
@@ -581,7 +593,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
               // Sicherstellen, dass das Item im Grid liegt
               if (gridContainer) gridContainer.appendChild(element);
 
-              this.placeItemInGrid(element, finalX, finalY);
+              this.factoryItemsService.placeItemInGrid(element, finalX, finalY);
             } else {
               // keine letzte valide Position -> entfernen
               this.removePlacedItem(element, element.id);
@@ -613,7 +625,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
             const finalX = targetCol * this.gridCellSizePx;
             const finalY = targetRow * this.gridCellSizePx;
 
-            this.placeItemInGrid(element, finalX, finalY);
+            this.factoryItemsService.placeItemInGrid(element, finalX, finalY);
           }
 
           this.evaluateConnections();
@@ -687,18 +699,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
     })
   }
 
-  private placeItemInGrid(element: HTMLElement, finalX: number, finalY: number) {
-    element.style.position = 'absolute';
-    element.style.left = '0px';
-    element.style.top = '0px';
-    element.style.transform = `translate(${finalX}px, ${finalY}px)`;
-    element.setAttribute('data-x', String(finalX));
-    element.setAttribute('data-y', String(finalY));
-    element.style.pointerEvents = 'auto';
-    element.style.zIndex = '';
-  }
-
-//prüft ob eine Fabrik am Fließband angrenzt
+  //prüft ob eine Fabrik am Fließband angrenzt
   public evaluateConnections(): void {
     for (const item of this.clonedItems) {
       const state = this.itemStates[item.id];
