@@ -9,7 +9,8 @@ import { Subject } from 'rxjs';
 })
 export class ResourceExchangeService {
 
-    resourceChanged$ = new Subject<{ row: number; col: number; resource: string | null }>();
+    conveyorResourceChanged$ = new Subject<{ row: number; col: number; resource: string | null }>();
+    outputResourceChanged$ = new Subject<{ itemid: string; resource: string | null }>();
 
     // prüft, ob neben einem Spawner ein Output liegt, und gibt die itemid des Outputs zurück oder null, wenn kein Output nebenan liegt
     checkAdjacentOutput(
@@ -78,6 +79,7 @@ export class ResourceExchangeService {
                 if (outputItem) {
                     outputItem.resource = items.find(i => i.id === id)?.spawningResource ?? null;
                     console.log(`Ressource "${outputItem.resource}" in Output "${adjacentOutput.itemid}" gespeichert.`);
+                    this.outputResourceChanged$.next({ itemid: adjacentOutput.itemid, resource: outputItem.resource });
                 }
             }
         } else {
@@ -95,10 +97,12 @@ export class ResourceExchangeService {
     ): void {
         if (adjacentConveyor) {
             console.log(`Output "${id}" platziert bei (${col}, ${row}). Rollband nebenan bei (${adjacentConveyor.col}, ${adjacentConveyor.row})`);
-            conveyorGrid[adjacentConveyor.row][adjacentConveyor.col].resource = items.find(i => i.id === id)?.resource ?? null;
+            const outputItem = items.find(i => i.id === id);
+            conveyorGrid[adjacentConveyor.row][adjacentConveyor.col].resource = outputItem?.resource ?? null;
             const resource = conveyorGrid[adjacentConveyor.row][adjacentConveyor.col].resource;
+            if (outputItem) outputItem.resource = null;
             console.log(`Ressource "${resource}" in Rollband bei (${adjacentConveyor.col}, ${adjacentConveyor.row}) platziert.`);
-            this.resourceChanged$.next({
+            this.conveyorResourceChanged$.next({
                 row: adjacentConveyor.row,
                 col: adjacentConveyor.col,
                 resource,
@@ -122,7 +126,7 @@ export class ResourceExchangeService {
 
         next.resource = resource;
         console.log(`Ressource "${resource}" weitergegeben an Rollband bei (${nextCell.col}, ${nextCell.row}).`);
-        this.resourceChanged$.next({ row: nextCell.row, col: nextCell.col, resource });
+        this.conveyorResourceChanged$.next({ row: nextCell.row, col: nextCell.col, resource });
     }
 
     private getNextCellByExit(exit: string, col: number, row: number): { col: number; row: number } {

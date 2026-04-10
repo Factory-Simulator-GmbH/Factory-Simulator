@@ -75,12 +75,22 @@ export class FactoryPage implements AfterViewInit, OnInit {
     this.calculateColumnsAndCreateGrid();
 
     // Diese Methode wird aufgerufen, wenn sich die Ressource einer rollbandzelle ändert (z.B. durch Platzieren eines Spawners oder Outputs)
-    this.resourceExchangeService.resourceChanged$.pipe(filter(({ resource }) => resource !== null), delay(1000)).subscribe(({ row, col, resource }) => {
+    this.resourceExchangeService.conveyorResourceChanged$.pipe(filter(({ resource }) => resource !== null), delay(1000)).subscribe(({ row, col, resource }) => {
 
         this.resourceExchangeService.onConveyorResourceChanged(resource, col, row, this.conveyorGrid);
       this.conveyorGrid[row][col].resource = null;
-
+         
       console.log(`Ressource bei (${col}, ${row}) geändert zu: ${resource}`);
+    });
+
+    this.resourceExchangeService.outputResourceChanged$.pipe(filter(({ resource }) => resource !== null)).subscribe(({ itemid, resource }) => {
+      
+      const outputState = this.itemStates[itemid];
+      if (!outputState || outputState.isAtStartPosition) return;
+      const adjacentConveyor = this.resourceExchangeService.checkAdjacentConveyor(outputState.col, outputState.row, this.conveyorGrid);
+      this.resourceExchangeService.onOutputPlaced(itemid, outputState.col, outputState.row, adjacentConveyor, this.items, this.conveyorGrid);
+              
+      console.log(`Output "${itemid}" hat neue Ressource: ${resource}`);
     });
   }
 
@@ -432,14 +442,6 @@ export class FactoryPage implements AfterViewInit, OnInit {
             if (placedItem?.spawningResource) {
               const adjacentOutput = this.resourceExchangeService.checkAdjacentOutput(targetCol, targetRow, this.items, this.itemStates);
               this.resourceExchangeService.onSpawnerPlaced(element.id, targetCol, targetRow, adjacentOutput, this.items, this.itemStates);
-            }
-            // Check for output placement and conveyorbelt
-            else {
-              if (placedItem?.type === 'output') {
-                const adjecentOutput = this.resourceExchangeService.checkAdjacentConveyor(targetCol, targetRow, this.conveyorGrid);
-                this.resourceExchangeService.onOutputPlaced(element.id, targetCol, targetRow, adjecentOutput, this.items, this.conveyorGrid);
-                this.conveyorGrid[targetRow][targetCol].resource = null;
-              }
             }
 
 
