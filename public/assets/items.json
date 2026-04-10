@@ -80,12 +80,14 @@
     "id": "input",
     "label": "Input",
     "size": "small",
-    "helpText": "<strong>Input-Modul</strong><br>Schnittstelle für den Ressourcen-Austausch zwischen Förderbändern und Maschinen."
+    "helpText": "<strong>Input-Modul</strong><br>Schnittstelle für den Ressourcen-Austausch zwischen Förderbändern und Maschinen.",
+    "availableCount": 5
   },
   {
     "id": "output",
     "label": "Output",
     "size": "small",
-    "helpText": "<strong>Output-Modul</strong><br>Schnittstelle für den Ressourcen-Austausch zwischen Förderbändern und Maschinen."
+    "helpText": "<strong>Output-Modul</strong><br>Schnittstelle für den Ressourcen-Austausch zwischen Förderbändern und Maschinen.",
+    "availableCount": 7
   }
 ]
