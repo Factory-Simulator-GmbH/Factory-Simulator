@@ -656,6 +656,8 @@ export class FactoryPage implements AfterViewInit, OnInit {
         document.body.appendChild(innerDiv);
         clone.remove(); // Host entfernen
 
+        innerDiv.setAttribute('data-item-id', uniqueId);
+        innerDiv.setAttribute('id', uniqueId);
         innerDiv.style.position = 'fixed';
         innerDiv.style.zIndex = '999';
 
