@@ -24,7 +24,6 @@
       </button>
 
       <div #scrollContainer class="absolute inset-0 overflow-auto custom-scrollbar z-10"
-           [class.overflow-x-hidden]="isFullscreen"
            (wheel)="onWheel($event)"
            (scroll)="onScroll($event)">
 
