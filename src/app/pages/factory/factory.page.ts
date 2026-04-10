@@ -1,8 +1,12 @@
 import {
   AfterViewInit,
+  ApplicationRef,
   ChangeDetectorRef,
   Component,
+  ComponentRef,
+  createComponent,
   ElementRef,
+  EnvironmentInjector,
   HostListener,
   NgZone,
   OnInit,
@@ -18,6 +22,7 @@ import {ItemBasePosition, ItemState} from '../../models/item-position.model';
 import {LayoutService} from '../../services/layout.service';
 import {FactoryGridService} from '../../services/factory-grid.service';
 import {FactoryItemsService} from '../../services/factory-items.service';
+import {DraggableItemComponent} from '../../components/draggable-item/draggable-item.component';
 
 @Component({
   selector: 'app-factory-page',
@@ -62,6 +67,8 @@ export class FactoryPage implements AfterViewInit, OnInit {
   conveyorGrid: ConveyorSegment[][] = [];
 
   items: DraggableItems[] = itemsData as DraggableItems[];
+  private clonedItems: DraggableItems[] = [];
+  private componentRefs = new Map<string, ComponentRef<DraggableItemComponent>>();
 
   private itemStates: Record<string, ItemState> = {};
   private itemBasePositions: Record<string, ItemBasePosition> = {};
@@ -76,7 +83,9 @@ export class FactoryPage implements AfterViewInit, OnInit {
     private layoutService: LayoutService,
     private factoryGridService: FactoryGridService,
     private factoryItemsService: FactoryItemsService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private appRef: ApplicationRef,
+    private environmentInjector: EnvironmentInjector,
   ) {
   }
 
@@ -227,11 +236,23 @@ export class FactoryPage implements AfterViewInit, OnInit {
     this.calculateColumnsAndCreateGrid();
 
     requestAnimationFrame(() => {
-      this.captureItemBasePositions();
-      this.repositionAllItems();
-      this.setupInteractDragging();
-      this.cdr.detectChanges();
-      this.updateMinimap();
+      setTimeout(() => {
+        this.updateGridCellSize();
+        this.captureItemBasePositions();
+
+        for (const item of this.clonedItems) {
+          const ref = this.componentRefs.get(item.id);
+          if (ref) {
+            ref.instance.sizePx = this.getItemSizePx(item.size);
+            ref.changeDetectorRef.detectChanges();
+          }
+        }
+
+        this.repositionAllItems();
+        this.setupInteractDragging();
+        this.cdr.detectChanges();
+        this.updateMinimap();
+      }, 50);
     });
   }
 
@@ -345,7 +366,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
     const target = event.target as HTMLElement;
 
     if (target && target.classList.contains('draggable-item')) {
-      const itemId = target.getAttribute('data-item-id') || target.id;
+      const itemId = target.id;
       const state = this.itemStates[itemId];
       const stateAny = state as any;
       const isConnected = stateAny && stateAny.isConnected;
@@ -365,20 +386,20 @@ export class FactoryPage implements AfterViewInit, OnInit {
     }
   }
 
-  // Legt ein gelöschtes Item zurück ins Inventar
   private removePlacedItem(target: HTMLElement, itemId: string): void {
-    target.style.transform = '';
-    target.setAttribute('data-x', '0');
-    target.setAttribute('data-y', '0');
-
-    // col/row auf -1 setzen, damit das Item nie fälschlicherweise als Nachbar von Gitterzelle (0,0) erkannt wird
-    this.itemStates[itemId] = {col: -1, row: -1, isAtStartPosition: true};
-
-    const paletteContainer = document.getElementById('item-palette');
-    if (paletteContainer) {
-      paletteContainer.appendChild(target);
-      target.style.position = 'relative';
+    const ref = this.componentRefs.get(itemId);
+    if (ref) {
+      this.appRef.detachView(ref.hostView);
+      ref.destroy();
+      this.componentRefs.delete(itemId);
     }
+
+    target.remove();
+
+    // Clone aus Array entfernen
+    this.clonedItems = this.clonedItems.filter(i => i.id !== itemId);
+    delete this.itemStates[itemId];
+
 
     this.evaluateConnections();
     this.cdr.detectChanges();
@@ -394,7 +415,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
   // Speichert, wo die Items im Inventar liegen
   private captureItemBasePositions(): void {
     this.itemBasePositions = this.factoryItemsService.captureItemBasePositions(
-      this.items,
+      [...this.items, ...this.clonedItems],
       this.getGridTableRect(),
       this.itemStates,
       this.itemBasePositions,
@@ -431,7 +452,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
   // Rückt alle Items zurecht (z.B. nach einem Fenster-Resize)
   private repositionAllItems(): void {
     this.factoryItemsService.repositionAllItems(
-      this.items,
+      this.clonedItems,
       this.itemStates,
       this.itemBasePositions,
       this.gridCellSizePx,
@@ -442,7 +463,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
   // Kollisionserkennung: Ist der Platz besetzt ?
   private isOverlapping(checkItem: HTMLElement): boolean {
     return (
-      this.factoryItemsService.isOverlappingWithItem(checkItem, this.items) ||
+      this.factoryItemsService.isOverlappingWithItem(checkItem, this.clonedItems) ||
       this.factoryItemsService.isOverlappingWithConveyor(
         checkItem, this.getGridTableRect(), this.gridCellSizePx,
         this.gridRowCount, this.gridColumns, this.conveyorGrid,
@@ -466,7 +487,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
 
     interact('.draggable-item').draggable({
       cursorChecker: (_action, _interactable, element) => {
-        const itemId = (element as HTMLElement).getAttribute('data-item-id') || (element as HTMLElement).id;
+        const itemId = (element as HTMLElement).id;
         const state = this.itemStates[itemId];
         const stateAny = state as any;
         if (stateAny?.isConnected) {
@@ -493,7 +514,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
       listeners: {
         start: (event) => {
           const element = event.target as HTMLElement;
-          const itemId = element.getAttribute('data-item-id') || element.id;
+          const itemId = element.id;
           const state = this.itemStates[itemId];
           const stateAny = state as any;
 
@@ -505,6 +526,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
           this.ngZone.run(() => {
             this.isDraggingItem = true;
             this.activeDraggedItemId = itemId;
+            this.cdr.detectChanges();
           });
 
           // Sicherstellen, dass data-x/data-y mit dem aktuellen Transform übereinstimmt
@@ -545,6 +567,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
           this.ngZone.run(() => {
             this.isDraggingItem = false;
             this.activeDraggedItemId = null;
+            this.cdr.detectChanges();
           });
 
           const element = event.target as HTMLElement;
@@ -561,18 +584,22 @@ export class FactoryPage implements AfterViewInit, OnInit {
           }
 
           if (!isInGrid || overlap || !gridContainer) {
+            const state = this.itemStates[element.id];
 
-            if (paletteContainer) paletteContainer.appendChild(element);
+            if (state && !state.isAtStartPosition) {
+              const finalX = state.col * this.gridCellSizePx;
+              const finalY = state.row * this.gridCellSizePx;
 
-            element.style.position = 'relative';
-            element.style.transform = '';
-            element.setAttribute('data-x', '0');
-            element.setAttribute('data-y', '0');
-            element.style.pointerEvents = 'auto';
-            this.itemStates[element.id] = {col: 0, row: 0, isAtStartPosition: true};
+              // Sicherstellen, dass das Item im Grid liegt
+              if (gridContainer) gridContainer.appendChild(element);
+
+              this.factoryItemsService.placeItemInGrid(element, finalX, finalY);
+            } else {
+              // keine letzte valide Position -> entfernen
+              this.removePlacedItem(element, element.id);
+              return
+            }
           } else {
-
-
             const itemRect = element.getBoundingClientRect();
             const gridRect = gridContainer.getBoundingClientRect();
 
@@ -598,13 +625,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
             const finalX = targetCol * this.gridCellSizePx;
             const finalY = targetRow * this.gridCellSizePx;
 
-            element.style.position = 'absolute';
-            element.style.left = '0px';
-            element.style.top = '0px';
-            element.style.transform = `translate(${finalX}px, ${finalY}px)`;
-            element.setAttribute('data-x', String(finalX));
-            element.setAttribute('data-y', String(finalY));
-            element.style.pointerEvents = 'auto';
+            this.factoryItemsService.placeItemInGrid(element, finalX, finalY);
           }
 
           this.evaluateConnections();
@@ -612,26 +633,82 @@ export class FactoryPage implements AfterViewInit, OnInit {
         },
       },
     });
+
+    interact('.source-item').on('move', (event) => {
+      const interaction = event.interaction
+
+      if (interaction.pointerIsDown && !interaction.interacting()) {
+        const original = event.currentTarget as HTMLElement;
+        const originalItemId = original.getAttribute('data-item-id') || original.id;
+        const uniqueId = `${originalItemId}-clone-${Date.now()}`;
+        const sourceItem = this.items.find(i => i.id === originalItemId);
+
+        if (!sourceItem) return;
+
+        // Angular-Komponente dynamisch erstellen
+        const componentRef = createComponent(DraggableItemComponent, {
+          environmentInjector: this.environmentInjector,
+        });
+
+        componentRef.instance.item = sourceItem;
+        componentRef.instance.itemId = uniqueId;
+        componentRef.instance.sizePx = this.getItemSizePx(sourceItem.size);
+
+        const clone = componentRef.location.nativeElement as HTMLElement;
+
+        document.body.appendChild(clone);
+        this.appRef.attachView(componentRef.hostView);
+        componentRef.changeDetectorRef.detectChanges();
+
+        const innerDiv = clone.querySelector('.draggable-item') as HTMLElement;
+
+        // innerDiv direkt an body hängen (Host bleibt unsichtbar irgendwo)
+        document.body.appendChild(innerDiv);
+        clone.remove(); // Host entfernen
+
+        innerDiv.setAttribute('data-item-id', uniqueId);
+        innerDiv.setAttribute('id', uniqueId);
+        innerDiv.style.position = 'fixed';
+        innerDiv.style.zIndex = '999';
+
+        this.componentRefs.set(uniqueId, componentRef);
+
+        this.clonedItems.push({
+          id: uniqueId,
+          label: sourceItem?.label || '',
+          size: sourceItem?.size || 'large',
+          helpText: sourceItem?.helpText || '',
+        });
+
+        this.itemStates[uniqueId] = {
+          col: -1,
+          row: -1,
+          isAtStartPosition: true,
+        };
+
+        const sizePx = this.getItemSizePx(sourceItem.size);
+        let startX = event.clientX - sizePx / 2;
+        let startY = event.clientY - sizePx / 2;
+        innerDiv.setAttribute('data-x', String(startX));
+        innerDiv.setAttribute('data-y', String(startY));
+        innerDiv.style.transform = `translate(${startX}px, ${startY}px)`;
+
+        // start a drag interaction targeting the clone
+        interaction.start({name: 'drag'}, interact('.draggable-item'), innerDiv)
+      }
+    })
   }
 
   //prüft ob eine Fabrik am Fließband angrenzt
   public evaluateConnections(): void {
-    for (const itemId in this.itemStates) {
-      const state = this.itemStates[itemId];
+    for (const item of this.clonedItems) {
+      const state = this.itemStates[item.id];
       const stateAny = state as any;
-      const element = document.getElementById(itemId);
+      const element = document.getElementById(item.id);
 
-      const itemData = this.items.find(i => i.id === itemId);
+      if (!element || !state) continue;
 
-      if (!element || !itemData) continue;
-
-      if (state.isAtStartPosition) {
-        stateAny.isConnected = false;
-        this.updateVisualConnection(element, false);
-        continue;
-      }
-
-      const itemSizePx = this.getItemSizePx(itemData.size);
+      const itemSizePx = this.getItemSizePx(item.size);
       const cellSpan = Math.max(1, Math.round(itemSizePx / this.gridCellSizePx));
 
       const startRow = state.row;

@@ -56,7 +56,7 @@
     "id": "Spawner1",
     "label": "Metall Spawner",
     "size": "large",
-    "helpText": "<strong>Spawner</strong><br>Erzeugt neue Ressourcen.",
+    "helpText": "<strong>Spawner</strong><br>Erzeugt neue Ressourcen (Metall).",
     "spawningResource": "metall",
     "rate": 1000
   },
@@ -64,7 +64,7 @@
     "id": "Spawner2",
     "label": "Kupfer Spawner",
     "size": "large",
-    "helpText": "<strong>Spawner</strong><br>Erzeugt neue Ressourcen.",
+    "helpText": "<strong>Spawner</strong><br>Erzeugt neue Ressourcen (Kupfer).",
     "spawningResource": "kupfer",
     "rate": 1000
   },
@@ -72,32 +72,20 @@
     "id": "Spawner3",
     "label": "Plastik Spawner",
     "size": "large",
-    "helpText": "<strong>Spawner</strong><br>Erzeugt neue Ressourcen.",
+    "helpText": "<strong>Spawner</strong><br>Erzeugt neue Ressourcen (Plastik).",
     "spawningResource": "plastik",
     "rate": 1000
   },
   {
-    "id": "input1",
+    "id": "input",
     "label": "Input",
     "size": "small",
-    "helpText": "<strong>Input-Modul</strong><br>Schnittstelle für den Ressourcen austausch zwischen Rollbändern und Maschinen."
+    "helpText": "<strong>Input-Modul</strong><br>Schnittstelle für den Ressourcen-Austausch zwischen Förderbändern und Maschinen."
   },
   {
-    "id": "input2",
-    "label": "Input",
-    "size": "small",
-    "helpText": "<strong>Input-Modul</strong><br>Schnittstelle für den Ressourcen austausch zwischen Rollbändern und Maschinen."
-  },
-  {
-    "id": "output1",
+    "id": "output",
     "label": "Output",
     "size": "small",
-    "helpText": "<strong>Output-Modul</strong><br>Schnittstelle für den Ressourcen austausch zwischen Rollbändern und Maschinen."
-  },
-  {
-    "id": "output2",
-    "label": "Output",
-    "size": "small",
-    "helpText": "<strong>Output-Modul</strong><br>Schnittstelle für den Ressourcen austausch zwischen Rollbändern und Maschinen."
+    "helpText": "<strong>Output-Modul</strong><br>Schnittstelle für den Ressourcen-Austausch zwischen Förderbändern und Maschinen."
   }
 ]

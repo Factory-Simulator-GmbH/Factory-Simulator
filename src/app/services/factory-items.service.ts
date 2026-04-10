@@ -145,15 +145,30 @@ export class FactoryItemsService {
         continue;
       }
 
-      this.applyItemPosition(
-        element,
-        state.col,
-        state.row,
-        itemBasePositions,
-        gridCellSizePx,
-        gridRect,
-      );
+      if (element.parentElement?.id === 'grid-items-container') {
+        this.placeItemInGrid(element, state.col * gridCellSizePx, state.row * gridCellSizePx);
+      } else {
+        this.applyItemPosition(
+          element,
+          state.col,
+          state.row,
+          itemBasePositions,
+          gridCellSizePx,
+          gridRect,
+        );
+      }
     }
+  }
+
+  placeItemInGrid(element: HTMLElement, finalX: number, finalY: number) {
+    element.style.position = 'absolute';
+    element.style.left = '0px';
+    element.style.top = '0px';
+    element.style.transform = `translate(${finalX}px, ${finalY}px)`;
+    element.setAttribute('data-x', String(finalX));
+    element.setAttribute('data-y', String(finalY));
+    element.style.pointerEvents = 'auto';
+    element.style.zIndex = '';
   }
 
   isOverlappingWithItem(checkItem: HTMLElement, items: DraggableItems[]): boolean {
