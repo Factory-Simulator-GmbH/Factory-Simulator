@@ -55,6 +55,7 @@ export class FactoryGridService {
         entry: null,
         exit: null,
         resource: null,
+        endpoint: null,
       };
       return;
     }
