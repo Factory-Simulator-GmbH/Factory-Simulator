@@ -9,7 +9,7 @@ import {ItemBasePosition, ItemState} from '../../models/item-position.model';
 import {LayoutService} from '../../services/layout.service';
 import {FactoryGridService} from '../../services/factory-grid.service';
 import {FactoryItemsService} from '../../services/factory-items.service';
-
+import {ResourceExchangeService} from '../../services/resource-exchange.service';
 @Component({
   selector: 'app-factory-page',
   standalone: true,

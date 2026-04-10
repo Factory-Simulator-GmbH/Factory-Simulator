@@ -1,6 +1,7 @@
 import {Injectable} from '@angular/core';
 import {ConveyorSegment, Direction} from '../models/conveyor-segment.model';
 
+
 @Injectable({
   providedIn: 'root',
 })
