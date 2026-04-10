@@ -23,7 +23,7 @@
       >
         {{ item.label }}
         <span class="absolute top-1 left-1 text-[12px] leading-none text-white/60">
-          {{ item.maxAvailableCount ?? 1 }}
+          {{ item.currentAvailableCount ?? item.maxAvailableCount ?? 1 }} / {{ item.maxAvailableCount ?? 1 }}
         </span>
       </div>
     }

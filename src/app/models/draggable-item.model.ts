@@ -7,4 +7,5 @@ export interface DraggableItems {
   helpText: string;
   showHelpText?: boolean;
   maxAvailableCount?: number;
+  currentAvailableCount?: number;
 }
