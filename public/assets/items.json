@@ -1,69 +1,101 @@
 [
-    {
-        "id": "f1",
-        "type": "machine",
-        "label": "Maschine",
-        "size": "large",
-        "helpText": "<strong>Maschine</strong><br>Verarbeitet Materialien zu Produkten.<br>Benötigt mindestens eine Input- und eine Output-Seite.<br><bold>Rezept:</bold><br><img src=\"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRSyZz79wlfw2jtpya-0ZmYsGeKqK6Mkpzy8g&s\" alt=\"Rezept für Diaschwert\" style=\"width: 100%;\">"
+  {
+    "id": "maschine1",
+    "type": "machine",
+    "label": "Metallpresse",
+    "size": "large",
+    "helpText": "<strong>Metallpresse – Maschine</strong><br>Verarbeitet Metall zu Gehäusen.<br>Benötigt mindestens eine Input- und eine Output-Seite.<br><strong>Rezept:</strong><br><p>5x Metall → 1x Gehäuse</p>",
+    "input": {
+        "metall": 5
     },
-    {
-        "id": "f2",
-        "type": "machine",
-        "label": "Maschine",
-        "size": "large",
-        "helpText": "<strong>Maschine</strong><br>Verarbeitet Materialien zu Produkten.<br>Benötigt mindestens eine Input- und eine Output-Seite.<br><bold>Rezept:</bold><br><img src=\"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRSyZz79wlfw2jtpya-0ZmYsGeKqK6Mkpzy8g&s\" alt=\"Rezept für Diaschwert\" style=\"width: 100%;\">"
+    "output": "gehäuse"
+  },
+  {
+    "id": "maschine2",
+    "type": "machine",
+    "label": "Kabelmaschine",
+    "size": "large",
+    "helpText": "<strong>Kabelmaschine – Maschine</strong><br>Verarbeitet Kupfer zu Kabeln.<br>Benötigt mindestens eine Input- und eine Output-Seite.<br><strong>Rezept:</strong><br><p>1x Kupfer → 1x Kabel</p>",
+    "input": {
+        "kupfer": 1
     },
-    {
-        "id": "f3",
-        "type": "machine",
-        "label": "Maschine",
-        "size": "large",
-        "helpText": "<strong>Maschine</strong><br>Verarbeitet Materialien zu Produkten.<br>Benötigt mindestens eine Input- und eine Output-Seite.<br><bold>Rezept:</bold><br><img src=\"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRSyZz79wlfw2jtpya-0ZmYsGeKqK6Mkpzy8g&s\" alt=\"Rezept für Diaschwert\" style=\"width: 100%;\">"
+    "output": "kabel"
+  },
+  {
+    "id": "maschine3",
+    "type": "machine",
+    "label": "Leiterplattenfertigung",
+    "size": "large",
+    "helpText": "<strong>Leiterplattenfertigung – Maschine</strong><br>Verarbeitet Kupfer und Plastik zu Leiterplatten.<br>Benötigt mindestens eine Input- und eine Output-Seite.<br><strong>Rezept:</strong><br><p>1x Kupfer + 2x Plastik → 1x Leiterplatte</p>",
+    "input": {
+        "kupfer": 1,
+        "plastik": 2
     },
-    {
-        "id": "Spawner1",
-        "type": "spawner",
-        "label": "Plastik Spawner",
-        "size": "large",
-        "helpText": "<strong>Spawner</strong><br>Erzeugt neue Ressourcen.",
-        "spawningResource": "plastik",
-        "rate": 1000
+    "output": "leiterplatte"
+  },
+  {
+    "id": "maschine4",
+    "type": "machine",
+    "label": "Elektronikmontage",
+    "size": "large",
+    "helpText": "<strong>Elektronikmontage – Maschine</strong><br>Verarbeitet Kabel und Leiterplatten zu Elektronik.<br>Benötigt mindestens eine Input- und eine Output-Seite.<br><strong>Rezept:</strong><br><p>5x Kabel + 3x Leiterplatte → 1x Elektronik</p>",
+    "input": {
+        "kabel": 5,
+        "leiterplatte": 3
     },
-    {
-        "id": "Spawner2",
-        "type": "spawner",
-        "label": "Metall Spawner",
-        "size": "large",
-        "helpText": "<strong>Spawner</strong><br>Erzeugt neue Ressourcen.",
-        "spawningResource": "metall",
-        "rate": 1000
+    "output": "elektronik"
+  },
+  {
+    "id": "maschine5",
+    "type": "machine",
+    "label": "PC-Montage",
+    "size": "large",
+    "helpText": "<strong>PC-Montage – Maschine</strong><br>Verarbeitet Elektronik und Gehäuse zu PCs.<br>Benötigt mindestens eine Input- und eine Output-Seite.<br><strong>Rezept:</strong><br><p>2x Elektronik + 1x Gehäuse → 1x PC</p>",
+    "input": {
+        "elektronik": 2,
+        "gehäuse": 1
     },
-    {
-        "id": "input1",
-        "type": "input",
-        "label": "Input",
-        "size": "small",
-        "helpText": "<strong>Input-Modul</strong><br>Schnittstelle für den Ressourcen austausch zwischen Rollbändern und Maschinen."
-    },
-    {
-        "id": "input2",
-        "type": "input",
-        "label": "Input",
-        "size": "small",
-        "helpText": "<strong>Input-Modul</strong><br>Schnittstelle für den Ressourcen austausch zwischen Rollbändern und Maschinen."
-    },
-    {
-        "id": "output1",
-        "type": "output",
-        "label": "Output",
-        "size": "small",
-        "helpText": "<strong>Output-Modul</strong><br>Schnittstelle für den Ressourcen austausch zwischen Rollbändern und Maschinen."
-    },
-    {
-        "id": "output2",
-        "type": "output",
-        "label": "Output",
-        "size": "small",
-        "helpText": "<strong>Output-Modul</strong><br>Schnittstelle für den Ressourcen austausch zwischen Rollbändern und Maschinen."
-    }
+    "output": "pc"
+  },
+  {
+    "id": "Spawner1",
+    "type": "spawner",
+    "label": "Metall Spawner",
+    "size": "large",
+    "helpText": "<strong>Spawner</strong><br>Erzeugt neue Ressourcen (Metall).",
+    "spawningResource": "metall",
+    "rate": 1000
+  },
+  {
+    "id": "Spawner2",
+    "type": "spawner",
+    "label": "Kupfer Spawner",
+    "size": "large",
+    "helpText": "<strong>Spawner</strong><br>Erzeugt neue Ressourcen (Kupfer).",
+    "spawningResource": "kupfer",
+    "rate": 1000
+  },
+  {
+    "id": "Spawner3",
+    "type": "spawner",
+    "label": "Plastik Spawner",
+    "size": "large",
+    "helpText": "<strong>Spawner</strong><br>Erzeugt neue Ressourcen (Plastik).",
+    "spawningResource": "plastik",
+    "rate": 1000
+  },
+  {
+    "id": "input",
+    "type": "input",
+    "label": "Input",
+    "size": "small",
+    "helpText": "<strong>Input-Modul</strong><br>Schnittstelle für den Ressourcen-Austausch zwischen Förderbändern und Maschinen."
+  },
+  {
+    "id": "output",
+    "type": "output",
+    "label": "Output",
+    "size": "small",
+    "helpText": "<strong>Output-Modul</strong><br>Schnittstelle für den Ressourcen-Austausch zwischen Förderbändern und Maschinen."
+  }
 ]
