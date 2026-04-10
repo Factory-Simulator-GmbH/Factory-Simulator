@@ -21,7 +21,7 @@
         [appTooltip]="item.helpText"
         (mousedown)="onMouseDown(item.id, $event)"
       >
-        {{ item.label }}
+        {{ item.label }} {{ item.maxAvailableCount }}
       </div>
     }
   </div>

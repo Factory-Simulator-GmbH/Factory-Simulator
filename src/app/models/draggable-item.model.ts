@@ -6,4 +6,5 @@ export interface DraggableItems {
   size: ItemSize;
   helpText: string;
   showHelpText?: boolean;
+  maxAvailableCount?: number;
 }
