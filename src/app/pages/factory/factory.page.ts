@@ -88,17 +88,17 @@ export class FactoryPage implements AfterViewInit, OnInit {
 
         this.resourceExchangeService.onConveyorResourceChanged(resource, col, row, this.conveyorGrid);
       this.conveyorGrid[row][col].resource = null;
-         
+
       console.log(`Ressource bei (${col}, ${row}) geändert zu: ${resource}`);
     });
 
     this.resourceExchangeService.outputResourceChanged$.pipe(filter(({ resource }) => resource !== null)).subscribe(({ itemid, resource }) => {
-      
+
       const outputState = this.itemStates[itemid];
       if (!outputState || outputState.isAtStartPosition) return;
       const adjacentConveyor = this.resourceExchangeService.checkAdjacentConveyor(outputState.col, outputState.row, this.conveyorGrid);
       this.resourceExchangeService.onOutputPlaced(itemid, outputState.col, outputState.row, adjacentConveyor, this.items, this.conveyorGrid);
-              
+
       console.log(`Output "${itemid}" hat neue Ressource: ${resource}`);
     });
   }
@@ -691,6 +691,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
 
         this.clonedItems.push({
           id: uniqueId,
+          type: sourceItem?.type || '',
           label: sourceItem?.label || '',
           size: sourceItem?.size || 'large',
           helpText: sourceItem?.helpText || '',
