@@ -572,18 +572,22 @@ export class FactoryPage implements AfterViewInit, OnInit {
           }
 
           if (!isInGrid || overlap || !gridContainer) {
+            const state = this.itemStates[element.id];
 
-            if (paletteContainer) paletteContainer.appendChild(element);
+            if (state && !state.isAtStartPosition) {
+              const finalX = state.col * this.gridCellSizePx;
+              const finalY = state.row * this.gridCellSizePx;
 
-            element.style.position = 'relative';
-            element.style.transform = '';
-            element.setAttribute('data-x', '0');
-            element.setAttribute('data-y', '0');
-            element.style.pointerEvents = 'auto';
-            this.itemStates[element.id] = {col: 0, row: 0, isAtStartPosition: true};
+              // Sicherstellen, dass das Item im Grid liegt
+              if (gridContainer) gridContainer.appendChild(element);
+
+              this.placeItemInGrid(element, finalX, finalY);
+            } else {
+              // keine letzte valide Position -> entfernen
+              this.removePlacedItem(element, element.id);
+              return
+            }
           } else {
-
-
             const itemRect = element.getBoundingClientRect();
             const gridRect = gridContainer.getBoundingClientRect();
 
@@ -609,13 +613,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
             const finalX = targetCol * this.gridCellSizePx;
             const finalY = targetRow * this.gridCellSizePx;
 
-            element.style.position = 'absolute';
-            element.style.left = '0px';
-            element.style.top = '0px';
-            element.style.transform = `translate(${finalX}px, ${finalY}px)`;
-            element.setAttribute('data-x', String(finalX));
-            element.setAttribute('data-y', String(finalY));
-            element.style.pointerEvents = 'auto';
+            this.placeItemInGrid(element, finalX, finalY);
           }
 
           this.evaluateConnections();
@@ -689,7 +687,18 @@ export class FactoryPage implements AfterViewInit, OnInit {
     })
   }
 
-  //prüft ob eine Fabrik am Fließband angrenzt
+  private placeItemInGrid(element: HTMLElement, finalX: number, finalY: number) {
+    element.style.position = 'absolute';
+    element.style.left = '0px';
+    element.style.top = '0px';
+    element.style.transform = `translate(${finalX}px, ${finalY}px)`;
+    element.setAttribute('data-x', String(finalX));
+    element.setAttribute('data-y', String(finalY));
+    element.style.pointerEvents = 'auto';
+    element.style.zIndex = '';
+  }
+
+//prüft ob eine Fabrik am Fließband angrenzt
   public evaluateConnections(): void {
     for (const item of this.clonedItems) {
       const state = this.itemStates[item.id];
