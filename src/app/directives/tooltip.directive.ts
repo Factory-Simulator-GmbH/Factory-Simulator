@@ -11,13 +11,14 @@ export class TooltipDirective implements OnDestroy {
   private timer: ReturnType<typeof setTimeout> | null = null;
   private mouseX = 0;
   private mouseY = 0;
+  private mousePressed = false;
 
   constructor(private renderer: Renderer2) {}
 
   @HostListener('mouseenter')
   onMouseEnter(): void {
-    if (!this.content) return;
-    this.timer = setTimeout(() => this.show(), 1000);
+    if (!this.content || this.mousePressed) return;
+    this.timer = setTimeout(() => this.show(), 1500);
   }
   
   @HostListener('mousemove', ['$event'])
@@ -34,10 +35,19 @@ export class TooltipDirective implements OnDestroy {
     this.hide();
   }
 
-  @HostListener('contextmenu')
-  onRightClick(): void {
+  @HostListener('document:mousedown')
+  onMouseDown(): void {
+    this.mousePressed = true;
     this.hide();
   }
+
+  @HostListener('document:mouseup')
+  onMouseUp(): void {
+    this.mousePressed = false;
+    this.hide();
+  }
+
+  
 
   private show(): void {
     if (!this.content || this.tooltipEl) return;
