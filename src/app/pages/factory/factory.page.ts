@@ -106,7 +106,8 @@ export class FactoryPage implements AfterViewInit, OnInit {
       const outputState = this.itemStates[itemid];
       if (!outputState || outputState.isAtStartPosition) return;
       const adjacentConveyor = this.resourceExchangeService.checkAdjacentConveyor(outputState.col, outputState.row, this.conveyorGrid);
-      this.resourceExchangeService.onOutputPlaced(itemid, outputState.col, outputState.row, adjacentConveyor, this.items, this.conveyorGrid);
+      this.resourceExchangeService.onOutputPlaced(itemid, outputState.col, outputState.row, adjacentConveyor, this.clonedItems, this.conveyorGrid);
+
       console.log(`Output "${itemid}" hat neue Ressource: ${resource}`);
     });
   }
@@ -587,10 +588,11 @@ export class FactoryPage implements AfterViewInit, OnInit {
               isAtStartPosition: false
             };
 
-            const placedItem = this.items.find(i => i.id === element.id);
+            // Check for spawner placement and output
+            const placedItem = this.clonedItems.find(i => i.id === element.id);
             if (placedItem?.spawningResource) {
-              const adjacentOutput = this.resourceExchangeService.checkAdjacentOutput(targetCol, targetRow, this.items, this.itemStates);
-              this.resourceExchangeService.onSpawnerPlaced(element.id, targetCol, targetRow, adjacentOutput, this.items, this.itemStates);
+              const adjacentOutput = this.resourceExchangeService.checkAdjacentOutput(targetCol, targetRow, this.clonedItems, this.itemStates);
+              this.resourceExchangeService.onSpawnerPlaced(element.id, targetCol, targetRow, adjacentOutput, this.clonedItems, this.itemStates);
             }
 
             gridContainer.appendChild(element);
@@ -653,6 +655,8 @@ export class FactoryPage implements AfterViewInit, OnInit {
           label: sourceItem?.label || '',
           size: sourceItem?.size || 'large',
           helpText: sourceItem?.helpText || '',
+          spawningResource: sourceItem?.spawningResource,
+          resource: null,
         });
 
         this.itemStates[uniqueId] = {
