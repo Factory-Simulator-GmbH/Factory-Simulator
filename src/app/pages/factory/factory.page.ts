@@ -1,29 +1,17 @@
-import {
-  AfterViewInit,
-  ApplicationRef,
-  ChangeDetectorRef,
-  Component,
-  ComponentRef,
-  createComponent,
-  ElementRef,
-  EnvironmentInjector,
-  HostListener,
-  NgZone,
-  OnInit,
-  ViewChild
-} from '@angular/core';
+import { AfterViewInit, ApplicationRef, ChangeDetectorRef, Component, ComponentRef, createComponent, ElementRef, EnvironmentInjector, HostListener, NgZone, OnInit, ViewChild, } from '@angular/core';
+import { delay, filter } from 'rxjs';
 import interact from 'interactjs';
 import itemsData from '../../../../public/assets/items.json';
-import {ItemsComponent} from '../../components/items/items.component';
-import {PlaygroundGridComponent} from '../../components/playground-grid/playground-grid.component';
-import {ConveyorSegment} from '../../models/conveyor-segment.model';
-import {DraggableItems, ItemSize} from '../../models/draggable-item.model';
-import {ItemBasePosition, ItemState} from '../../models/item-position.model';
-import {LayoutService} from '../../services/layout.service';
-import {FactoryGridService} from '../../services/factory-grid.service';
-import {FactoryItemsService} from '../../services/factory-items.service';
+import { ItemsComponent } from '../../components/items/items.component';
+import { PlaygroundGridComponent } from '../../components/playground-grid/playground-grid.component';
+import { ConveyorSegment } from '../../models/conveyor-segment.model';
+import { DraggableItems, ItemSize } from '../../models/draggable-item.model';
+import { ItemBasePosition, ItemState } from '../../models/item-position.model';
+import { LayoutService } from '../../services/layout.service';
+import { FactoryGridService } from '../../services/factory-grid.service';
+import { FactoryItemsService } from '../../services/factory-items.service';
+import { ResourceExchangeService } from '../../services/resource-exchange.service';
 import {DraggableItemComponent} from '../../components/draggable-item/draggable-item.component';
-
 @Component({
   selector: 'app-factory-page',
   standalone: true,
@@ -31,7 +19,7 @@ import {DraggableItemComponent} from '../../components/draggable-item/draggable-
   templateUrl: './factory.page.html',
 })
 export class FactoryPage implements AfterViewInit, OnInit {
-  @ViewChild('gridHost', {read: ElementRef, static: true})
+  @ViewChild('gridHost', { read: ElementRef, static: true })
   gridHostRef!: ElementRef<HTMLElement>;
 
   @ViewChild(PlaygroundGridComponent)
@@ -56,7 +44,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
   readonly maxZoom = 2.0;
   readonly zoomStep = 0.1;
 
-  minimapViewport = {left: '0%', top: '0%', width: '100%', height: '100%'};
+  minimapViewport = { left: '0%', top: '0%', width: '100%', height: '100%' };
 
 
   readonly gridCellSizeVw = 2.5;
@@ -83,6 +71,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
     private layoutService: LayoutService,
     private factoryGridService: FactoryGridService,
     private factoryItemsService: FactoryItemsService,
+    private resourceExchangeService: ResourceExchangeService,
     private cdr: ChangeDetectorRef,
     private appRef: ApplicationRef,
     private environmentInjector: EnvironmentInjector,
@@ -93,6 +82,25 @@ export class FactoryPage implements AfterViewInit, OnInit {
   ngOnInit(): void {
     this.updateGridCellSize();
     this.calculateColumnsAndCreateGrid();
+
+    // Diese Methode wird aufgerufen, wenn sich die Ressource einer rollbandzelle ändert (z.B. durch Platzieren eines Spawners oder Outputs)
+    this.resourceExchangeService.conveyorResourceChanged$.pipe(filter(({ resource }) => resource !== null), delay(1000)).subscribe(({ row, col, resource }) => {
+
+        this.resourceExchangeService.onConveyorResourceChanged(resource, col, row, this.conveyorGrid);
+      this.conveyorGrid[row][col].resource = null;
+
+      console.log(`Ressource bei (${col}, ${row}) geändert zu: ${resource}`);
+    });
+
+    this.resourceExchangeService.outputResourceChanged$.pipe(filter(({ resource }) => resource !== null)).subscribe(({ itemid, resource }) => {
+
+      const outputState = this.itemStates[itemid];
+      if (!outputState || outputState.isAtStartPosition) return;
+      const adjacentConveyor = this.resourceExchangeService.checkAdjacentConveyor(outputState.col, outputState.row, this.conveyorGrid);
+      this.resourceExchangeService.onOutputPlaced(itemid, outputState.col, outputState.row, adjacentConveyor, this.clonedItems, this.conveyorGrid);
+
+      console.log(`Output "${itemid}" hat neue Ressource: ${resource}`);
+    });
   }
 
   // Wird aufgerufen, sobald das HTML fertig gezeichnet ist
@@ -516,7 +524,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
               },
             }),
           ],
-          relativePoints: [{x: 0, y: 0}],
+          relativePoints: [{ x: 0, y: 0 }],
         }),
       ],
       listeners: {
@@ -635,6 +643,14 @@ export class FactoryPage implements AfterViewInit, OnInit {
               isAtStartPosition: false
             };
 
+            // Check for spawner placement and output
+            const placedItem = this.clonedItems.find(i => i.id === element.id);
+            if (placedItem?.spawningResource) {
+              const adjacentOutput = this.resourceExchangeService.checkAdjacentOutput(targetCol, targetRow, this.clonedItems, this.itemStates);
+              this.resourceExchangeService.onSpawnerPlaced(element.id, targetCol, targetRow, adjacentOutput, this.clonedItems, this.itemStates);
+            }
+
+
             gridContainer.appendChild(element);
 
             const finalX = targetCol * this.gridCellSizePx;
@@ -690,9 +706,12 @@ export class FactoryPage implements AfterViewInit, OnInit {
 
         this.clonedItems.push({
           id: uniqueId,
+          type: sourceItem?.type || '',
           label: sourceItem?.label || '',
           size: sourceItem?.size || 'large',
           helpText: sourceItem?.helpText || '',
+          spawningResource: sourceItem?.spawningResource,
+          resource: null,
         });
 
         this.itemStates[uniqueId] = {
