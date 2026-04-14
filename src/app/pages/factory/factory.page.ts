@@ -387,6 +387,12 @@ export class FactoryPage implements AfterViewInit, OnInit {
   }
 
   private removePlacedItem(target: HTMLElement, itemId: string): void {
+    const clone = this.clonedItems.find(i => i.id === itemId);
+    const sourceItem = this.items.find(i => i.label === clone?.label);
+    if (sourceItem) {
+      sourceItem.currentAvailableCount = (sourceItem.currentAvailableCount ?? 0) + 1;
+    }
+
     const ref = this.componentRefs.get(itemId);
     if (ref) {
       this.appRef.detachView(ref.hostView);
@@ -695,6 +701,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
 
         // start a drag interaction targeting the clone
         interaction.start({name: 'drag'}, interact('.draggable-item'), innerDiv)
+        sourceItem.currentAvailableCount = (sourceItem.currentAvailableCount ?? sourceItem.maxAvailableCount ?? 1) - 1;
       }
     })
   }
