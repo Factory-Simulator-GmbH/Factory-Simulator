@@ -7,7 +7,7 @@ export interface DraggableItems {
   type: string;
   label: string;
   size: ItemSize;
-  helpText: string;
+  helpText?: string;
   showHelpText?: boolean;
   spawningResource?: string;
   rate?: number;
