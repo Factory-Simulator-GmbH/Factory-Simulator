@@ -395,6 +395,14 @@ export class FactoryPage implements AfterViewInit, OnInit {
   }
 
   private removePlacedItem(target: HTMLElement, itemId: string): void {
+    if (!this.itemStates[itemId].isAtStartPosition) {
+      const clone = this.clonedItems.find(i => i.id === itemId);
+      const sourceItem = this.items.find(i => i.label === clone?.label);
+      if (sourceItem) {
+        sourceItem.currentAvailableCount = (sourceItem.currentAvailableCount ?? 0) + 1;
+      }
+    }
+
     const ref = this.componentRefs.get(itemId);
     if (ref) {
       this.appRef.detachView(ref.hostView);
@@ -621,6 +629,13 @@ export class FactoryPage implements AfterViewInit, OnInit {
             targetCol = Math.max(0, Math.min(targetCol, this.gridColumns - 1));
             targetRow = Math.max(0, Math.min(targetRow, this.gridRowCount - 1));
 
+            if (this.itemStates[element.id].isAtStartPosition) {
+              let clonedItem = this.clonedItems.find(i => i.id === element.id);
+              let sourceItem = this.items.find(i => i.label === clonedItem?.label);
+              if (sourceItem) {
+                sourceItem.currentAvailableCount = (sourceItem.currentAvailableCount ?? sourceItem.maxAvailableCount ?? 1) - 1;
+              }
+            }
 
             this.itemStates[element.id] = {
               col: targetCol,

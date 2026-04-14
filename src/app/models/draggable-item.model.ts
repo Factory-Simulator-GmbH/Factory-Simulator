@@ -9,6 +9,8 @@ export interface DraggableItems {
   size: ItemSize;
   helpText: string;
   showHelpText?: boolean;
+  maxAvailableCount?: number;
+  currentAvailableCount?: number;
   spawningResource?: string;
   rate?: number;
   entry?: Direction | null;
