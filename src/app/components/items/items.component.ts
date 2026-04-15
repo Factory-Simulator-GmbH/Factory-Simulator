@@ -19,4 +19,8 @@ export class ItemsComponent {
   onMouseDown(itemId: string, event: MouseEvent): void {
     this.itemMouseDown.emit({ itemId, event });
   }
+
+  isAvailable(itemId: string): boolean {
+    return this.items.find(i => i.id === itemId)?.currentAvailableCount !== 0;
+  }
 }
