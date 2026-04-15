@@ -668,14 +668,16 @@ export class FactoryPage implements AfterViewInit, OnInit {
     interact('.source-item').on('move', (event) => {
       const interaction = event.interaction
 
-      if (interaction.pointerIsDown && !interaction.interacting()) {
+      if (this.mousePressed && interaction.pointerIsDown && !interaction.interacting()) {
         const original = event.currentTarget as HTMLElement;
         const originalItemId = original.getAttribute('data-item-id') || original.id;
         const uniqueId = `${originalItemId}-clone-${Date.now()}`;
         const sourceItem = this.items.find(i => i.id === originalItemId);
 
-        if (!sourceItem) return;
-        if ((sourceItem.currentAvailableCount ?? 1) <= 0) return;
+        if (!sourceItem || (sourceItem.currentAvailableCount ?? 1) <= 0) {
+          this.mousePressed = false;
+          return;
+        }
 
         // Angular-Komponente dynamisch erstellen
         const componentRef = createComponent(DraggableItemComponent, {
