@@ -83,23 +83,30 @@ export class FactoryPage implements AfterViewInit, OnInit {
     this.updateGridCellSize();
     this.calculateColumnsAndCreateGrid();
 
-    // Diese Methode wird aufgerufen, wenn sich die Ressource einer rollbandzelle ändert (z.B. durch Platzieren eines Spawners oder Outputs)
+    // Diese Methode wird aufgerufen, wenn sich die Ressource einer rollbandzelle ändert (z.B. durch Platzieren eines Spawners)
     this.resourceExchangeService.conveyorResourceChanged$.pipe(filter(({ resource }) => resource !== null), delay(1000)).subscribe(({ row, col, resource }) => {
 
-        this.resourceExchangeService.onConveyorResourceChanged(resource, col, row, this.conveyorGrid);
+        this.resourceExchangeService.onConveyorResourceChanged(resource, col, row, this.conveyorGrid,  this.clonedItems, this.itemStates);
       this.conveyorGrid[row][col].resource = null;
 
-      console.log(`Ressource bei (${col}, ${row}) geändert zu: ${resource}`);
+      console.log(`Ressource bei (${col}, ${row}) geändert zu: ${this.conveyorGrid[row][col].resource}`);
     });
+    // Diese Methode wird aufgerufen, wenn sich die Ressource eines outputs ändert (z.B. durch Platzieren eines Spawners)
+    this.resourceExchangeService.itemResourceChanged$.pipe(filter(({ resource }) => resource !== null)).subscribe(({ itemid, resource }) => {
 
-    this.resourceExchangeService.outputResourceChanged$.pipe(filter(({ resource }) => resource !== null)).subscribe(({ itemid, resource }) => {
+      const itemState = this.itemStates[itemid];
+      if (!itemState || itemState.isAtStartPosition) return;
+      const item = this.clonedItems.find(i => i.id === itemid);
 
-      const outputState = this.itemStates[itemid];
-      if (!outputState || outputState.isAtStartPosition) return;
-      const adjacentConveyor = this.resourceExchangeService.checkAdjacentConveyor(outputState.col, outputState.row, this.conveyorGrid);
-      this.resourceExchangeService.onOutputPlaced(itemid, outputState.col, outputState.row, adjacentConveyor, this.clonedItems, this.conveyorGrid);
-
-      console.log(`Output "${itemid}" hat neue Ressource: ${resource}`);
+      if (item?.type === 'output') {
+        const adjacentConveyor = this.resourceExchangeService.checkAdjacentConveyor(itemState.col, itemState.row, this.conveyorGrid);
+        this.resourceExchangeService.onOutputResourceChanged(itemid, itemState.col, itemState.row, adjacentConveyor, this.clonedItems, this.conveyorGrid);
+        console.log(`Output "${itemid}" hat neue Ressource: ${resource}`);
+      } else if (item?.type === 'input') {
+        const adjacentMaschine = this.resourceExchangeService.checkAdjacentMachine(itemState.col, itemState.row, this.clonedItems, this.itemStates);
+        this.resourceExchangeService.onInputResourceChanged(itemid, itemState.col, itemState.row, adjacentMaschine, this.clonedItems, this.itemStates);
+        
+      }
     });
   }
 
