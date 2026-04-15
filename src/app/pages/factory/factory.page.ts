@@ -11,7 +11,7 @@ import { LayoutService } from '../../services/layout.service';
 import { FactoryGridService } from '../../services/factory-grid.service';
 import { FactoryItemsService } from '../../services/factory-items.service';
 import { ResourceExchangeService } from '../../services/resource-exchange.service';
-import {DraggableItemComponent} from '../../components/draggable-item/draggable-item.component';
+import { DraggableItemComponent } from '../../components/draggable-item/draggable-item.component';
 @Component({
   selector: 'app-factory-page',
   standalone: true,
@@ -86,7 +86,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
     // Diese Methode wird aufgerufen, wenn sich die Ressource einer rollbandzelle ändert (z.B. durch Platzieren eines Spawners)
     this.resourceExchangeService.conveyorResourceChanged$.pipe(filter(({ resource }) => resource !== null), delay(1000)).subscribe(({ row, col, resource }) => {
 
-        this.resourceExchangeService.onConveyorResourceChanged(resource, col, row, this.conveyorGrid,  this.clonedItems, this.itemStates);
+      this.resourceExchangeService.onConveyorResourceChanged(resource, col, row, this.conveyorGrid, this.clonedItems, this.itemStates);
       this.conveyorGrid[row][col].resource = null;
 
       console.log(`Ressource bei (${col}, ${row}) geändert zu: ${this.conveyorGrid[row][col].resource}`);
@@ -104,8 +104,26 @@ export class FactoryPage implements AfterViewInit, OnInit {
         console.log(`Output "${itemid}" hat neue Ressource: ${resource}`);
       } else if (item?.type === 'input') {
         const adjacentMaschine = this.resourceExchangeService.checkAdjacentMachine(itemState.col, itemState.row, this.clonedItems, this.itemStates);
-        this.resourceExchangeService.onInputResourceChanged(itemid, itemState.col, itemState.row, adjacentMaschine, this.clonedItems, this.itemStates);
-        
+        if (adjacentMaschine) {
+          const machineItem = this.clonedItems.find(i =>
+            i.type === 'machine' &&
+            this.itemStates[i.id]?.col === adjacentMaschine.col &&
+            this.itemStates[i.id]?.row === adjacentMaschine.row
+          );
+          if (machineItem && resource) {
+            if (machineItem.input && resource in machineItem.input) {
+              this.resourceExchangeService.onInputResourceChanged(itemid, itemState.col, itemState.row, adjacentMaschine, this.clonedItems, this.itemStates);
+            }
+            else
+            {
+              const el = document.getElementById(itemid);
+              el?.classList.add('ring-4', 'ring-red-500', 'shadow-[0_0_20px_rgba(239,68,68,0.6)]');
+            }
+          }
+          else {
+
+          }
+        }
       }
     });
   }
@@ -334,7 +352,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
         this.previewCells.clear();
         this.touchedCells.clear();
 
-        this.pathCells = [{row: state.row, col: state.col}];
+        this.pathCells = [{ row: state.row, col: state.col }];
       }
     }
   }
@@ -704,6 +722,8 @@ export class FactoryPage implements AfterViewInit, OnInit {
           helpText: sourceItem?.helpText || '',
           spawningResource: sourceItem?.spawningResource,
           resource: null,
+          input: sourceItem?.input,
+          output: sourceItem?.output,
         });
 
         this.itemStates[uniqueId] = {
@@ -720,7 +740,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
         innerDiv.style.transform = `translate(${startX}px, ${startY}px)`;
 
         // start a drag interaction targeting the clone
-        interaction.start({name: 'drag'}, interact('.draggable-item'), innerDiv)
+        interaction.start({ name: 'drag' }, interact('.draggable-item'), innerDiv)
       }
     })
   }
