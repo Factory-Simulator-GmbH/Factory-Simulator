@@ -675,6 +675,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
         const sourceItem = this.items.find(i => i.id === originalItemId);
 
         if (!sourceItem) return;
+        if ((sourceItem.currentAvailableCount ?? 1) <= 0) return;
 
         // Angular-Komponente dynamisch erstellen
         const componentRef = createComponent(DraggableItemComponent, {
