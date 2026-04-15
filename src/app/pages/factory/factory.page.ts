@@ -29,6 +29,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
   scrollContainerRef!: ElementRef<HTMLElement>;
 
 
+  private lastMouseButton = -1;
   mousePressed = false;
   isDraggingItem = false;
   activeDraggedItemId: string | null = null;
@@ -313,6 +314,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
   @HostListener('document:mousedown', ['$event'])
   onDocumentMouseDown(event: MouseEvent): void {
     this.mousePressed = true;
+    this.lastMouseButton = event.button;
 
     const target = event.target as HTMLElement;
     const itemElement = target.closest('.draggable-item') as HTMLElement | null;
@@ -674,7 +676,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
         const uniqueId = `${originalItemId}-clone-${Date.now()}`;
         const sourceItem = this.items.find(i => i.id === originalItemId);
 
-        if (!sourceItem || (sourceItem.currentAvailableCount ?? 1) <= 0) {
+        if (!sourceItem || (sourceItem.currentAvailableCount ?? 1) <= 0 || this.lastMouseButton !== 0) {
           this.mousePressed = false;
           return;
         }
