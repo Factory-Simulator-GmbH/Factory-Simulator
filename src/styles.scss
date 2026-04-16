@@ -2,6 +2,41 @@
 @tailwind components;
 @tailwind utilities;
 
+html, body {
+  overflow: hidden;
+  height: 100%;
+  width: 100%;
+}
+
+.grid-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #000 transparent;
+}
+
+.grid-scrollbar::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.grid-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.grid-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #000;
+  border-radius: 2px;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in-up {
+  opacity: 0;
+  animation: fadeInUp 0.2s ease-out forwards;
+}
+
 @layer components {
   .playground-grid {
     background-size: 50px 50px;

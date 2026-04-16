@@ -28,6 +28,9 @@ export class FactoryPage implements AfterViewInit, OnInit {
   @ViewChild('scrollContainer')
   scrollContainerRef!: ElementRef<HTMLElement>;
 
+  @ViewChild('minimapContent')
+  minimapContentRef!: ElementRef<HTMLElement>;
+
 
   private lastMouseButton = -1;
   mousePressed = false;
@@ -39,6 +42,11 @@ export class FactoryPage implements AfterViewInit, OnInit {
 
   isFullscreen = false;
 
+  showMenu = false;
+  showShortcutsModal = false;
+  showHilfeModal = false;
+  isNavigatingMinimap = false;
+
 
   zoomLevel = 1.0;
   readonly minZoom = 0.3;
@@ -46,6 +54,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
   readonly zoomStep = 0.1;
 
   minimapViewport = { left: '0%', top: '0%', width: '100%', height: '100%' };
+  minimapReady = false;
 
 
   readonly gridCellSizeVw = 2.5;
@@ -178,23 +187,8 @@ export class FactoryPage implements AfterViewInit, OnInit {
     });
   }
 
-  onWheel(event: WheelEvent): void {
-    if (event.ctrlKey || event.metaKey) {
-      event.preventDefault();
-
-      if (event.deltaY < 0) {
-        this.zoomLevel = Math.min(this.zoomLevel + this.zoomStep, this.maxZoom);
-      } else {
-        this.zoomLevel = Math.max(this.zoomLevel - this.zoomStep, this.minZoom);
-      }
-
-      setTimeout(() => {
-        this.updateMinimap();
-        this.captureItemBasePositions();
-        this.repositionAllItems();
-        this.setupInteractDragging();
-      }, 10);
-    }
+  onWheel(_event: WheelEvent): void {
+    // Zoom deaktiviert
   }
 
   onScroll(event: Event): void {
@@ -208,8 +202,21 @@ export class FactoryPage implements AfterViewInit, OnInit {
     });
   }
 
+  get minimapItems() {
+    return this.clonedItems
+      .filter(item => {
+        const state = this.itemStates[item.id];
+        return state && !state.isAtStartPosition;
+      })
+      .map(item => {
+        const state = this.itemStates[item.id];
+        const span = Math.max(1, Math.round(this.getItemSizePx(item.size) / this.gridCellSizePx));
+        return { id: item.id, col: state.col, row: state.row, span };
+      });
+  }
+
   private updateMinimap(container?: HTMLElement): void {
-    const el = container || this.scrollContainerRef?.nativeElement;
+    const el = container || this.playgroundGridComponent?.gridViewportRef?.nativeElement;
     if (!el) return;
 
     const scrollLeft = el.scrollLeft;
@@ -221,6 +228,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
 
     if (scrollWidth === 0 || scrollHeight === 0) return;
 
+    this.minimapReady = true;
     this.minimapViewport = {
       left: `${(scrollLeft / scrollWidth) * 100}%`,
       top: `${(scrollTop / scrollHeight) * 100}%`,
@@ -388,8 +396,51 @@ export class FactoryPage implements AfterViewInit, OnInit {
     }
   }
 
+  toggleMenu(): void {
+    this.showMenu = !this.showMenu;
+  }
+
+  openShortcuts(): void {
+    this.showMenu = false;
+    this.showShortcutsModal = true;
+  }
+
+  openHilfe(): void {
+    this.showMenu = false;
+    this.showHilfeModal = true;
+  }
+
+  onMinimapMouseDown(event: MouseEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isNavigatingMinimap = true;
+    document.body.style.cursor = 'grabbing';
+    this.navigateByMinimap(event);
+  }
+
+  @HostListener('document:mousemove', ['$event'])
+  onDocumentMouseMove(event: MouseEvent): void {
+    if (this.isNavigatingMinimap) {
+      this.navigateByMinimap(event);
+    }
+  }
+
+  private navigateByMinimap(event: MouseEvent): void {
+    const el = this.minimapContentRef?.nativeElement;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const relX = Math.max(0, Math.min(event.clientX - rect.left, rect.width));
+    const relY = Math.max(0, Math.min(event.clientY - rect.top, rect.height));
+    const sc = this.playgroundGridComponent.gridViewportRef.nativeElement;
+    sc.scrollLeft = Math.max(0, (relX / rect.width) * sc.scrollWidth - sc.clientWidth / 2);
+    sc.scrollTop = Math.max(0, (relY / rect.height) * sc.scrollHeight - sc.clientHeight / 2);
+    this.updateMinimap();
+  }
+
   // Setzt alle Klicks und Drag-Aktionen zurück (Aufräumen)
   private resetInteractions(): void {
+    this.isNavigatingMinimap = false;
+    document.body.style.cursor = '';
     this.mousePressed = false;
     this.paintMode = null;
     this.previewCells.clear();
@@ -423,30 +474,15 @@ export class FactoryPage implements AfterViewInit, OnInit {
   onContextMenu(event: MouseEvent): void {
     event.preventDefault();
 
-    if (this.isDraggingItem || this.mousePressed) {
+    const target = event.target as HTMLElement;
+    const itemElement = target?.closest('.draggable-item') as HTMLElement | null;
+    if (itemElement) {
+      this.removePlacedItem(itemElement, itemElement.id);
       return;
     }
 
-    const target = event.target as HTMLElement;
-
-    if (target && target.classList.contains('draggable-item')) {
-      const itemId = target.id;
-      const state = this.itemStates[itemId];
-      const stateAny = state as any;
-      const isConnected = stateAny && stateAny.isConnected;
-
-      if (isConnected) {
-        const now = Date.now();
-        if (this.lastRightClickId === itemId && now - this.lastRightClickTime < 400) {
-          this.removePlacedItem(target, itemId);
-          this.lastRightClickId = null;
-        } else {
-          this.lastRightClickTime = now;
-          this.lastRightClickId = itemId;
-        }
-      } else {
-        this.removePlacedItem(target, itemId);
-      }
+    if (this.isDraggingItem || this.mousePressed) {
+      return;
     }
   }
 

@@ -1,21 +1,25 @@
-<div class="relative w-max h-max flex flex-col bg-black/40 border border-white/20 rounded-xl p-2">
+<div class="relative flex flex-col w-full h-full bg-black/40 border border-white/20 rounded-xl p-2 overflow-hidden">
 
-  <div class="mb-2 flex items-center justify-between text-xs font-semibold tracking-wide text-white px-2">
+  <div class="mb-2 flex items-center justify-between text-xs font-semibold tracking-wide text-white px-2 flex-none">
     <span>Playground</span>
+    <ng-content></ng-content>
   </div>
 
-  <div class="relative w-max h-max border-2 border-black bg-white/5">
-
-    <table #gridTable class="border-collapse border-spacing-0">
+  <div
+    #gridViewport
+    data-grid-viewport="true"
+    class="relative flex-1 min-h-0 overflow-auto grid-scrollbar border-2 border-black bg-white/5"
+    (scroll)="onGridScroll($event)"
+  >
+    <table #gridTable class="border-collapse border-spacing-0 w-max">
       @for (row of conveyorGrid; let rowIndex = $index; track rowIndex) {
         <tr [style.height.px]="gridCellSizePx">
 
-          <!-- Loop over cells in a row -->
           @for (cell of row; let colIndex = $index; track colIndex) {
             <td
               [style.height.px]="gridCellSizePx"
               [style.width.px]="gridCellSizePx"
-              class="relative cursor-crosshair border border-white/10 p-0 transition-colors text-black"
+              class="relative cursor-default border border-white/10 p-0 transition-colors text-black"
               [class.border-0]="conveyorGrid[rowIndex][colIndex].active && !isPaintPreview(rowIndex, colIndex)"
               [class.bg-slate-300]="conveyorGrid[rowIndex][colIndex].active && !isPaintPreview(rowIndex, colIndex)"
               [class.border-2]="isPaintPreview(rowIndex, colIndex)"
@@ -41,6 +45,5 @@
     </table>
 
     <div id="grid-items-container" class="absolute inset-0 z-50 pointer-events-none"></div>
-
   </div>
 </div>

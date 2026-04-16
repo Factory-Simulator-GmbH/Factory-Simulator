@@ -1,5 +1,5 @@
-import {Component, ElementRef, EventEmitter, Input, Output, ViewChild} from '@angular/core';
-import {ConveyorSegment} from '../../models/conveyor-segment.model';
+import { Component, ElementRef, EventEmitter, Input, Output, ViewChild } from '@angular/core';
+import { ConveyorSegment } from '../../models/conveyor-segment.model';
 
 @Component({
   selector: 'app-playground-grid',
@@ -7,22 +7,25 @@ import {ConveyorSegment} from '../../models/conveyor-segment.model';
   templateUrl: './playground-grid.component.html',
 })
 export class PlaygroundGridComponent {
-
-  // Reference to the HTML grid
-  @ViewChild('gridTable', {static: true})
+  @ViewChild('gridTable', { static: true })
   gridTableRef!: ElementRef<HTMLTableElement>;
 
-  @Input({required: true}) conveyorGrid!: ConveyorSegment[][];
-  @Input({required: true}) gridCellSizePx!: number;
-  @Input({required: true}) previewCells!: Set<string>;
-  @Input({required: true}) getConveyorSymbol!: (cell: ConveyorSegment) => string;
+  @ViewChild('gridViewport', { static: true })
+  gridViewportRef!: ElementRef<HTMLElement>;
+
+  @Input({ required: true }) conveyorGrid!: ConveyorSegment[][];
+  @Input({ required: true }) gridCellSizePx!: number;
+  @Input({ required: true }) previewCells!: Set<string>;
+  @Input({ required: true }) getConveyorSymbol!: (cell: ConveyorSegment) => string;
+  @Input() zoomLevel: number = 1;
   @Input() isFullscreen = false;
+
   @Output() toggleFullscreen = new EventEmitter<void>();
+  @Output() gridScroll = new EventEmitter<Event>();
 
   @Output() cellMouseDown = new EventEmitter<{ event: MouseEvent; rowIndex: number; colIndex: number }>();
   @Output() cellMouseEnter = new EventEmitter<{ rowIndex: number; colIndex: number }>();
 
-  // Clear Key for lines in sets
   private key(r: number, c: number): string {
     return `${r}:${c}`;
   }
@@ -38,18 +41,19 @@ export class PlaygroundGridComponent {
     return this.previewCells.has(this.key(r, c));
   }
 
-  // Starts painting or erasing based on mouse button
   onMouseDown(event: MouseEvent, rowIndex: number, colIndex: number): void {
-    this.cellMouseDown.emit({event, rowIndex, colIndex});
+    this.cellMouseDown.emit({ event, rowIndex, colIndex });
   }
 
-  // continue drawing when mouse is moved
   onMouseEnter(rowIndex: number, colIndex: number): void {
-    this.cellMouseEnter.emit({rowIndex, colIndex});
+    this.cellMouseEnter.emit({ rowIndex, colIndex });
   }
 
   onToggleFullscreen(): void {
     this.toggleFullscreen.emit();
   }
-  
+
+  onGridScroll(event: Event): void {
+    this.gridScroll.emit(event);
+  }
 }
