@@ -15,6 +15,7 @@
         [attr.data-item-id]="item.id"
         [class.relative]="activeDraggedItemId === item.id"
         [class.z-50]="activeDraggedItemId === item.id"
+        [class.not-available]="!isAvailable(item.id)"
         [style.width.px]="getItemSizePx(item.size)"
         [style.height.px]="getItemSizePx(item.size)"
         [id]="item.id"

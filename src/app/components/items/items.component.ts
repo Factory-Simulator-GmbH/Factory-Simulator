@@ -7,6 +7,7 @@ import {TooltipDirective} from '../../directives/tooltip.directive';
   standalone: true,
   imports: [TooltipDirective],
   templateUrl: './items.component.html',
+  styleUrl: './items.component.scss'
 })
 export class ItemsComponent {
   @Input({required: true}) items!: DraggableItems[];
@@ -18,5 +19,9 @@ export class ItemsComponent {
 
   onMouseDown(itemId: string, event: MouseEvent): void {
     this.itemMouseDown.emit({ itemId, event });
+  }
+
+  isAvailable(itemId: string): boolean {
+    return this.items.find(i => i.id === itemId)?.currentAvailableCount !== 0;
   }
 }

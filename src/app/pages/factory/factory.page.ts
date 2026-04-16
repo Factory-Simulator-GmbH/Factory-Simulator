@@ -29,6 +29,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
   scrollContainerRef!: ElementRef<HTMLElement>;
 
 
+  private lastMouseButton = -1;
   mousePressed = false;
   isDraggingItem = false;
   activeDraggedItemId: string | null = null;
@@ -367,6 +368,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
   @HostListener('document:mousedown', ['$event'])
   onDocumentMouseDown(event: MouseEvent): void {
     this.mousePressed = true;
+    this.lastMouseButton = event.button;
 
     const target = event.target as HTMLElement;
     const itemElement = target.closest('.draggable-item') as HTMLElement | null;
@@ -722,13 +724,16 @@ export class FactoryPage implements AfterViewInit, OnInit {
     interact('.source-item').on('move', (event) => {
       const interaction = event.interaction
 
-      if (interaction.pointerIsDown && !interaction.interacting()) {
+      if (this.mousePressed && interaction.pointerIsDown && !interaction.interacting()) {
         const original = event.currentTarget as HTMLElement;
         const originalItemId = original.getAttribute('data-item-id') || original.id;
         const uniqueId = `${originalItemId}-clone-${Date.now()}`;
         const sourceItem = this.items.find(i => i.id === originalItemId);
 
-        if (!sourceItem) return;
+        if (!sourceItem || (sourceItem.currentAvailableCount ?? 1) <= 0 || this.lastMouseButton !== 0) {
+          this.mousePressed = false;
+          return;
+        }
 
         // Angular-Komponente dynamisch erstellen
         const componentRef = createComponent(DraggableItemComponent, {
