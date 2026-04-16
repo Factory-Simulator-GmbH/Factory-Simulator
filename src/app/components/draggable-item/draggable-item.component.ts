@@ -9,7 +9,7 @@ import {DraggableItems} from '../../models/draggable-item.model';
   template: `
     <div
       [appTooltip]="item.helpText || ''"
-      class="grid draggable-item select-none place-items-center rounded-xl border border-white/20 bg-white/10 text-white shadow-sm backdrop-blur touch-none"
+      class="grid draggable-item select-none place-items-center border border-white/20 bg-white/10 text-white shadow-sm backdrop-blur touch-none"
       [attr.data-item-id]="item.id"
       [attr.id]="itemId"
       [style.width.px]="sizePx"
@@ -18,6 +18,7 @@ import {DraggableItems} from '../../models/draggable-item.model';
       {{ item.label }}
     </div>
   `,
+  templateUrl: './draggable-item.component.html',
 })
 export class DraggableItemComponent {
   @Input() item!: DraggableItems;

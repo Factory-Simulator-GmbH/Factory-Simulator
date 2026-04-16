@@ -11,10 +11,11 @@
   >
     @for (item of items; track item.id) {
       <div
-        class="grid source-item select-none place-items-center rounded-xl border border-white/20 bg-white/10 text-white shadow-sm backdrop-blur touch-none"
+        class="grid source-item select-none place-items-center rounded-xl border border-white/20 bg-white/10 text-white shadow-sm backdrop-blur touch-none relative"
         [attr.data-item-id]="item.id"
         [class.relative]="activeDraggedItemId === item.id"
         [class.z-50]="activeDraggedItemId === item.id"
+        [class.not-available]="!isAvailable(item.id)"
         [style.width.px]="getItemSizePx(item.size)"
         [style.height.px]="getItemSizePx(item.size)"
         [id]="item.id"
@@ -22,6 +23,9 @@
         (mousedown)="onMouseDown(item.id, $event)"
       >
         {{ item.label }}
+        <span class="absolute top-1 left-1 text-[12px] leading-none text-white/60">
+          {{ item.currentAvailableCount ?? item.maxAvailableCount ?? 1 }} / {{ item.maxAvailableCount ?? 1 }}
+        </span>
       </div>
     }
   </div>
