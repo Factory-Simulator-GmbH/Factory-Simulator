@@ -162,7 +162,10 @@ export class ResourceExchangeService {
             const outputItem = items.find(i => i.id === id);
             conveyorGrid[adjacentConveyor.row][adjacentConveyor.col].resource = outputItem?.resource ?? null;
             const resource = conveyorGrid[adjacentConveyor.row][adjacentConveyor.col].resource;
-            if (outputItem) outputItem.resource = null;
+            if (outputItem) {
+                outputItem.resource = null;
+                this.itemResourceChanged$.next({ itemid: id, resource: null });
+            }
             console.log(`Ressource "${resource}" in Rollband bei (${adjacentConveyor.col}, ${adjacentConveyor.row}) platziert.`);
             this.conveyorResourceChanged$.next({
                 row: adjacentConveyor.row,
@@ -212,8 +215,8 @@ export class ResourceExchangeService {
     ): void {
         const cell = conveyorGrid[row]?.[col];
 
-        // 1. Erst prüfen ob Weitergabe an nächstes Rollband möglich
-        if (cell?.active && cell.exit) {
+        // 1. Erst prüfen ob Weitergabe an nächstes Rollband möglich (nicht beim Endpoint)
+        if (cell?.active && cell.exit && !cell.endpoint) {
             const nextCell = this.getNextCellByExit(cell.exit, col, row);
             const next = conveyorGrid[nextCell.row]?.[nextCell.col];
             if (next?.active) {
@@ -224,7 +227,8 @@ export class ResourceExchangeService {
             }
         }
 
-        // 2. Dann prüfen ob Weitergabe an Input möglich
+        // 2. Nur am Endpoint prüfen ob Weitergabe an Input möglich
+        if (!cell?.endpoint) return;
         const adjacentInput = this.checkAdjacentInput(col, row, items, itemStates);
         if (adjacentInput) {
             const inputState = itemStates[adjacentInput.itemid];

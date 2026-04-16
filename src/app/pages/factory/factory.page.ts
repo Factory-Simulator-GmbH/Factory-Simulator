@@ -1,5 +1,5 @@
 import { AfterViewInit, ApplicationRef, ChangeDetectorRef, Component, ComponentRef, createComponent, ElementRef, EnvironmentInjector, HostListener, NgZone, OnInit, ViewChild, } from '@angular/core';
-import { delay, filter } from 'rxjs';
+import { delay, filter, mergeMap, of } from 'rxjs';
 import interact from 'interactjs';
 import itemsData from '../../../../public/assets/items.json';
 import { ItemsComponent } from '../../components/items/items.component';
@@ -61,6 +61,12 @@ export class FactoryPage implements AfterViewInit, OnInit {
   private itemStates: Record<string, ItemState> = {};
   private itemBasePositions: Record<string, ItemBasePosition> = {};
 
+  private readonly resourceEmoji: Record<string, string> = {
+    metall: '🔩',
+    kupfer: '🟤',
+    plastik: '🧴',
+  };
+
   private paintMode: 'on' | 'off' | null = null;
   previewCells = new Set<string>();
   private touchedCells = new Set<string>();
@@ -84,18 +90,28 @@ export class FactoryPage implements AfterViewInit, OnInit {
     this.calculateColumnsAndCreateGrid();
 
     // Diese Methode wird aufgerufen, wenn sich die Ressource einer rollbandzelle ändert (z.B. durch Platzieren eines Spawners)
-    this.resourceExchangeService.conveyorResourceChanged$.pipe(filter(({ resource }) => resource !== null), delay(1000)).subscribe(({ row, col, resource }) => {
+    this.resourceExchangeService.conveyorResourceChanged$.pipe(filter(({ resource }) => resource !== null), mergeMap(event => of(event).pipe(delay(1000)))).subscribe(({ row, col, resource }) => {
 
       this.resourceExchangeService.onConveyorResourceChanged(resource, col, row, this.conveyorGrid, this.clonedItems, this.itemStates);
       this.conveyorGrid[row][col].resource = null;
 
       console.log(`Ressource bei (${col}, ${row}) geändert zu: ${this.conveyorGrid[row][col].resource}`);
+      this.cdr.detectChanges();
     });
     // Diese Methode wird aufgerufen, wenn sich die Ressource eines outputs ändert (z.B. durch Platzieren eines Spawners)
-    this.resourceExchangeService.itemResourceChanged$.pipe(filter(({ resource }) => resource !== null)).subscribe(({ itemid, resource }) => {
+    this.resourceExchangeService.itemResourceChanged$.subscribe(({ itemid, resource }) => {
+
+      this.updateItemResourceBadge(itemid, resource);
+      if (resource === null) {
+        this.cdr.detectChanges();
+        return;
+      }
 
       const itemState = this.itemStates[itemid];
-      if (!itemState || itemState.isAtStartPosition) return;
+      if (!itemState || itemState.isAtStartPosition) {
+        this.cdr.detectChanges();
+        return;
+      }
       const item = this.clonedItems.find(i => i.id === itemid);
 
       if (item?.type === 'output') {
@@ -125,6 +141,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
           }
         }
       }
+      this.cdr.detectChanges();
     });
   }
 
@@ -248,6 +265,18 @@ export class FactoryPage implements AfterViewInit, OnInit {
   }
 
   // Abmessungen des Spielfelds holen
+  private updateItemResourceBadge(itemid: string, resource: string | null): void {
+    const el = document.getElementById(itemid);
+    if (!el) return;
+    let badge = el.querySelector('.resource-badge') as HTMLElement | null;
+    if (!badge) {
+      badge = document.createElement('span');
+      badge.className = 'resource-badge absolute bottom-1 right-1 text-base leading-none pointer-events-none';
+      el.appendChild(badge);
+    }
+    badge.textContent = resource ? (this.resourceEmoji[resource] ?? resource) : '';
+  }
+
   private getGridTableRect(): DOMRect {
     return this.playgroundGridComponent.gridTableRef.nativeElement.getBoundingClientRect();
   }
