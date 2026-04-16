@@ -3,7 +3,20 @@
     <div class="absolute inset-0 z-40 rounded-2xl bg-black/50 pointer-events-none"></div>
   }
 
-  <div class="mb-3 text-xs font-semibold tracking-wide text-white">Items</div>
+  <div class="mb-3 text-xs font-semibold tracking-wide text-white">
+    <p>Items</p>
+    <div id="filter-tags">
+      @for (filter of filters; track filter) {
+        <button
+          (click)="setActiveFilter(filter)"
+          [attr.data-active]="activeFilter === filter"
+          class="mr-2 rounded-full px-3 py-1 text-white/80 transition-colors duration-200 hover:bg-white/10 focus:outline-none data-[active=true]:bg-white/20"
+        >
+          {{ filter | titlecase }}
+        </button>
+      }
+    </div>
+  </div>
 
   <div
     id="item-palette"
@@ -16,6 +29,7 @@
         [class.relative]="activeDraggedItemId === item.id"
         [class.z-50]="activeDraggedItemId === item.id"
         [class.not-available]="!isAvailable(item.id)"
+        [class.hidden]="activeFilter !== null && item.type !== activeFilter"
         [style.width.px]="getItemSizePx(item.size)"
         [style.height.px]="getItemSizePx(item.size)"
         [id]="item.id"
