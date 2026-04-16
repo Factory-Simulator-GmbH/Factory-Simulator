@@ -1,5 +1,5 @@
 import { AfterViewInit, ApplicationRef, ChangeDetectorRef, Component, ComponentRef, createComponent, ElementRef, EnvironmentInjector, HostListener, NgZone, OnInit, ViewChild, } from '@angular/core';
-import { delay, filter } from 'rxjs';
+import { delay, filter, mergeMap, of } from 'rxjs';
 import interact from 'interactjs';
 import itemsData from '../../../../public/assets/items.json';
 import { ItemsComponent } from '../../components/items/items.component';
@@ -11,7 +11,7 @@ import { LayoutService } from '../../services/layout.service';
 import { FactoryGridService } from '../../services/factory-grid.service';
 import { FactoryItemsService } from '../../services/factory-items.service';
 import { ResourceExchangeService } from '../../services/resource-exchange.service';
-import {DraggableItemComponent} from '../../components/draggable-item/draggable-item.component';
+import { DraggableItemComponent } from '../../components/draggable-item/draggable-item.component';
 @Component({
   selector: 'app-factory-page',
   standalone: true,
@@ -61,6 +61,12 @@ export class FactoryPage implements AfterViewInit, OnInit {
   private itemStates: Record<string, ItemState> = {};
   private itemBasePositions: Record<string, ItemBasePosition> = {};
 
+  private readonly resourceEmoji: Record<string, string> = {
+    metall: '🔩',
+    kupfer: '🟤',
+    plastik: '🧴',
+  };
+
   private paintMode: 'on' | 'off' | null = null;
   previewCells = new Set<string>();
   private touchedCells = new Set<string>();
@@ -83,23 +89,59 @@ export class FactoryPage implements AfterViewInit, OnInit {
     this.updateGridCellSize();
     this.calculateColumnsAndCreateGrid();
 
-    // Diese Methode wird aufgerufen, wenn sich die Ressource einer rollbandzelle ändert (z.B. durch Platzieren eines Spawners oder Outputs)
-    this.resourceExchangeService.conveyorResourceChanged$.pipe(filter(({ resource }) => resource !== null), delay(1000)).subscribe(({ row, col, resource }) => {
+    // Diese Methode wird aufgerufen, wenn sich die Ressource einer rollbandzelle ändert (z.B. durch Platzieren eines Spawners)
+    this.resourceExchangeService.conveyorResourceChanged$.pipe(filter(({ resource }) => resource !== null), mergeMap(event => of(event).pipe(delay(1000)))).subscribe(({ row, col, resource }) => {
 
-        this.resourceExchangeService.onConveyorResourceChanged(resource, col, row, this.conveyorGrid);
+      this.resourceExchangeService.onConveyorResourceChanged(resource, col, row, this.conveyorGrid, this.clonedItems, this.itemStates);
       this.conveyorGrid[row][col].resource = null;
 
-      console.log(`Ressource bei (${col}, ${row}) geändert zu: ${resource}`);
+      console.log(`Ressource bei (${col}, ${row}) geändert zu: ${this.conveyorGrid[row][col].resource}`);
+      this.cdr.detectChanges();
     });
+    // Diese Methode wird aufgerufen, wenn sich die Ressource eines outputs ändert (z.B. durch Platzieren eines Spawners)
+    this.resourceExchangeService.itemResourceChanged$.subscribe(({ itemid, resource }) => {
 
-    this.resourceExchangeService.outputResourceChanged$.pipe(filter(({ resource }) => resource !== null)).subscribe(({ itemid, resource }) => {
+      this.updateItemResourceBadge(itemid, resource);
+      if (resource === null) {
+        this.cdr.detectChanges();
+        return;
+      }
 
-      const outputState = this.itemStates[itemid];
-      if (!outputState || outputState.isAtStartPosition) return;
-      const adjacentConveyor = this.resourceExchangeService.checkAdjacentConveyor(outputState.col, outputState.row, this.conveyorGrid);
-      this.resourceExchangeService.onOutputPlaced(itemid, outputState.col, outputState.row, adjacentConveyor, this.clonedItems, this.conveyorGrid);
+      const itemState = this.itemStates[itemid];
+      if (!itemState || itemState.isAtStartPosition) {
+        this.cdr.detectChanges();
+        return;
+      }
+      const item = this.clonedItems.find(i => i.id === itemid);
 
-      console.log(`Output "${itemid}" hat neue Ressource: ${resource}`);
+      if (item?.type === 'output') {
+        const adjacentConveyor = this.resourceExchangeService.checkAdjacentConveyor(itemState.col, itemState.row, this.conveyorGrid);
+        this.resourceExchangeService.onOutputResourceChanged(itemid, itemState.col, itemState.row, adjacentConveyor, this.clonedItems, this.conveyorGrid);
+        console.log(`Output "${itemid}" hat neue Ressource: ${resource}`);
+      } else if (item?.type === 'input') {
+        const adjacentMaschine = this.resourceExchangeService.checkAdjacentMachine(itemState.col, itemState.row, this.clonedItems, this.itemStates);
+        if (adjacentMaschine) {
+          const machineItem = this.clonedItems.find(i =>
+            i.type === 'machine' &&
+            this.itemStates[i.id]?.col === adjacentMaschine.col &&
+            this.itemStates[i.id]?.row === adjacentMaschine.row
+          );
+          if (machineItem && resource) {
+            if (machineItem.input && resource in machineItem.input) {
+              this.resourceExchangeService.onInputResourceChanged(itemid, itemState.col, itemState.row, adjacentMaschine, this.clonedItems, this.itemStates);
+            }
+            else
+            {
+              const el = document.getElementById(itemid);
+              el?.classList.add('ring-4', 'ring-red-500', 'shadow-[0_0_20px_rgba(239,68,68,0.6)]');
+            }
+          }
+          else {
+
+          }
+        }
+      }
+      this.cdr.detectChanges();
     });
   }
 
@@ -223,6 +265,18 @@ export class FactoryPage implements AfterViewInit, OnInit {
   }
 
   // Abmessungen des Spielfelds holen
+  private updateItemResourceBadge(itemid: string, resource: string | null): void {
+    const el = document.getElementById(itemid);
+    if (!el) return;
+    let badge = el.querySelector('.resource-badge') as HTMLElement | null;
+    if (!badge) {
+      badge = document.createElement('span');
+      badge.className = 'resource-badge absolute bottom-1 right-1 text-base leading-none pointer-events-none';
+      el.appendChild(badge);
+    }
+    badge.textContent = resource ? (this.resourceEmoji[resource] ?? resource) : '';
+  }
+
   private getGridTableRect(): DOMRect {
     return this.playgroundGridComponent.gridTableRef.nativeElement.getBoundingClientRect();
   }
@@ -327,7 +381,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
         this.previewCells.clear();
         this.touchedCells.clear();
 
-        this.pathCells = [{row: state.row, col: state.col}];
+        this.pathCells = [{ row: state.row, col: state.col }];
       }
     }
   }
@@ -395,6 +449,14 @@ export class FactoryPage implements AfterViewInit, OnInit {
   }
 
   private removePlacedItem(target: HTMLElement, itemId: string): void {
+    if (!this.itemStates[itemId].isAtStartPosition) {
+      const clone = this.clonedItems.find(i => i.id === itemId);
+      const sourceItem = this.items.find(i => i.label === clone?.label);
+      if (sourceItem) {
+        sourceItem.currentAvailableCount = (sourceItem.currentAvailableCount ?? 0) + 1;
+      }
+    }
+
     const ref = this.componentRefs.get(itemId);
     if (ref) {
       this.appRef.detachView(ref.hostView);
@@ -621,6 +683,13 @@ export class FactoryPage implements AfterViewInit, OnInit {
             targetCol = Math.max(0, Math.min(targetCol, this.gridColumns - 1));
             targetRow = Math.max(0, Math.min(targetRow, this.gridRowCount - 1));
 
+            if (this.itemStates[element.id].isAtStartPosition) {
+              let clonedItem = this.clonedItems.find(i => i.id === element.id);
+              let sourceItem = this.items.find(i => i.label === clonedItem?.label);
+              if (sourceItem) {
+                sourceItem.currentAvailableCount = (sourceItem.currentAvailableCount ?? sourceItem.maxAvailableCount ?? 1) - 1;
+              }
+            }
 
             this.itemStates[element.id] = {
               col: targetCol,
@@ -697,6 +766,8 @@ export class FactoryPage implements AfterViewInit, OnInit {
           helpText: sourceItem?.helpText || '',
           spawningResource: sourceItem?.spawningResource,
           resource: null,
+          input: sourceItem?.input,
+          output: sourceItem?.output,
         });
 
         this.itemStates[uniqueId] = {
@@ -713,7 +784,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
         innerDiv.style.transform = `translate(${startX}px, ${startY}px)`;
 
         // start a drag interaction targeting the clone
-        interaction.start({name: 'drag'}, interact('.draggable-item'), innerDiv)
+        interaction.start({ name: 'drag' }, interact('.draggable-item'), innerDiv)
       }
     })
   }

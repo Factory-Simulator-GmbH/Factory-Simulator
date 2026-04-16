@@ -18,6 +18,7 @@ import {DraggableItems} from '../../models/draggable-item.model';
       {{ item.label }}
     </div>
   `,
+  templateUrl: './draggable-item.component.html',
 })
 export class DraggableItemComponent {
   @Input() item!: DraggableItems;

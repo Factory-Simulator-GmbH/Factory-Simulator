@@ -10,7 +10,7 @@ import { Subject } from 'rxjs';
 export class ResourceExchangeService {
 
     conveyorResourceChanged$ = new Subject<{ row: number; col: number; resource: string | null }>();
-    outputResourceChanged$ = new Subject<{ itemid: string; resource: string | null }>();
+    itemResourceChanged$ = new Subject<{ itemid: string; resource: string | null }>();
 
     // prüft, ob neben einem Spawner ein Output liegt, und gibt die itemid des Outputs zurück oder null, wenn kein Output nebenan liegt
     checkAdjacentOutput(
@@ -43,6 +43,68 @@ export class ResourceExchangeService {
         }
         return null;
     }
+    // prüft, ob neben einem Spawner ein Input liegt, und gibt die itemid des Items zurück oder null, wenn kein Output nebenan liegt
+    checkAdjacentInput(
+        conveyorCol: number,
+        conveyorRow: number,
+        items: DraggableItems[],
+        itemStates: Record<string, ItemState>,
+    ): { itemid: string } | null {
+        const conveyorSize = 1;
+        const minCol = conveyorCol - 1;
+        const maxCol = conveyorCol + conveyorSize;
+        const minRow = conveyorRow - 1;
+        const maxRow = conveyorRow + conveyorSize;
+        for (const item of items) {
+            if (item.type !== 'input') continue;
+            const state = itemStates[item.id];
+            if (!state || state.isAtStartPosition) continue;
+            const c = state.col;
+            const r = state.row;
+            const inRing = c >= minCol && c <= maxCol && r >= minRow && r <= maxRow;
+            const insideConveyor =
+                c >= conveyorCol && c < conveyorCol + conveyorSize &&
+                r >= conveyorRow && r < conveyorRow + conveyorSize;
+            const isCorner =
+                (c === minCol && r === minRow) ||
+                (c === maxCol && r === minRow) ||
+                (c === minCol && r === maxRow) ||
+                (c === maxCol && r === maxRow);
+            if (inRing && !insideConveyor && !isCorner) return { itemid: item.id };
+        }
+        return null;
+    }
+
+    // prüft, ob neben einem Input eine Maschine liegt, und gibt deren Position zurück oder null
+    checkAdjacentMachine(
+        inputCol: number,
+        inputRow: number,
+        items: DraggableItems[],
+        itemStates: Record<string, ItemState>,
+    ): { col: number; row: number } | null {
+        const machineSize = 3;
+        for (const item of items) {
+            if (item.type !== 'machine') continue;
+            const state = itemStates[item.id];
+            if (!state || state.isAtStartPosition) continue;
+            const minCol = state.col - 1;
+            const maxCol = state.col + machineSize;
+            const minRow = state.row - 1;
+            const maxRow = state.row + machineSize;
+            const inRing = inputCol >= minCol && inputCol <= maxCol && inputRow >= minRow && inputRow <= maxRow;
+            const insideMachine =
+                inputCol >= state.col && inputCol < state.col + machineSize &&
+                inputRow >= state.row && inputRow < state.row + machineSize;
+            const isCorner =
+                (inputCol === minCol && inputRow === minRow) ||
+                (inputCol === maxCol && inputRow === minRow) ||
+                (inputCol === minCol && inputRow === maxRow) ||
+                (inputCol === maxCol && inputRow === maxRow);
+            if (inRing && !insideMachine && !isCorner) return { col: state.col, row: state.row };
+        }
+        return null;
+    }
+
     // prüft, ob neben einem Output ein aktives Rollband liegt, und gibt die Koordinaten des Rollbands zurück oder null, wenn kein Rollband nebenan liegt
     checkAdjacentConveyor(
         outputCol: number,
@@ -79,7 +141,7 @@ export class ResourceExchangeService {
                 if (outputItem) {
                     outputItem.resource = items.find(i => i.id === id)?.spawningResource ?? null;
                     console.log(`Ressource "${outputItem.resource}" in Output "${adjacentOutput.itemid}" gespeichert.`);
-                    this.outputResourceChanged$.next({ itemid: adjacentOutput.itemid, resource: outputItem.resource });
+                    this.itemResourceChanged$.next({ itemid: adjacentOutput.itemid, resource: outputItem.resource });
                 }
             }
         } else {
@@ -87,7 +149,7 @@ export class ResourceExchangeService {
         }
     }
 
-    onOutputPlaced(
+    onOutputResourceChanged(
         id: string,
         col: number,
         row: number,
@@ -100,7 +162,10 @@ export class ResourceExchangeService {
             const outputItem = items.find(i => i.id === id);
             conveyorGrid[adjacentConveyor.row][adjacentConveyor.col].resource = outputItem?.resource ?? null;
             const resource = conveyorGrid[adjacentConveyor.row][adjacentConveyor.col].resource;
-            if (outputItem) outputItem.resource = null;
+            if (outputItem) {
+                outputItem.resource = null;
+                this.itemResourceChanged$.next({ itemid: id, resource: null });
+            }
             console.log(`Ressource "${resource}" in Rollband bei (${adjacentConveyor.col}, ${adjacentConveyor.row}) platziert.`);
             this.conveyorResourceChanged$.next({
                 row: adjacentConveyor.row,
@@ -111,29 +176,83 @@ export class ResourceExchangeService {
             console.log(`Output "${id}" platziert bei (${col}, ${row}). Kein Rollband nebenan.`);
         }
     }
+
+    onInputResourceChanged(
+        id: string,
+        col: number,
+        row: number,
+        adjacentMaschine: { col: number; row: number } | null,
+        items: DraggableItems[],
+        itemStates: Record<string, ItemState>,
+    ): void {
+        const inputItem = items.find(i => i.id === id);
+        if (!inputItem?.resource) return;
+
+        if (adjacentMaschine) {
+            const machineItem = items.find(i =>
+                i.type === 'machine' &&
+                itemStates[i.id]?.col === adjacentMaschine.col &&
+                itemStates[i.id]?.row === adjacentMaschine.row
+            );
+            if (machineItem) {
+                machineItem.resource = inputItem.resource;
+                console.log(`Ressource "${machineItem.resource}" an Maschine "${machineItem.id}" bei (${adjacentMaschine.col}, ${adjacentMaschine.row}) übergeben.`);
+                this.itemResourceChanged$.next({ itemid: machineItem.id, resource: machineItem.resource });
+                inputItem.resource = null;
+                this.itemResourceChanged$.next({ itemid: id, resource: null });
+            }
+        } else {
+            console.log(`Input "${id}" bei (${col}, ${row}): keine Maschine nebenan.`);
+        }
+    }
     onConveyorResourceChanged(
         resource: string | null,
         col: number,
         row: number,
         conveyorGrid: ConveyorSegment[][],
+        items: DraggableItems[],
+        itemStates: Record<string, ItemState>,
     ): void {
         const cell = conveyorGrid[row]?.[col];
-        if (!cell?.active || !cell.exit) return;
 
-        const nextCell = this.getNextCellByExit(cell.exit, col, row);
-        const next = conveyorGrid[nextCell.row]?.[nextCell.col];
-        if (!next?.active) return;
+        // 1. Erst prüfen ob Weitergabe an nächstes Rollband möglich (nicht beim Endpoint)
+        if (cell?.active && cell.exit && !cell.endpoint) {
+            const nextCell = this.getNextCellByExit(cell.exit, col, row);
+            const next = conveyorGrid[nextCell.row]?.[nextCell.col];
+            if (next?.active) {
+                next.resource = resource;
+                console.log(`Ressource "${resource}" weitergegeben an Rollband bei (${nextCell.col}, ${nextCell.row}).`);
+                this.conveyorResourceChanged$.next({ row: nextCell.row, col: nextCell.col, resource });
+                return;
+            }
+        }
 
-        next.resource = resource;
-        console.log(`Ressource "${resource}" weitergegeben an Rollband bei (${nextCell.col}, ${nextCell.row}).`);
-        this.conveyorResourceChanged$.next({ row: nextCell.row, col: nextCell.col, resource });
+        // 2. Nur am Endpoint prüfen ob Weitergabe an Input möglich
+        if (!cell?.endpoint) return;
+        const adjacentInput = this.checkAdjacentInput(col, row, items, itemStates);
+        if (adjacentInput) {
+            const inputState = itemStates[adjacentInput.itemid];
+            console.log(`ressource "${cell.resource}" bei (${col}, ${row}). Input "${adjacentInput.itemid}" nebenan bei (${inputState?.col}, ${inputState?.row})`);
+            if (inputState) {
+                const inputItem = items.find(i => i.id === adjacentInput.itemid);
+                if (inputItem) {
+                    inputItem.resource = resource;
+                    console.log(`Ressource "${inputItem.resource}" in Input "${adjacentInput.itemid}" gespeichert.`);
+                    cell.resource = null;
+                    this.conveyorResourceChanged$.next({ row, col, resource: null });
+                    this.itemResourceChanged$.next({ itemid: adjacentInput.itemid, resource: inputItem.resource });
+                }
+            }
+        } else {
+            console.log(`Rossource "${resource}" platziert bei (${col}, ${row}). Kein Input nebenan.`);
+        }
     }
 
     private getNextCellByExit(exit: string, col: number, row: number): { col: number; row: number } {
-        if (exit === 'up')    return { col, row: row - 1 };
-        if (exit === 'down')  return { col, row: row + 1 };
-        if (exit === 'left')  return { col: col - 1, row };
+        if (exit === 'up') return { col, row: row - 1 };
+        if (exit === 'down') return { col, row: row + 1 };
+        if (exit === 'left') return { col: col - 1, row };
         if (exit === 'right') return { col: col + 1, row };
         return { col, row };
-    }   
+    }
 }
