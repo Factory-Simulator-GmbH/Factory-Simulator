@@ -7,6 +7,7 @@ import {TooltipDirective} from '../../directives/tooltip.directive';
   standalone: true,
   imports: [TooltipDirective],
   templateUrl: './items.component.html',
+  styleUrl: './items.component.scss'
 })
 export class ItemsComponent {
   @Input({required: true}) items!: DraggableItems[];
