@@ -16,4 +16,6 @@ export interface DraggableItems {
   entry?: Direction | null;
   exit?: Direction | null;
   resource?: string | null;
+  input?: Record<string, number>;
+  output?: string;
 }

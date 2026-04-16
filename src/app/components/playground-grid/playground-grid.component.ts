@@ -27,6 +27,12 @@ export class PlaygroundGridComponent {
     return `${r}:${c}`;
   }
 
+  readonly resourceEmoji: Record<string, string> = {
+    metall: '🔩',
+    kupfer: '🟤',
+    plastik: '🧴',
+  };
+
   // Check if a cell is in the paint preview
   isPaintPreview(r: number, c: number): boolean {
     return this.previewCells.has(this.key(r, c));

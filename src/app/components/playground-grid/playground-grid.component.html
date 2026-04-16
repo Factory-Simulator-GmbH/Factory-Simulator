@@ -28,6 +28,11 @@
                 <span class="pointer-events-none absolute inset-0 inline-flex items-center justify-center text-sm leading-none font-bold">
                   {{ getConveyorSymbol(conveyorGrid[rowIndex][colIndex]) }}
                 </span>
+                @if (conveyorGrid[rowIndex][colIndex].resource) {
+                  <span class="pointer-events-none absolute bottom-0 right-0 text-xs leading-none">
+                    {{ resourceEmoji[conveyorGrid[rowIndex][colIndex].resource!] }}
+                  </span>
+                }
               }
             </td>
           }
