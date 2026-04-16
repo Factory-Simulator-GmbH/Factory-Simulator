@@ -1,5 +1,5 @@
 import { AfterViewInit, ApplicationRef, ChangeDetectorRef, Component, ComponentRef, createComponent, ElementRef, EnvironmentInjector, HostListener, NgZone, OnInit, ViewChild, } from '@angular/core';
-import { delay, filter, mergeMap, of } from 'rxjs';
+import { delay, filter, mergeMap, of, timer, Subscription } from 'rxjs';
 import interact from 'interactjs';
 import itemsData from '../../../../public/assets/items.json';
 import { ItemsComponent } from '../../components/items/items.component';
@@ -71,7 +71,9 @@ export class FactoryPage implements AfterViewInit, OnInit {
   previewCells = new Set<string>();
   private touchedCells = new Set<string>();
   private pathCells: { row: number; col: number }[] = [];
-
+  
+  private spawnerIntervals = new Map<string, Subscription>();
+  
   constructor(
     private ngZone: NgZone,
     private layoutService: LayoutService,
@@ -89,18 +91,19 @@ export class FactoryPage implements AfterViewInit, OnInit {
     this.updateGridCellSize();
     this.calculateColumnsAndCreateGrid();
 
-    // Diese Methode wird aufgerufen, wenn sich die Ressource einer rollbandzelle ändert (z.B. durch Platzieren eines Spawners)
-    this.resourceExchangeService.conveyorResourceChanged$.pipe(filter(({ resource }) => resource !== null), mergeMap(event => of(event).pipe(delay(1000)))).subscribe(({ row, col, resource }) => {
+    this.resourceExchangeService.conveyorResourceChanged$
+      .pipe(
+        filter(({ resource }) => resource !== null),
+        mergeMap(event => of(event).pipe(delay(1000)))
+      )
+      .subscribe(({ row, col, resource }) => {
+        this.resourceExchangeService.onConveyorResourceChanged(resource, col, row, this.conveyorGrid, this.clonedItems, this.itemStates);
+        const cell = this.conveyorGrid[row]?.[col];
+        this.conveyorGrid[row][col].resource = null;
+        this.cdr.detectChanges();
+      });
 
-      this.resourceExchangeService.onConveyorResourceChanged(resource, col, row, this.conveyorGrid, this.clonedItems, this.itemStates);
-      this.conveyorGrid[row][col].resource = null;
-
-      console.log(`Ressource bei (${col}, ${row}) geändert zu: ${this.conveyorGrid[row][col].resource}`);
-      this.cdr.detectChanges();
-    });
-    // Diese Methode wird aufgerufen, wenn sich die Ressource eines outputs ändert (z.B. durch Platzieren eines Spawners)
     this.resourceExchangeService.itemResourceChanged$.subscribe(({ itemid, resource }) => {
-
       this.updateItemResourceBadge(itemid, resource);
       if (resource === null) {
         this.cdr.detectChanges();
@@ -129,20 +132,17 @@ export class FactoryPage implements AfterViewInit, OnInit {
           if (machineItem && resource) {
             if (machineItem.input && resource in machineItem.input) {
               this.resourceExchangeService.onInputResourceChanged(itemid, itemState.col, itemState.row, adjacentMaschine, this.clonedItems, this.itemStates);
-            }
-            else
-            {
+            } else {
               const el = document.getElementById(itemid);
               el?.classList.add('ring-4', 'ring-red-500', 'shadow-[0_0_20px_rgba(239,68,68,0.6)]');
             }
-          }
-          else {
-
           }
         }
       }
       this.cdr.detectChanges();
     });
+
+
   }
 
   // Wird aufgerufen, sobald das HTML fertig gezeichnet ist
@@ -449,6 +449,9 @@ export class FactoryPage implements AfterViewInit, OnInit {
   }
 
   private removePlacedItem(target: HTMLElement, itemId: string): void {
+    this.spawnerIntervals.get(itemId)?.unsubscribe();
+    this.spawnerIntervals.delete(itemId);
+
     if (!this.itemStates[itemId].isAtStartPosition) {
       const clone = this.clonedItems.find(i => i.id === itemId);
       const sourceItem = this.items.find(i => i.label === clone?.label);
@@ -697,11 +700,16 @@ export class FactoryPage implements AfterViewInit, OnInit {
               isAtStartPosition: false
             };
 
-            // Check for spawner placement and output
+            // Check for spawner placement and start interval timer
             const placedItem = this.clonedItems.find(i => i.id === element.id);
             if (placedItem?.spawningResource) {
-              const adjacentOutput = this.resourceExchangeService.checkAdjacentOutput(targetCol, targetRow, this.clonedItems, this.itemStates);
-              this.resourceExchangeService.onSpawnerPlaced(element.id, targetCol, targetRow, adjacentOutput, this.clonedItems, this.itemStates);
+              this.spawnerIntervals.get(element.id)?.unsubscribe();
+              const spawnRate = placedItem.rate ?? 5000;
+              const sub = timer(5000, spawnRate).subscribe(() => {
+                const adjacentOutput = this.resourceExchangeService.checkAdjacentOutput(targetCol, targetRow, this.clonedItems, this.itemStates);
+                this.resourceExchangeService.onSpawnerPlaced(element.id, targetCol, targetRow, adjacentOutput, this.clonedItems, this.itemStates);
+              });
+              this.spawnerIntervals.set(element.id, sub);
             }
 
 
