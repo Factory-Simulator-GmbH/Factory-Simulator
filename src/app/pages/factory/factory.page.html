@@ -35,25 +35,42 @@
 
             <div class="flex items-center gap-2 relative">
 
+              <!-- Glühbirne lightbulb-glow im scss animiert -->
               <button (click)="toggleMenu(); $event.stopPropagation()"
                       class="flex items-center justify-center w-8 h-8 transition-opacity hover:opacity-60 cursor-pointer">
-                <span class="material-icons text-lg leading-none">lightbulb</span>
+                <span class="lightbulb-wrapper" [class.lightbulb-active]="showMenu">
+                  <span class="material-icons text-lg leading-none" [class.lightbulb-glow]="showMenu">lightbulb</span>
+                </span>
               </button>
 
               @if (showMenu) {
                 <div class="fixed inset-0 z-[70]" (click)="showMenu = false"></div>
-                <div class="absolute top-full right-0 mt-1 z-[80] bg-slate-800 border border-white/10 rounded-xl shadow-2xl overflow-hidden min-w-[140px]">
-                  <button (click)="openShortcuts()"
-                          class="w-full flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-white/10 transition-colors cursor-pointer text-left">
-                    <span class="material-icons text-base">keyboard</span>
-                    Shortcuts
-                  </button>
-                  <div class="border-t border-white/10"></div>
-                  <button (click)="openHilfe()"
-                          class="w-full flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-white/10 transition-colors cursor-pointer text-left">
-                    <span class="material-icons text-base">help_outline</span>
-                    Hilfe
-                  </button>
+                <div class="absolute top-full right-0 mt-2 z-[80] w-44
+                            bg-slate-900/95 border border-white/10 rounded-2xl shadow-2xl
+                            backdrop-blur-md fade-in-up overflow-hidden" style="animation-duration: 0.15s">
+
+                  <div class="p-1.5 space-y-0.5">
+
+                    <button (click)="openShortcuts()"
+                            class="w-full group flex items-center justify-between px-3.5 py-2.5 rounded-xl
+                                   hover:bg-white/5 active:bg-white/10 active:scale-[0.98]
+                                   transition-all duration-150 cursor-pointer">
+                      <span class="text-sm font-medium text-white/50 group-hover:text-white transition-colors duration-150">Befehle</span>
+                      <span class="material-icons text-base text-white/70 group-hover:text-sky-400 group-hover:scale-110 transition-all duration-150">format_list_bulleted</span>
+                    </button>
+
+                    <div class="mx-3 h-px bg-white/8"></div>
+
+                    <button (click)="openHelp()"
+                            class="w-full group flex items-center justify-between px-3.5 py-2.5 rounded-xl
+                                   hover:bg-white/5 active:bg-white/10 active:scale-[0.98]
+                                   transition-all duration-150 cursor-pointer">
+                      <span class="text-sm font-medium text-white/50 group-hover:text-white transition-colors duration-150">Hilfe</span>
+                      <span class="material-icons text-base text-white/70 group-hover:text-sky-400 group-hover:scale-110 transition-all duration-150">help_outline</span>
+                    </button>
+
+                  </div>
+
                 </div>
               }
 
@@ -147,110 +164,291 @@
 </div>
 
 @if (showShortcutsModal) {
-  <div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm"
+  <div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm"
        (click)="showShortcutsModal = false">
-    <div class="bg-slate-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden"
+    <div class="fade-in-up bg-slate-900/95 border border-white/10 rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden"
          (click)="$event.stopPropagation()">
 
       <!-- Header -->
-      <div class="flex items-center justify-between px-5 py-4 border-b border-white/10 bg-slate-800/60">
-        <h2 class="text-base font-semibold text-white">Shortcuts</h2>
+      <div class="flex items-center justify-between px-5 py-4 border-b border-white/8 bg-gradient-to-r from-slate-800/80 to-slate-800/40">
+        <h2 class="text-base font-semibold text-white tracking-tight">Befehle</h2>
         <button (click)="showShortcutsModal = false"
-                class="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-white/10 transition-colors cursor-pointer text-white/50 hover:text-white">
+                class="w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-200 cursor-pointer
+                       text-white/40 hover:text-red-400 hover:bg-red-500/15 hover:scale-110 active:scale-95">
           <span class="material-icons text-base">close</span>
         </button>
       </div>
 
-      <!-- Shortcuts -->
-      <div class="p-4 space-y-1 text-sm">
-        <p class="text-[11px] font-semibold uppercase tracking-widest text-white/30 px-2 pb-1">Förderbänder</p>
-        <div class="flex items-center justify-between gap-4 px-3 py-2 rounded-lg hover:bg-white/5">
-          <span class="text-white/70">Fließband malen</span>
-          <span class="text-white/50 text-xs text-right">Linke Maustaste gedrückt halten + ziehen</span>
-        </div>
-        <div class="flex items-center justify-between gap-4 px-3 py-2 rounded-lg hover:bg-white/5">
-          <span class="text-white/70">Fließband löschen</span>
-          <span class="text-white/50 text-xs text-right">Rechte Maustaste gedrückt halten + ziehen</span>
+      <!-- Befehle -->
+      <div class="p-3 space-y-1">
+
+        <!-- Sektion: Förderbänder -->
+        <p class="fade-in-up text-[10px] font-bold uppercase tracking-[0.15em] text-white/25 px-3 pt-2 pb-1.5" style="animation-delay: 0ms">Förderband</p>
+
+        <div class="fade-in-up group flex items-center justify-between gap-3 px-3 py-2.5 rounded-r-xl cursor-default
+                    border-l-2 border-l-transparent hover:border-l-sky-400 hover:bg-sky-500/5 transition-all duration-200" style="animation-delay: 40ms">
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="w-7 h-7 rounded-lg bg-sky-500/10 group-hover:bg-sky-500/20 flex items-center justify-center flex-none transition-colors duration-200">
+              <span class="material-icons text-sm text-sky-400/50 group-hover:text-sky-400 transition-colors duration-200">brush</span>
+            </div>
+            <span class="text-white/60 group-hover:text-white transition-colors duration-200 text-sm">Förderband malen</span>
+          </div>
+          <div class="flex items-center gap-1.5 flex-none">
+            <svg class="w-4 h-6 flex-none" viewBox="0 0 16 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <!-- Maus-Körper -->
+              <rect x="1" y="5" width="14" height="19" rx="7" class="fill-white/8 stroke-white/20 group-hover:stroke-white/40 transition-colors duration-200" stroke-width="1"/>
+              <!-- Linke Taste hervorgehoben -->
+              <path d="M1,12 L1,5 Q1,5 8,5 L8,12 Z" class="fill-sky-400/40 group-hover:fill-sky-400/80 transition-colors duration-200"/>
+              <!-- Trennlinie Buttons -->
+              <line x1="8" y1="5" x2="8" y2="12" class="stroke-white/20 group-hover:stroke-white/40 transition-colors duration-200" stroke-width="1"/>
+              <!-- Scrollrad -->
+              <rect x="6.5" y="7" width="3" height="5" rx="1.5" class="fill-white/20 group-hover:fill-white/40 transition-colors duration-200"/>
+            </svg>
+            <span class="text-white/25 group-hover:text-white/50 text-xs transition-colors duration-200">halten + ziehen</span>
+          </div>
         </div>
 
-        <p class="text-[11px] font-semibold uppercase tracking-widest text-white/30 px-2 pt-3 pb-1">Items</p>
-        <div class="flex items-center justify-between gap-4 px-3 py-2 rounded-lg hover:bg-white/5">
-          <span class="text-white/70">Item platzieren</span>
-          <span class="text-white/50 text-xs text-right">Item aus der Leiste auf das Grid ziehen</span>
-        </div>
-        <div class="flex items-center justify-between gap-4 px-3 py-2 rounded-lg hover:bg-white/5">
-          <span class="text-white/70">Item entfernen</span>
-          <span class="text-white/50 text-xs text-right">Rechte Maustaste auf das Item</span>
+        <div class="fade-in-up group flex items-center justify-between gap-3 px-3 py-2.5 rounded-r-xl cursor-default
+                    border-l-2 border-l-transparent hover:border-l-red-400 hover:bg-red-500/5 transition-all duration-200" style="animation-delay: 80ms">
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="w-7 h-7 rounded-lg bg-red-500/10 group-hover:bg-red-500/20 flex items-center justify-center flex-none transition-colors duration-200">
+              <span class="material-icons text-sm text-red-400/50 group-hover:text-red-400 transition-colors duration-200">remove_circle_outline</span>
+            </div>
+            <span class="text-white/60 group-hover:text-white transition-colors duration-200 text-sm">Förderband löschen</span>
+          </div>
+          <div class="flex items-center gap-1.5 flex-none">
+            <svg class="w-4 h-6 flex-none" viewBox="0 0 16 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <!-- Maus-Körper -->
+              <rect x="1" y="5" width="14" height="19" rx="7" class="fill-white/8 stroke-white/20 group-hover:stroke-white/40 transition-colors duration-200" stroke-width="1"/>
+              <!-- Rechte Taste hervorgehoben -->
+              <path d="M8,12 L8,5 Q15,5 15,12 Z" class="fill-red-400/40 group-hover:fill-red-400/80 transition-colors duration-200"/>
+              <!-- Trennlinie Buttons -->
+              <line x1="8" y1="5" x2="8" y2="12" class="stroke-white/20 group-hover:stroke-white/40 transition-colors duration-200" stroke-width="1"/>
+              <!-- Scrollrad -->
+              <rect x="6.5" y="7" width="3" height="5" rx="1.5" class="fill-white/20 group-hover:fill-white/40 transition-colors duration-200"/>
+            </svg>
+            <span class="text-white/25 group-hover:text-white/50 text-xs transition-colors duration-200">halten + ziehen</span>
+          </div>
         </div>
 
-        <p class="text-[11px] font-semibold uppercase tracking-widest text-white/30 px-2 pt-3 pb-1">Navigation</p>
-        <div class="flex items-center justify-between gap-4 px-3 py-2 rounded-lg hover:bg-white/5">
-          <span class="text-white/70">Grid scrollen</span>
-          <span class="text-white/50 text-xs text-right">Scrollrad oder Scrollleiste im Grid verwenden</span>
+        <!-- Sektion: Items -->
+        <p class="fade-in-up text-[10px] font-bold uppercase tracking-[0.15em] text-white/25 px-3 pt-3 pb-1.5" style="animation-delay: 120ms">Items</p>
+
+        <div class="fade-in-up group flex items-center justify-between gap-3 px-3 py-2.5 rounded-r-xl cursor-default
+                    border-l-2 border-l-transparent hover:border-l-emerald-400 hover:bg-emerald-500/5 transition-all duration-200" style="animation-delay: 160ms">
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="w-7 h-7 rounded-lg bg-emerald-500/10 group-hover:bg-emerald-500/20 flex items-center justify-center flex-none transition-colors duration-200">
+              <span class="material-icons text-sm text-emerald-400/50 group-hover:text-emerald-400 transition-colors duration-200">drag_indicator</span>
+            </div>
+            <span class="text-white/60 group-hover:text-white transition-colors duration-200 text-sm">Item platzieren</span>
+          </div>
+          <span class="text-white/25 group-hover:text-white/50 text-xs text-right flex-none transition-colors duration-200">Item ins Grid ziehen</span>
         </div>
+
+        <div class="fade-in-up group flex items-center justify-between gap-3 px-3 py-2.5 rounded-r-xl cursor-default
+                    border-l-2 border-l-transparent hover:border-l-red-400 hover:bg-red-500/5 transition-all duration-200" style="animation-delay: 200ms">
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="w-7 h-7 rounded-lg bg-red-500/10 group-hover:bg-red-500/20 flex items-center justify-center flex-none transition-colors duration-200">
+              <span class="material-icons text-sm text-red-400/50 group-hover:text-red-400 transition-colors duration-200">remove_circle_outline</span>
+            </div>
+            <span class="text-white/60 group-hover:text-white transition-colors duration-200 text-sm">Item entfernen</span>
+          </div>
+          <div class="flex items-center gap-1.5 flex-none">
+            <svg class="w-4 h-6 flex-none" viewBox="0 0 16 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <!-- Maus-Körper -->
+              <rect x="1" y="5" width="14" height="19" rx="7" class="fill-white/8 stroke-white/20 group-hover:stroke-white/40 transition-colors duration-200" stroke-width="1"/>
+              <!-- Rechte Taste hervorgehoben -->
+              <path d="M8,12 L8,5 Q15,5 15,12 Z" class="fill-red-400/40 group-hover:fill-red-400/80 transition-colors duration-200"/>
+              <!-- Trennlinie Buttons -->
+              <line x1="8" y1="5" x2="8" y2="12" class="stroke-white/20 group-hover:stroke-white/40 transition-colors duration-200" stroke-width="1"/>
+              <!-- Scrollrad -->
+              <rect x="6.5" y="7" width="3" height="5" rx="1.5" class="fill-white/20 group-hover:fill-white/40 transition-colors duration-200"/>
+            </svg>
+            <span class="text-white/25 group-hover:text-white/50 text-xs transition-colors duration-200">auf Item klicken</span>
+          </div>
+        </div>
+
+        <div class="fade-in-up group flex items-center justify-between gap-3 px-3 py-2.5 rounded-r-xl cursor-default
+                    border-l-2 border-l-transparent hover:border-l-amber-400 hover:bg-amber-500/5 transition-all duration-200" style="animation-delay: 240ms">
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="w-7 h-7 rounded-lg bg-amber-500/10 group-hover:bg-amber-500/20 flex items-center justify-center flex-none transition-colors duration-200">
+              <span class="material-icons text-sm text-amber-400/50 group-hover:text-amber-400 transition-colors duration-200">info_outline</span>
+            </div>
+            <span class="text-white/60 group-hover:text-white transition-colors duration-200 text-sm">Item-Info anzeigen</span>
+          </div>
+          <div class="flex items-center gap-1.5 flex-none">
+            <svg class="w-3.5 h-4 flex-none" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M1,1 L1,12 L4,9.5 L5.5,14 L7,13.5 L5.5,9 L9,9 Z" class="fill-white/20 stroke-white/30 group-hover:fill-amber-400/40 group-hover:stroke-amber-400/60 transition-colors duration-200" stroke-width="0.8" stroke-linejoin="round"/>
+            </svg>
+            <span class="text-white/25 group-hover:text-white/50 text-xs transition-colors duration-200">1,5 Sek. auf Item halten</span>
+          </div>
+        </div>
+
+        <!-- Sektion: Navigation -->
+        <p class="fade-in-up text-[10px] font-bold uppercase tracking-[0.15em] text-white/25 px-3 pt-3 pb-1.5" style="animation-delay: 280ms">Navigation</p>
+
+        <div class="fade-in-up group flex items-center justify-between gap-3 px-3 py-2.5 rounded-r-xl cursor-default
+                    border-l-2 border-l-transparent hover:border-l-violet-400 hover:bg-violet-500/5 transition-all duration-200" style="animation-delay: 320ms">
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="w-7 h-7 rounded-lg bg-violet-500/10 group-hover:bg-violet-500/20 flex items-center justify-center flex-none transition-colors duration-200">
+              <span class="material-icons text-sm text-violet-400/50 group-hover:text-violet-400 transition-colors duration-200">swap_vert</span>
+            </div>
+            <span class="text-white/60 group-hover:text-white transition-colors duration-200 text-sm">Grid scrollen</span>
+          </div>
+          <span class="text-white/25 group-hover:text-white/50 text-xs text-right flex-none transition-colors duration-200">Scrollrad / Minimap ziehen / Mausrad </span>
+        </div>
+
+        <div class="fade-in-up group flex items-center justify-between gap-3 px-3 py-2.5 rounded-r-xl cursor-default
+                    border-l-2 border-l-transparent hover:border-l-violet-400 hover:bg-violet-500/5 transition-all duration-200" style="animation-delay: 360ms">
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="w-7 h-7 rounded-lg bg-violet-500/10 group-hover:bg-violet-500/20 flex items-center justify-center flex-none transition-colors duration-200">
+              <span class="material-icons text-sm text-violet-400/50 group-hover:text-violet-400 transition-colors duration-200">place</span>
+            </div>
+            <span class="text-white/60 group-hover:text-white transition-colors duration-200 text-sm">Minimap navigieren</span>
+          </div>
+          <div class="flex items-center gap-1.5 flex-none">
+            <span class="material-icons text-sm text-white/20 group-hover:text-violet-400/70 transition-colors duration-200">pan_tool</span>
+            <span class="text-white/25 group-hover:text-white/50 text-xs transition-colors duration-200">Halten und ziehen</span>
+          </div>
+        </div>
+
+        <div class="fade-in-up group flex items-center justify-between gap-3 px-3 py-2.5 rounded-r-xl cursor-default
+                    border-l-2 border-l-transparent hover:border-l-violet-400 hover:bg-violet-500/5 transition-all duration-200 mb-1" style="animation-delay: 400ms">
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="w-7 h-7 rounded-lg bg-violet-500/10 group-hover:bg-violet-500/20 flex items-center justify-center flex-none transition-colors duration-200">
+              <span class="material-icons text-sm text-violet-400/50 group-hover:text-violet-400 transition-colors duration-200">open_in_full</span>
+            </div>
+            <span class="text-white/60 group-hover:text-white transition-colors duration-200 text-sm">Vollbild</span>
+          </div>
+          <span class="text-white/25 group-hover:text-white/50 text-xs text-right flex-none transition-colors duration-200">Oben rechts im Playground</span>
+        </div>
+
       </div>
     </div>
   </div>
 }
 
-@if (showHilfeModal) {
+@if (showHelpModal) {
   <div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm"
-       (click)="showHilfeModal = false">
+       (click)="showHelpModal = false">
     <div class="bg-slate-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden"
          (click)="$event.stopPropagation()">
 
       <!-- Header -->
       <div class="flex items-center justify-between px-5 py-4 border-b border-white/10 bg-slate-800/60">
-        <h2 class="text-base font-semibold text-white">Hilfe & Einführung</h2>
-        <button (click)="showHilfeModal = false"
-                class="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-white/10 transition-colors cursor-pointer text-white/50 hover:text-white">
-          <span class="material-icons text-base">close</span>
-        </button>
+        <h2 class="text-base font-semibold text-white">Hilfe</h2>
+        <div class="flex items-center gap-3">
+          <span class="text-xs text-white/30">{{ helpCurrentStep + 1 }} / {{ helpTotalSteps }}</span>
+          <button (click)="showHelpModal = false"
+                  class="w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-200 cursor-pointer
+                         text-white/40 hover:text-red-400 hover:bg-red-500/15 hover:scale-110 active:scale-95">
+            <span class="material-icons text-base">close</span>
+          </button>
+        </div>
       </div>
 
       <!-- Inhalt -->
-      <div class="p-4 space-y-3 text-sm">
+      <div class="px-4 pt-4 pb-2 overflow-hidden" style="min-height: 140px">
 
-        <div class="fade-in-up rounded-xl bg-blue-500/10 border border-blue-500/20 p-4" style="animation-delay: 0ms">
-          <h3 class="font-semibold text-white mb-1.5 flex items-center gap-2">
-            <span class="material-icons text-base text-blue-400">factory</span>
-            Was ist der Factory Simulator?
-          </h3>
-          <p class="text-white/60 leading-relaxed">Baue deine eigene Fabrik — platziere Maschinen & Spawner und verbinde sie mit Fließbändern.</p>
-        </div>
+        @if (helpCurrentStep === 0) {
+          <div [class]="'hilfe-slide-' + helpAnimationDirection + ' rounded-xl bg-blue-500/10 border border-blue-500/20 p-4'">
+            <h3 class="font-semibold text-white mb-1.5 flex items-center gap-2">
+              <span class="material-icons text-base text-blue-400">factory</span>
+              Factory Simulator
+            </h3>
+            <p class="text-white/60 leading-relaxed text-sm">Baue deine eigene Fabrik indem du Maschinen & Spawner mit der Maus plazierst und verbinde sie mit deinen eigenen Fliessbändern.</p>
+          </div>
+        }
 
-        <div class="fade-in-up rounded-xl bg-green-500/10 border border-green-500/20 p-4" style="animation-delay: 80ms">
-          <h3 class="font-semibold text-white mb-1.5 flex items-center gap-2">
-            <span class="material-icons text-base text-green-400">drag_indicator</span>
-            Items platzieren
-          </h3>
-          <p class="text-white/60 leading-relaxed">Item aus der Leiste unten auf das Grid ziehen. Rechtsklick auf ein platziertes Item entfernt es.</p>
-        </div>
+        @if (helpCurrentStep === 1) {
+          <div [class]="'hilfe-slide-' + helpAnimationDirection + ' rounded-xl bg-green-500/10 border border-green-500/20 p-4'">
+            <h3 class="font-semibold text-white mb-1.5 flex items-center gap-2">
+              <span class="material-icons text-base text-green-400">drag_indicator</span>
+              Items platzieren
+            </h3>
+            <p class="text-white/60 leading-relaxed text-sm">Die Items kannst du ins Grid ziehen und sie an die Förderbänder anhenken.</p>
+          </div>
+        }
 
-        <div class="fade-in-up rounded-xl bg-orange-500/10 border border-orange-500/20 p-4" style="animation-delay: 160ms">
-          <h3 class="font-semibold text-white mb-1.5 flex items-center gap-2">
-            <span class="material-icons text-base text-orange-400">route</span>
-            Fließbänder zeichnen
-          </h3>
-          <p class="text-white/60 leading-relaxed">Linke Maustaste halten und ziehen zum Malen, rechte Maustaste zum Löschen.</p>
-        </div>
+        @if (helpCurrentStep === 2) {
+          <div [class]="'hilfe-slide-' + helpAnimationDirection + ' rounded-xl bg-orange-500/10 border border-orange-500/20 p-4'">
+            <h3 class="font-semibold text-white mb-1.5 flex items-center gap-2">
+              <span class="material-icons text-base text-orange-400">route</span>
+              Fließbänder zeichnen
+            </h3>
+            <p class="text-white/60 leading-relaxed text-sm">Zeichne die Fliessbänder mit Linksklick in die gewünschte Richtung. Du kannst sie auch genau so einfach wieder mit Rechtsklick löschen</p>
+          </div>
+        }
 
-        <div class="fade-in-up rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-4" style="animation-delay: 240ms">
-          <h3 class="font-semibold text-white mb-1.5 flex items-center gap-2">
-            <span class="material-icons text-base text-emerald-400">link</span>
-            Items verbinden
-          </h3>
-          <p class="text-white/60 leading-relaxed">Grenzt ein Fließband an ein Item, leuchtet es grün auf — es ist verbunden.</p>
-        </div>
+        @if (helpCurrentStep === 3) {
+          <div [class]="'hilfe-slide-' + helpAnimationDirection + ' rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-4'">
+            <h3 class="font-semibold text-white mb-1.5 flex items-center gap-2">
+              <span class="material-icons text-base text-emerald-400">link</span>
+              Items verbinden
+            </h3>
+            <p class="text-white/60 leading-relaxed text-sm">Items verbinden sich mit den Fliessbändern. Input/Output sind zwischen Band und Item wichtig um es richtig zu machen </p>
+          </div>
+        }
 
-        <div class="fade-in-up rounded-xl bg-purple-500/10 border border-purple-500/20 p-4" style="animation-delay: 320ms">
-          <h3 class="font-semibold text-white mb-1.5 flex items-center gap-2">
-            <span class="material-icons text-base text-purple-400">map</span>
-            Navigieren
-          </h3>
-          <p class="text-white/60 leading-relaxed">Scrollrad oder Scrollleisten im Grid nutzen. Minimap unten rechts zum schnellen Springen.</p>
-        </div>
+        @if (helpCurrentStep === 4) {
+          <div [class]="'hilfe-slide-' + helpAnimationDirection + ' rounded-xl bg-purple-500/10 border border-purple-500/20 p-4'">
+            <h3 class="font-semibold text-white mb-1.5 flex items-center gap-2">
+              <span class="material-icons text-base text-purple-400">swap_vert</span>
+              Navigieren im Grid
+            </h3>
+            <p class="text-white/60 leading-relaxed text-sm">Navigieren kannst du ganz leicht, wähl die für dich beste Variante. Verwende einfach Minimap, Maus, Scrollleisten oder Mausrad </p>
+          </div>
+        }
 
+      </div>
+
+      <!-- Dot Farbe in der Hilfe -->
+      <div class="flex justify-center gap-1.5 py-3">
+        @for (i of [0,1,2,3,4]; track i) {
+          <button (click)="helpAnimationDirection = i > helpCurrentStep ? 'right' : 'left'; helpCurrentStep = i"
+                  [class]="'w-1.5 h-1.5 rounded-full transition-all duration-300 cursor-pointer ' +
+                    (helpCurrentStep === i
+                      ? ([
+                          'bg-blue-400',
+                          'bg-green-400',
+                          'bg-orange-400',
+                          'bg-emerald-400',
+                          'bg-purple-400'
+                        ][helpCurrentStep] + ' scale-125')
+                      : 'bg-white/25 hover:bg-white/50')">
+          </button>
+        }
+      </div>
+
+      <!-- Navigation -->
+      <div class="flex items-center justify-between px-4 pb-4 gap-2">
+        @if (helpCurrentStep > 0) {
+          <button (click)="prevHelpStep()"
+                  class="flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-200 cursor-pointer
+                         bg-white/5 hover:bg-white/15 text-white/50 hover:text-white
+                         hover:scale-110 active:scale-90 active:bg-white/20">
+            <span class="material-icons text-xl">chevron_left</span>
+          </button>
+        } @else {
+          <div class="w-9 h-9"></div>
+        }
+
+        @if (helpCurrentStep < helpTotalSteps - 1) {
+          <button (click)="nextHelpStep()"
+                  class="flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-200 cursor-pointer
+                         bg-white/5 hover:bg-white/15 text-white/50 hover:text-white
+                         hover:scale-110 active:scale-90 active:bg-white/20">
+            <span class="material-icons text-xl">chevron_right</span>
+          </button>
+        } @else {
+          <button (click)="showHelpModal = false"
+                  class="flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-200 cursor-pointer
+                         bg-blue-500/20 hover:bg-blue-500/40 text-blue-300 hover:text-blue-100
+                         border border-blue-500/20 hover:border-blue-400/50
+                         hover:scale-110 active:scale-90 hover:shadow-[0_0_12px_rgba(96,165,250,0.3)]">
+            <span class="material-icons text-xl">check</span>
+          </button>
+        }
       </div>
     </div>
   </div>
