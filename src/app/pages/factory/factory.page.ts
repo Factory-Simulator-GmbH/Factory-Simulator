@@ -44,7 +44,9 @@ export class FactoryPage implements AfterViewInit, OnInit {
 
   showMenu = false;
   showShortcutsModal = false;
-  showHilfeModal = false;
+  showHelpModal = false;
+  helpCurrentStep = 0;
+  helpAnimationDirection: 'left' | 'right' = 'right';
   isNavigatingMinimap = false;
 
 
@@ -405,9 +407,27 @@ export class FactoryPage implements AfterViewInit, OnInit {
     this.showShortcutsModal = true;
   }
 
-  openHilfe(): void {
+  openHelp(): void {
     this.showMenu = false;
-    this.showHilfeModal = true;
+    this.helpCurrentStep = 0;
+    this.helpAnimationDirection = 'right';
+    this.showHelpModal = true;
+  }
+
+  readonly helpTotalSteps = 5;
+
+  nextHelpStep(): void {
+    if (this.helpCurrentStep < this.helpTotalSteps - 1) {
+      this.helpAnimationDirection = 'right';
+      this.helpCurrentStep++;
+    }
+  }
+
+  prevHelpStep(): void {
+    if (this.helpCurrentStep > 0) {
+      this.helpAnimationDirection = 'left';
+      this.helpCurrentStep--;
+    }
   }
 
   onMinimapMouseDown(event: MouseEvent): void {
