@@ -1,5 +1,32 @@
 [
   {
+    "id": "Spawner1",
+    "type": "spawner",
+    "label": "Metall Spawner",
+    "size": "large",
+    "helpText": "<strong>Spawner</strong><br>Erzeugt neue Ressourcen (Metall).",
+    "spawningResource": "metall",
+    "rate": 1000
+  },
+  {
+    "id": "Spawner2",
+    "type": "spawner",
+    "label": "Kupfer Spawner",
+    "size": "large",
+    "helpText": "<strong>Spawner</strong><br>Erzeugt neue Ressourcen (Kupfer).",
+    "spawningResource": "kupfer",
+    "rate": 1000
+  },
+  {
+    "id": "Spawner3",
+    "type": "spawner",
+    "label": "Plastik Spawner",
+    "size": "large",
+    "helpText": "<strong>Spawner</strong><br>Erzeugt neue Ressourcen (Plastik).",
+    "spawningResource": "plastik",
+    "rate": 1000
+  },
+  {
     "id": "maschine1",
     "type": "maschine",
     "label": "Metallpresse",
@@ -56,33 +83,6 @@
         "gehäuse": 1
     },
     "output": "pc"
-  },
-  {
-    "id": "Spawner1",
-    "type": "spawner",
-    "label": "Metall Spawner",
-    "size": "large",
-    "helpText": "<strong>Spawner</strong><br>Erzeugt neue Ressourcen (Metall).",
-    "spawningResource": "metall",
-    "rate": 1000
-  },
-  {
-    "id": "Spawner2",
-    "type": "spawner",
-    "label": "Kupfer Spawner",
-    "size": "large",
-    "helpText": "<strong>Spawner</strong><br>Erzeugt neue Ressourcen (Kupfer).",
-    "spawningResource": "kupfer",
-    "rate": 1000
-  },
-  {
-    "id": "Spawner3",
-    "type": "spawner",
-    "label": "Plastik Spawner",
-    "size": "large",
-    "helpText": "<strong>Spawner</strong><br>Erzeugt neue Ressourcen (Plastik).",
-    "spawningResource": "plastik",
-    "rate": 1000
   },
   {
     "id": "input",
