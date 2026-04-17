@@ -4,7 +4,7 @@
     "type": "spawner",
     "label": "Metall Spawner",
     "size": "large",
-    "helpText": "<strong>Spawner</strong><br>Erzeugt neue Ressourcen (Metall).",
+    "helpText": "<strong>Metall Spawner</strong><br>Erzeugt in regelmässigen Abständen neues Metall.",
     "spawningResource": "metall",
     "rate": 1000
   },
@@ -13,7 +13,7 @@
     "type": "spawner",
     "label": "Kupfer Spawner",
     "size": "large",
-    "helpText": "<strong>Spawner</strong><br>Erzeugt neue Ressourcen (Kupfer).",
+    "helpText": "<strong>Kupfer Spawner</strong><br>Erzeugt in regelmässigen Abständen neues Kupfer.",
     "spawningResource": "kupfer",
     "rate": 1000
   },
@@ -22,7 +22,7 @@
     "type": "spawner",
     "label": "Plastik Spawner",
     "size": "large",
-    "helpText": "<strong>Spawner</strong><br>Erzeugt neue Ressourcen (Plastik).",
+    "helpText": "<strong>Plastik Spawner</strong><br>Erzeugt in regelmässigen Abständen neues Plastik.",
     "spawningResource": "plastik",
     "rate": 1000
   },
@@ -97,7 +97,7 @@
     "type": "schnittstelle",
     "label": "Output",
     "size": "small",
-    "helpText": "<strong>Output-Modul</strong><br>Schnittstelle für den Ressourcen-Austausch zwischen Förderbändern und Maschinen.",
+    "helpText": "<strong>Output-Modul</strong><br>Schnittstelle für den Ressourcen-Austausch zwischen Spawnern/Maschinen und Förderbändern.",
     "maxAvailableCount": 7
   }
 ]
