@@ -5,6 +5,15 @@
   [attr.id]="itemId"
   [style.width.px]="sizePx"
   [style.height.px]="sizePx"
+  [style.font-size]="'clamp(14px, ' + sizePx * 0.12 + 'px, 9999px)'"
 >
-  {{ item.label }}
+  @if (sizePx >= 35) {
+    <span class="line-clamp-2 text-center break-words w-full leading-tight" style="hyphens: auto;">
+      {{ item.label }}
+    </span>
+  } @else {
+    <span class="text-center truncate w-full px-1">
+      {{ item.label.charAt(0).toUpperCase() }}
+    </span>
+  }
 </div>

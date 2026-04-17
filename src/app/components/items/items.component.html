@@ -34,11 +34,28 @@
         [class.hidden]="activeFilter !== null && item.type !== activeFilter"
         [style.width.px]="getItemSizePx(item.size)"
         [style.height.px]="getItemSizePx(item.size)"
+        [style.font-size]="'clamp(14px, ' + getItemSizePx(item.size) * 0.12 + 'px, 9999px)'"
         [id]="item.id"
         [appTooltip]="tooltipsEnabled ? item.helpText : ''"
         (mousedown)="onMouseDown(item.id, $event)"
       >
-        {{ item.label }}
+        @if (getItemSizePx(item.size) >= 60) {
+          <span class="line-clamp-2 text-center break-words w-full leading-tight" style="hyphens: auto;">
+            {{ item.label }}
+          </span>
+        } @else if (getItemSizePx(item.size) >= 45) {
+          <span class="line-clamp-1 text-center break-words w-full leading-tight" style="hyphens: auto;">
+            {{ item.label }}
+          </span>
+        } @else if (getItemSizePx(item.size) >= 40) {
+          <span class="line-clamp-1 text-center truncate w-full px-1">
+            {{ item.label }}
+          </span>
+        } @else {
+          <span class="text-center truncate w-full px-1">
+            {{ item.label.charAt(0) }}
+          </span>
+        }
         <span class="absolute top-1 left-1 text-[12px] leading-none text-white/60">
           {{ item.currentAvailableCount ?? item.maxAvailableCount ?? 1 }} / {{ item.maxAvailableCount ?? 1 }}
         </span>
