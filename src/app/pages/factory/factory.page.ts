@@ -45,6 +45,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
   showMenu = false;
   showShortcutsModal = false;
   showHelpModal = false;
+  showItemTooltips = true;
   helpCurrentStep = 0;
   helpAnimationDirection: 'left' | 'right' = 'right';
   isNavigatingMinimap = false;
