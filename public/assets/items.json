@@ -1,63 +1,5 @@
 [
   {
-    "id": "maschine1",
-    "type": "machine",
-    "label": "Metallpresse",
-    "size": "large",
-    "helpText": "<strong>Metallpresse – Maschine</strong><br>Verarbeitet Metall zu Gehäusen.<br>Benötigt mindestens eine Input- und eine Output-Seite.<br><strong>Rezept:</strong><br><p>5x Metall → 1x Gehäuse</p>",
-    "input": {
-        "metall": 5
-    },
-    "output": "gehäuse"
-  },
-  {
-    "id": "maschine2",
-    "type": "machine",
-    "label": "Kabelmaschine",
-    "size": "large",
-    "helpText": "<strong>Kabelmaschine – Maschine</strong><br>Verarbeitet Kupfer zu Kabeln.<br>Benötigt mindestens eine Input- und eine Output-Seite.<br><strong>Rezept:</strong><br><p>1x Kupfer → 1x Kabel</p>",
-    "input": {
-        "kupfer": 1
-    },
-    "output": "kabel"
-  },
-  {
-    "id": "maschine3",
-    "type": "machine",
-    "label": "Leiterplattenfertigung",
-    "size": "large",
-    "helpText": "<strong>Leiterplattenfertigung – Maschine</strong><br>Verarbeitet Kupfer und Plastik zu Leiterplatten.<br>Benötigt mindestens eine Input- und eine Output-Seite.<br><strong>Rezept:</strong><br><p>1x Kupfer + 2x Plastik → 1x Leiterplatte</p>",
-    "input": {
-        "kupfer": 1,
-        "plastik": 2
-    },
-    "output": "leiterplatte"
-  },
-  {
-    "id": "maschine4",
-    "type": "machine",
-    "label": "Elektronikmontage",
-    "size": "large",
-    "helpText": "<strong>Elektronikmontage – Maschine</strong><br>Verarbeitet Kabel und Leiterplatten zu Elektronik.<br>Benötigt mindestens eine Input- und eine Output-Seite.<br><strong>Rezept:</strong><br><p>5x Kabel + 3x Leiterplatte → 1x Elektronik</p>",
-    "input": {
-        "kabel": 5,
-        "leiterplatte": 3
-    },
-    "output": "elektronik"
-  },
-  {
-    "id": "maschine5",
-    "type": "machine",
-    "label": "PC-Montage",
-    "size": "large",
-    "helpText": "<strong>PC-Montage – Maschine</strong><br>Verarbeitet Elektronik und Gehäuse zu PCs.<br>Benötigt mindestens eine Input- und eine Output-Seite.<br><strong>Rezept:</strong><br><p>2x Elektronik + 1x Gehäuse → 1x PC</p>",
-    "input": {
-        "elektronik": 2,
-        "gehäuse": 1
-    },
-    "output": "pc"
-  },
-  {
     "id": "Spawner1",
     "type": "spawner",
     "label": "Metall Spawner",
@@ -85,8 +27,66 @@
     "rate": 1000
   },
   {
+    "id": "maschine1",
+    "type": "maschine",
+    "label": "Metallpresse",
+    "size": "large",
+    "helpText": "<strong>Metallpresse – Maschine</strong><br>Verarbeitet Metall zu Gehäusen.<br>Benötigt mindestens eine Input- und eine Output-Seite.<br><strong>Rezept:</strong><br><p>5x Metall → 1x Gehäuse</p>",
+    "input": {
+        "metall": 5
+    },
+    "output": "gehäuse"
+  },
+  {
+    "id": "maschine2",
+    "type": "maschine",
+    "label": "Kabelmaschine",
+    "size": "large",
+    "helpText": "<strong>Kabelmaschine – Maschine</strong><br>Verarbeitet Kupfer zu Kabeln.<br>Benötigt mindestens eine Input- und eine Output-Seite.<br><strong>Rezept:</strong><br><p>1x Kupfer → 1x Kabel</p>",
+    "input": {
+        "kupfer": 1
+    },
+    "output": "kabel"
+  },
+  {
+    "id": "maschine3",
+    "type": "maschine",
+    "label": "Leiterplattenfertigung",
+    "size": "large",
+    "helpText": "<strong>Leiterplattenfertigung – Maschine</strong><br>Verarbeitet Kupfer und Plastik zu Leiterplatten.<br>Benötigt mindestens eine Input- und eine Output-Seite.<br><strong>Rezept:</strong><br><p>1x Kupfer + 2x Plastik → 1x Leiterplatte</p>",
+    "input": {
+        "kupfer": 1,
+        "plastik": 2
+    },
+    "output": "leiterplatte"
+  },
+  {
+    "id": "maschine4",
+    "type": "maschine",
+    "label": "Elektronikmontage",
+    "size": "large",
+    "helpText": "<strong>Elektronikmontage – Maschine</strong><br>Verarbeitet Kabel und Leiterplatten zu Elektronik.<br>Benötigt mindestens eine Input- und eine Output-Seite.<br><strong>Rezept:</strong><br><p>5x Kabel + 3x Leiterplatte → 1x Elektronik</p>",
+    "input": {
+        "kabel": 5,
+        "leiterplatte": 3
+    },
+    "output": "elektronik"
+  },
+  {
+    "id": "maschine5",
+    "type": "maschine",
+    "label": "PC-Montage",
+    "size": "large",
+    "helpText": "<strong>PC-Montage – Maschine</strong><br>Verarbeitet Elektronik und Gehäuse zu PCs.<br>Benötigt mindestens eine Input- und eine Output-Seite.<br><strong>Rezept:</strong><br><p>2x Elektronik + 1x Gehäuse → 1x PC</p>",
+    "input": {
+        "elektronik": 2,
+        "gehäuse": 1
+    },
+    "output": "pc"
+  },
+  {
     "id": "input",
-    "type": "input",
+    "type": "schnittstelle",
     "label": "Input",
     "size": "small",
     "helpText": "<strong>Input-Modul</strong><br>Schnittstelle für den Ressourcen-Austausch zwischen Förderbändern und Maschinen.",
@@ -94,7 +94,7 @@
   },
   {
     "id": "output",
-    "type": "output",
+    "type": "schnittstelle",
     "label": "Output",
     "size": "small",
     "helpText": "<strong>Output-Modul</strong><br>Schnittstelle für den Ressourcen-Austausch zwischen Förderbändern und Maschinen.",
