@@ -35,7 +35,7 @@
         [style.width.px]="getItemSizePx(item.size)"
         [style.height.px]="getItemSizePx(item.size)"
         [id]="item.id"
-        [appTooltip]="item.helpText"
+        [appTooltip]="tooltipsEnabled ? item.helpText : ''"
         (mousedown)="onMouseDown(item.id, $event)"
       >
         {{ item.label }}

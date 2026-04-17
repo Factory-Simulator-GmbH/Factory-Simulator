@@ -69,6 +69,22 @@
                       <span class="material-icons text-base text-white/70 group-hover:text-sky-400 group-hover:scale-110 transition-all duration-150">help_outline</span>
                     </button>
 
+                    <div class="mx-3 h-px bg-white/8"></div>
+
+                    <!-- Toggle Item Tipps -->
+                    <button (click)="showItemTooltips = !showItemTooltips; $event.stopPropagation()"
+                            class="w-full group flex items-center justify-between px-3.5 py-2.5 rounded-xl
+                                   hover:bg-white/5 active:bg-white/10 active:scale-[0.98]
+                                   transition-all duration-150 cursor-pointer">
+                      <span class="text-sm font-medium text-white/50 group-hover:text-white transition-colors duration-150">Item Tipps</span>
+                      <!-- Toggle Design -->
+                      <div class="w-9 h-5 rounded-full transition-all duration-200 flex items-center px-0.5 flex-none"
+                           [class]="showItemTooltips ? 'bg-sky-500' : 'bg-white/15'">
+                        <div class="w-4 h-4 rounded-full bg-white shadow transition-all duration-200"
+                             [class]="showItemTooltips ? 'translate-x-4' : 'translate-x-0'"></div>
+                      </div>
+                    </button>
+
                   </div>
 
                 </div>
@@ -156,6 +172,7 @@
         [activeDraggedItemId]="activeDraggedItemId"
         [isDraggingItem]="isDraggingItem"
         [getItemSizePx]="getItemSizePx"
+        [tooltipsEnabled]="showItemTooltips"
         (itemMouseDown)="onItemMouseDown($event)">
       </app-items>
     </div>

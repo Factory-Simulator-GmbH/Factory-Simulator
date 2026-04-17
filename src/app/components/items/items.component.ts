@@ -15,6 +15,7 @@ export class ItemsComponent implements OnInit {
   @Input({required: true}) activeDraggedItemId!: string | null;
   @Input({required: true}) getItemSizePx!: (size: ItemSize) => number;
   @Input({required: true}) isDraggingItem!: boolean;
+  @Input() tooltipsEnabled = true;
 
   @Output() itemMouseDown = new EventEmitter<{ itemId: string; event: MouseEvent }>();
 
