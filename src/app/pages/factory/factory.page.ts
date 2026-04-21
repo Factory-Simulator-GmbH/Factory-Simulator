@@ -1,3 +1,4 @@
+// === IMPORTS ===
 import { AfterViewInit, ApplicationRef, ChangeDetectorRef, Component, ComponentRef, createComponent, ElementRef, EnvironmentInjector, HostListener, NgZone, OnInit, ViewChild, } from '@angular/core';
 import { delay, filter, mergeMap, of } from 'rxjs';
 import interact from 'interactjs';
@@ -12,13 +13,19 @@ import { FactoryGridService } from '../../services/factory-grid.service';
 import { FactoryItemsService } from '../../services/factory-items.service';
 import { ResourceExchangeService } from '../../services/resource-exchange.service';
 import { DraggableItemComponent } from '../../components/draggable-item/draggable-item.component';
+
+// === COMPONENT DECORATOR ===
 @Component({
   selector: 'app-factory-page',
   standalone: true,
   imports: [PlaygroundGridComponent, ItemsComponent],
   templateUrl: './factory.page.html',
 })
+
+// === MAIN COMPONENT CLASS ===
 export class FactoryPage implements AfterViewInit, OnInit {
+
+  // === VIEWCHILD REFERENCES ===
   @ViewChild('gridHost', { read: ElementRef, static: true })
   gridHostRef!: ElementRef<HTMLElement>;
 
@@ -31,7 +38,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
   @ViewChild('minimapContent')
   minimapContentRef!: ElementRef<HTMLElement>;
 
-
+  // === MOUSE AND INTERACTION STATE ===
   private lastMouseButton = -1;
   mousePressed = false;
   isDraggingItem = false;
@@ -40,6 +47,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
   private lastRightClickTime = 0;
   private lastRightClickId: string | null = null;
 
+  // === UI STATE ===
   isFullscreen = false;
 
   showMenu = false;
@@ -50,7 +58,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
   helpAnimationDirection: 'left' | 'right' = 'right';
   isNavigatingMinimap = false;
 
-
+  // === ZOOM AND VIEWPORT ===
   zoomLevel = 1.0;
   readonly minZoom = 0.3;
   readonly maxZoom = 2.0;
@@ -59,14 +67,16 @@ export class FactoryPage implements AfterViewInit, OnInit {
   minimapViewport = { left: '0%', top: '0%', width: '100%', height: '100%' };
   minimapReady = false;
 
-
+  // === GRID CONFIGURATION ===
   readonly gridCellSizeVw = 2.5;
   gridCellSizePx = 0;
   readonly gridRowCount = 30;
   gridColumns = 0;
 
+  // === GRID DATA ===
   conveyorGrid: ConveyorSegment[][] = [];
 
+  // === ITEMS DATA ===
   items: DraggableItems[] = itemsData as DraggableItems[];
   private clonedItems: DraggableItems[] = [];
   private componentRefs = new Map<string, ComponentRef<DraggableItemComponent>>();
@@ -74,17 +84,20 @@ export class FactoryPage implements AfterViewInit, OnInit {
   private itemStates: Record<string, ItemState> = {};
   private itemBasePositions: Record<string, ItemBasePosition> = {};
 
+  // === RESOURCE MANAGEMENT ===
   private readonly resourceEmoji: Record<string, string> = {
     metall: '🔩',
     kupfer: '🟤',
     plastik: '🧴',
   };
 
+  // === CONVEYOR PAINTING STATE ===
   private paintMode: 'on' | 'off' | null = null;
   previewCells = new Set<string>();
   private touchedCells = new Set<string>();
   private pathCells: { row: number; col: number }[] = [];
 
+  // === CONSTRUCTOR ===
   constructor(
     private ngZone: NgZone,
     private layoutService: LayoutService,
@@ -96,6 +109,8 @@ export class FactoryPage implements AfterViewInit, OnInit {
     private environmentInjector: EnvironmentInjector,
   ) {
   }
+
+  // === LIFECYCLE METHODS ===
 
   // Setup beim allerersten Start der Seite
   ngOnInit(): void {
@@ -176,6 +191,8 @@ export class FactoryPage implements AfterViewInit, OnInit {
     }, 100);
   }
 
+  // === FULLSCREEN AND VIEWPORT METHODS ===
+
   toggleFullscreen(): void {
     this.isFullscreen = !this.isFullscreen;
 
@@ -204,6 +221,8 @@ export class FactoryPage implements AfterViewInit, OnInit {
       this.repositionAllItems();
     });
   }
+
+  // === MINIMAP METHODS ===
 
   get minimapItems() {
     return this.clonedItems
@@ -239,6 +258,8 @@ export class FactoryPage implements AfterViewInit, OnInit {
       height: `${(clientHeight / scrollHeight) * 100}%`
     };
   }
+
+  // === GRID AND LAYOUT METHODS ===
 
   // Items auf ihre Startposition im Inventar setzen
   private initializeItemStates(): void {
@@ -330,6 +351,8 @@ export class FactoryPage implements AfterViewInit, OnInit {
     });
   }
 
+  // === CONVEYOR INTERACTION METHODS ===
+
   // Klick auf das Raster (Startet das Fließband-Bauen)
   onCellMouseDown(event: MouseEvent, rowIndex: number, colIndex: number): void {
     if (this.isDraggingItem) return;
@@ -362,6 +385,8 @@ export class FactoryPage implements AfterViewInit, OnInit {
   getConveyorSymbol = (cell: ConveyorSegment): string => {
     return this.factoryGridService.getConveyorSymbol(cell);
   };
+
+  // === ITEM INTERACTION METHODS ===
 
   // Klick auf ein Item (Drag & Drop starten)
   onItemMouseDown(data: { itemId: string, event: MouseEvent }): void {
@@ -398,6 +423,8 @@ export class FactoryPage implements AfterViewInit, OnInit {
       }
     }
   }
+
+  // === UI INTERACTION METHODS ===
 
   toggleMenu(): void {
     this.showMenu = !this.showMenu;
@@ -458,6 +485,8 @@ export class FactoryPage implements AfterViewInit, OnInit {
     this.updateMinimap();
   }
 
+  // === GLOBAL EVENT HANDLERS ===
+
   // Setzt alle Klicks und Drag-Aktionen zurück (Aufräumen)
   private resetInteractions(): void {
     this.isNavigatingMinimap = false;
@@ -506,6 +535,8 @@ export class FactoryPage implements AfterViewInit, OnInit {
       return;
     }
   }
+
+  // === ITEM MANAGEMENT METHODS ===
 
   private removePlacedItem(target: HTMLElement, itemId: string): void {
     if (!this.itemStates[itemId].isAtStartPosition) {
@@ -599,6 +630,8 @@ export class FactoryPage implements AfterViewInit, OnInit {
       )
     );
   }
+
+  // === DRAG AND DROP SETUP ===
 
   // Core Logik für das Drag & Drop (interact.js)
   private setupInteractDragging(): void {
@@ -850,6 +883,8 @@ export class FactoryPage implements AfterViewInit, OnInit {
       }
     })
   }
+
+  // === CONNECTION EVALUATION ===
 
   //prüft ob eine Fabrik am Fließband angrenzt
   public evaluateConnections(): void {
