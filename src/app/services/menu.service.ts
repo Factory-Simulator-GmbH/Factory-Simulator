@@ -1,47 +1,46 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable } from '@angular/core';
 
-@Injectable({
-  providedIn: 'root'
-})
+@Injectable({ providedIn: 'root' })
 export class MenuService {
-  // UI State Signals
-  showMenu = signal(false);
-  showShortcutsModal = signal(false);
-  showHelpModal = signal(false);
-  isFullscreen = signal(false);
-  showItemTooltips = signal(true);
+  showMenu = false;
+  showShortcutsModal = false;
+  showHelpModal = false;
+  showItemTooltips = true;
 
-  toggleMenu(): void {
-    this.showMenu.update(v => !v);
-  }
+  helpCurrentStep = 0;
+  helpAnimationDirection: 'left' | 'right' = 'right';
+  readonly helpTotalSteps = 5;
 
-  closeMenu(): void {
-    this.showMenu.set(false);
-  }
+  toggleMenu(): void { this.showMenu = !this.showMenu; }
+  closeMenu(): void { this.showMenu = false; }
 
   openShortcuts(): void {
-    this.showMenu.set(false);
-    this.showShortcutsModal.set(true);
+    this.showMenu = false;
+    this.showShortcutsModal = true;
   }
+  closeShortcuts(): void { this.showShortcutsModal = false; }
 
   openHelp(): void {
-    this.showMenu.set(false);
-    this.showHelpModal.set(true);
+    this.showMenu = false;
+    this.helpCurrentStep = 0;
+    this.helpAnimationDirection = 'right';
+    this.showHelpModal = true;
+  }
+  closeHelp(): void { this.showHelpModal = false; }
+
+  toggleItemTooltips(): void { this.showItemTooltips = !this.showItemTooltips; }
+
+  nextHelpStep(): void {
+    if (this.helpCurrentStep < this.helpTotalSteps - 1) {
+      this.helpAnimationDirection = 'right';
+      this.helpCurrentStep++;
+    }
   }
 
-  closeShortcuts(): void {
-    this.showShortcutsModal.set(false);
-  }
-
-  closeHelp(): void {
-    this.showHelpModal.set(false);
-  }
-
-  toggleFullscreen(): void {
-    this.isFullscreen.update(v => !v);
-  }
-
-  toggleItemTooltips(): void {
-    this.showItemTooltips.update(v => !v);
+  prevHelpStep(): void {
+    if (this.helpCurrentStep > 0) {
+      this.helpAnimationDirection = 'left';
+      this.helpCurrentStep--;
+    }
   }
 }

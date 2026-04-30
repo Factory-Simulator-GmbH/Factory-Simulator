@@ -1,6 +1,6 @@
 import {Injectable} from '@angular/core';
-import {ConveyorSegment} from '../models/conveyor-segment.model';
-import {ConveyorGridService} from './conveyor-grid.service';
+import {ConveyorSegment} from '../models/conveyorSegment.model';
+import {ConveyorGridService} from './conveyorGrid.service';
 
 @Injectable({
   providedIn: 'root',

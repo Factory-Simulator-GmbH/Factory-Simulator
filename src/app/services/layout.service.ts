@@ -1,5 +1,5 @@
 import {Injectable} from '@angular/core';
-import {ItemSize} from '../models/draggable-item.model';
+import {ItemSize} from '../models/draggableItem.model';
 
 @Injectable({
   providedIn: 'root',

@@ -1,5 +1,5 @@
 import {Injectable} from '@angular/core';
-import {ConveyorSegment, Direction} from '../models/conveyor-segment.model';
+import {ConveyorSegment, Direction} from '../models/conveyorSegment.model';
 
 
 @Injectable({

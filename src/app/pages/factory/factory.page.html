@@ -3,7 +3,7 @@
   [class.p-4]="!isFullscreen" [class.p-0]="isFullscreen">
 
   @if (!isFullscreen) {
-    <header class="flex-none text-center mb-4 transition-opacity" [class.opacity-30]="isDraggingItem">
+    <header class="flex-none text-center mb-4 transition-opacity" [class.opacity-30]="interaction.isDraggingItem">
       <h1 class="text-4xl font-extrabold tracking-tight">Factory Simulator</h1>
     </header>
   }
@@ -18,16 +18,15 @@
            [style.transform]="'scale(' + zoomLevel + ')'">
 
         <div
-          #gridHost
           class="w-full h-full min-h-0 rounded-2xl border border-white/10 bg-white/5 overflow-hidden"
-          [class.relative]="isDraggingItem"
-          [class.z-50]="isDraggingItem"
+          [class.relative]="interaction.isDraggingItem"
+          [class.z-50]="interaction.isDraggingItem"
         >
           <app-playground-grid
             class="block w-full h-full"
             [conveyorGrid]="conveyorGrid"
             [gridCellSizePx]="gridCellSizePx"
-            [previewCells]="previewCells"
+            [previewCells]="interaction.previewCells"
             [getConveyorSymbol]="getConveyorSymbol"
             (cellMouseDown)="onCellMouseDown($event.event, $event.rowIndex, $event.colIndex)"
             (cellMouseEnter)="onCellMouseEnter($event.rowIndex, $event.colIndex)"
@@ -36,22 +35,22 @@
             <div class="flex items-center gap-2 relative">
 
               <!-- Glühbirne lightbulb-glow im scss animiert -->
-              <button (click)="toggleMenu(); $event.stopPropagation()"
+              <button (click)="menu.toggleMenu(); $event.stopPropagation()"
                       class="flex items-center justify-center w-8 h-8 transition-opacity hover:opacity-60 cursor-pointer">
-                <span class="lightbulb-wrapper" [class.lightbulb-active]="showMenu">
-                  <span class="material-icons text-lg leading-none" [class.lightbulb-glow]="showMenu">lightbulb</span>
+                <span class="lightbulb-wrapper" [class.lightbulb-active]="menu.showMenu">
+                  <span class="material-icons text-lg leading-none" [class.lightbulb-glow]="menu.showMenu">lightbulb</span>
                 </span>
               </button>
 
-              @if (showMenu) {
-                <div class="fixed inset-0 z-[70]" (click)="showMenu = false"></div>
+              @if (menu.showMenu) {
+                <div class="fixed inset-0 z-[70]" (click)="menu.closeMenu()"></div>
                 <div class="absolute top-full right-0 mt-2 z-[80] w-44
                             bg-slate-900/95 border border-white/10 rounded-2xl shadow-2xl
                             backdrop-blur-md fade-in-up overflow-hidden" style="animation-duration: 0.15s">
 
                   <div class="p-1.5 space-y-0.5">
 
-                    <button (click)="openShortcuts()"
+                    <button (click)="menu.openShortcuts()"
                             class="w-full group flex items-center justify-between px-3.5 py-2.5 rounded-xl
                                    hover:bg-white/5 active:bg-white/10 active:scale-[0.98]
                                    transition-all duration-150 cursor-pointer">
@@ -61,7 +60,7 @@
 
                     <div class="mx-3 h-px bg-white/8"></div>
 
-                    <button (click)="openHelp()"
+                    <button (click)="menu.openHelp()"
                             class="w-full group flex items-center justify-between px-3.5 py-2.5 rounded-xl
                                    hover:bg-white/5 active:bg-white/10 active:scale-[0.98]
                                    transition-all duration-150 cursor-pointer">
@@ -72,16 +71,16 @@
                     <div class="mx-3 h-px bg-white/8"></div>
 
                     <!-- Toggle Item Tipps -->
-                    <button (click)="showItemTooltips = !showItemTooltips; $event.stopPropagation()"
+                    <button (click)="menu.toggleItemTooltips(); $event.stopPropagation()"
                             class="w-full group flex items-center justify-between px-3.5 py-2.5 rounded-xl
                                    hover:bg-white/5 active:bg-white/10 active:scale-[0.98]
                                    transition-all duration-150 cursor-pointer">
                       <span class="text-sm font-medium text-white/50 group-hover:text-white transition-colors duration-150">Item Tipps</span>
                       <!-- Toggle Design -->
                       <div class="w-9 h-5 rounded-full transition-all duration-200 flex items-center px-0.5 flex-none"
-                           [class]="showItemTooltips ? 'bg-sky-500' : 'bg-white/15'">
+                           [class]="menu.showItemTooltips ? 'bg-sky-500' : 'bg-white/15'">
                         <div class="w-4 h-4 rounded-full bg-white shadow transition-all duration-200"
-                             [class]="showItemTooltips ? 'translate-x-4' : 'translate-x-0'"></div>
+                             [class]="menu.showItemTooltips ? 'translate-x-4' : 'translate-x-0'"></div>
                       </div>
                     </button>
 
@@ -108,15 +107,15 @@
     </div>
 
     <div class="absolute bottom-6 right-6 w-48 bg-slate-900 border-2 border-white/20 rounded-lg z-[60] shadow-2xl overflow-hidden select-none"
-         [class.cursor-grab]="!isNavigatingMinimap"
-         [class.cursor-grabbing]="isNavigatingMinimap"
+         [class.cursor-grab]="!interaction.isNavigatingMinimap"
+         [class.cursor-grabbing]="interaction.isNavigatingMinimap"
          (mousedown)="onMinimapMouseDown($event)">
       <div class="px-2 py-0.5 text-[10px] text-white/50 uppercase font-bold bg-black/40 relative z-10">
         Minimap
       </div>
       <div #minimapContent class="relative h-28 overflow-hidden bg-slate-950">
 
-        @if (!minimapReady) {
+        @if (!minimap.ready) {
           <!-- Ladeanimation -->
           <div class="absolute inset-0 flex items-center justify-center">
             <div class="w-5 h-5 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin"></div>
@@ -149,10 +148,10 @@
 
           <!-- Viewport-Indikator -->
           <div class="absolute border-2 border-blue-400 bg-blue-400/20 transition-all duration-75 z-10"
-               [style.left]="minimapViewport.left"
-               [style.top]="minimapViewport.top"
-               [style.width]="minimapViewport.width"
-               [style.height]="minimapViewport.height">
+               [style.left]="minimap.viewport.left"
+               [style.top]="minimap.viewport.top"
+               [style.width]="minimap.viewport.width"
+               [style.height]="minimap.viewport.height">
           </div>
         }
       </div>
@@ -163,16 +162,16 @@
   @if (!isFullscreen) {
     <div class="flex-none mt-4 relative z-50">
 
-      @if (isDraggingItem) {
+      @if (interaction.isDraggingItem) {
         <div class="absolute inset-0 z-30 bg-black/50 pointer-events-none rounded-xl"></div>
       }
 
       <app-items
         [items]="items"
-        [activeDraggedItemId]="activeDraggedItemId"
-        [isDraggingItem]="isDraggingItem"
+        [activeDraggedItemId]="interaction.activeDraggedItemId"
+        [isDraggingItem]="interaction.isDraggingItem"
         [getItemSizePx]="getItemSizePx"
-        [tooltipsEnabled]="showItemTooltips"
+        [tooltipsEnabled]="menu.showItemTooltips"
         (itemMouseDown)="onItemMouseDown($event)">
       </app-items>
     </div>
@@ -180,16 +179,16 @@
 
 </div>
 
-@if (showShortcutsModal) {
+@if (menu.showShortcutsModal) {
   <div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm"
-       (click)="showShortcutsModal = false">
+       (click)="menu.closeShortcuts()">
     <div class="fade-in-up bg-slate-900/95 border border-white/10 rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden"
          (click)="$event.stopPropagation()">
 
       <!-- Header -->
       <div class="flex items-center justify-between px-5 py-4 border-b border-white/8 bg-gradient-to-r from-slate-800/80 to-slate-800/40">
         <h2 class="text-base font-semibold text-white tracking-tight">Befehle</h2>
-        <button (click)="showShortcutsModal = false"
+        <button (click)="menu.closeShortcuts()"
                 class="w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-200 cursor-pointer
                        text-white/40 hover:text-red-400 hover:bg-red-500/15 hover:scale-110 active:scale-95">
           <span class="material-icons text-base">close</span>
@@ -212,13 +211,9 @@
           </div>
           <div class="flex items-center gap-1.5 flex-none">
             <svg class="w-4 h-6 flex-none" viewBox="0 0 16 26" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <!-- Maus-Körper -->
               <rect x="1" y="5" width="14" height="19" rx="7" class="fill-white/8 stroke-white/20 group-hover:stroke-white/40 transition-colors duration-200" stroke-width="1"/>
-              <!-- Linke Taste hervorgehoben -->
               <path d="M1,12 L1,5 Q1,5 8,5 L8,12 Z" class="fill-sky-400/40 group-hover:fill-sky-400/80 transition-colors duration-200"/>
-              <!-- Trennlinie Buttons -->
               <line x1="8" y1="5" x2="8" y2="12" class="stroke-white/20 group-hover:stroke-white/40 transition-colors duration-200" stroke-width="1"/>
-              <!-- Scrollrad -->
               <rect x="6.5" y="7" width="3" height="5" rx="1.5" class="fill-white/20 group-hover:fill-white/40 transition-colors duration-200"/>
             </svg>
             <span class="text-white/25 group-hover:text-white/50 text-xs transition-colors duration-200">halten + ziehen</span>
@@ -235,13 +230,9 @@
           </div>
           <div class="flex items-center gap-1.5 flex-none">
             <svg class="w-4 h-6 flex-none" viewBox="0 0 16 26" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <!-- Maus-Körper -->
               <rect x="1" y="5" width="14" height="19" rx="7" class="fill-white/8 stroke-white/20 group-hover:stroke-white/40 transition-colors duration-200" stroke-width="1"/>
-              <!-- Rechte Taste hervorgehoben -->
               <path d="M8,12 L8,5 Q15,5 15,12 Z" class="fill-red-400/40 group-hover:fill-red-400/80 transition-colors duration-200"/>
-              <!-- Trennlinie Buttons -->
               <line x1="8" y1="5" x2="8" y2="12" class="stroke-white/20 group-hover:stroke-white/40 transition-colors duration-200" stroke-width="1"/>
-              <!-- Scrollrad -->
               <rect x="6.5" y="7" width="3" height="5" rx="1.5" class="fill-white/20 group-hover:fill-white/40 transition-colors duration-200"/>
             </svg>
             <span class="text-white/25 group-hover:text-white/50 text-xs transition-colors duration-200">halten + ziehen</span>
@@ -272,13 +263,9 @@
           </div>
           <div class="flex items-center gap-1.5 flex-none">
             <svg class="w-4 h-6 flex-none" viewBox="0 0 16 26" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <!-- Maus-Körper -->
               <rect x="1" y="5" width="14" height="19" rx="7" class="fill-white/8 stroke-white/20 group-hover:stroke-white/40 transition-colors duration-200" stroke-width="1"/>
-              <!-- Rechte Taste hervorgehoben -->
               <path d="M8,12 L8,5 Q15,5 15,12 Z" class="fill-red-400/40 group-hover:fill-red-400/80 transition-colors duration-200"/>
-              <!-- Trennlinie Buttons -->
               <line x1="8" y1="5" x2="8" y2="12" class="stroke-white/20 group-hover:stroke-white/40 transition-colors duration-200" stroke-width="1"/>
-              <!-- Scrollrad -->
               <rect x="6.5" y="7" width="3" height="5" rx="1.5" class="fill-white/20 group-hover:fill-white/40 transition-colors duration-200"/>
             </svg>
             <span class="text-white/25 group-hover:text-white/50 text-xs transition-colors duration-200">auf Item klicken</span>
@@ -345,9 +332,9 @@
   </div>
 }
 
-@if (showHelpModal) {
+@if (menu.showHelpModal) {
   <div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm"
-       (click)="showHelpModal = false">
+       (click)="menu.closeHelp()">
     <div class="bg-slate-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden"
          (click)="$event.stopPropagation()">
 
@@ -355,8 +342,8 @@
       <div class="flex items-center justify-between px-5 py-4 border-b border-white/10 bg-slate-800/60">
         <h2 class="text-base font-semibold text-white">Hilfe</h2>
         <div class="flex items-center gap-3">
-          <span class="text-xs text-white/30">1 / 5</span>
-          <button (click)="showHelpModal = false"
+          <span class="text-xs text-white/30">{{ menu.helpCurrentStep + 1 }} / {{ menu.helpTotalSteps }}</span>
+          <button (click)="menu.closeHelp()"
                   class="w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-200 cursor-pointer
                          text-white/40 hover:text-red-400 hover:bg-red-500/15 hover:scale-110 active:scale-95">
             <span class="material-icons text-base">close</span>
@@ -366,23 +353,106 @@
 
       <!-- Inhalt -->
       <div class="px-4 pt-4 pb-2 overflow-hidden" style="min-height: 140px">
-        <div class="rounded-xl bg-blue-500/10 border border-blue-500/20 p-4">
-          <h3 class="font-semibold text-white mb-1.5 flex items-center gap-2">
-            <span class="material-icons text-base text-blue-400">factory</span>
-            Factory Simulator
-          </h3>
-          <p class="text-white/60 leading-relaxed text-sm">Baue deine eigene Fabrik indem du Maschinen & Spawner mit der Maus plazierst und verbinde sie mit deinen eigenen Fliessbändern.</p>
-        </div>
+
+        @if (menu.helpCurrentStep === 0) {
+          <div [class]="'hilfe-slide-' + menu.helpAnimationDirection + ' rounded-xl bg-blue-500/10 border border-blue-500/20 p-4'">
+            <h3 class="font-semibold text-white mb-1.5 flex items-center gap-2">
+              <span class="material-icons text-base text-blue-400">factory</span>
+              Factory Simulator
+            </h3>
+            <p class="text-white/60 leading-relaxed text-sm">Baue deine eigene Fabrik indem du Maschinen & Spawner mit der Maus plazierst und verbinde sie mit deinen eigenen Fliessbändern.</p>
+          </div>
+        }
+
+        @if (menu.helpCurrentStep === 1) {
+          <div [class]="'hilfe-slide-' + menu.helpAnimationDirection + ' rounded-xl bg-green-500/10 border border-green-500/20 p-4'">
+            <h3 class="font-semibold text-white mb-1.5 flex items-center gap-2">
+              <span class="material-icons text-base text-green-400">drag_indicator</span>
+              Items platzieren
+            </h3>
+            <p class="text-white/60 leading-relaxed text-sm">Die Items kannst du ins Grid ziehen und sie an die Förderbänder anhenken.</p>
+          </div>
+        }
+
+        @if (menu.helpCurrentStep === 2) {
+          <div [class]="'hilfe-slide-' + menu.helpAnimationDirection + ' rounded-xl bg-orange-500/10 border border-orange-500/20 p-4'">
+            <h3 class="font-semibold text-white mb-1.5 flex items-center gap-2">
+              <span class="material-icons text-base text-orange-400">route</span>
+              Fließbänder zeichnen
+            </h3>
+            <p class="text-white/60 leading-relaxed text-sm">Zeichne die Fliessbänder mit Linksklick in die gewünschte Richtung. Du kannst sie auch genau so einfach wieder mit Rechtsklick löschen</p>
+          </div>
+        }
+
+        @if (menu.helpCurrentStep === 3) {
+          <div [class]="'hilfe-slide-' + menu.helpAnimationDirection + ' rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-4'">
+            <h3 class="font-semibold text-white mb-1.5 flex items-center gap-2">
+              <span class="material-icons text-base text-emerald-400">link</span>
+              Items verbinden
+            </h3>
+            <p class="text-white/60 leading-relaxed text-sm">Items verbinden sich mit den Fliessbändern. Input/Output sind zwischen Band und Item wichtig um es richtig zu machen </p>
+          </div>
+        }
+
+        @if (menu.helpCurrentStep === 4) {
+          <div [class]="'hilfe-slide-' + menu.helpAnimationDirection + ' rounded-xl bg-purple-500/10 border border-purple-500/20 p-4'">
+            <h3 class="font-semibold text-white mb-1.5 flex items-center gap-2">
+              <span class="material-icons text-base text-purple-400">swap_vert</span>
+              Navigieren im Grid
+            </h3>
+            <p class="text-white/60 leading-relaxed text-sm">Navigieren kannst du ganz leicht, wähl die für dich beste Variante. Verwende einfach Minimap, Maus, Scrollleisten oder Mausrad </p>
+          </div>
+        }
+
+      </div>
+
+      <!-- Dot Farbe in der Hilfe -->
+      <div class="flex justify-center gap-1.5 py-3">
+        @for (i of [0,1,2,3,4]; track i) {
+          <button (click)="menu.helpAnimationDirection = i > menu.helpCurrentStep ? 'right' : 'left'; menu.helpCurrentStep = i"
+                  [class]="'w-1.5 h-1.5 rounded-full transition-all duration-300 cursor-pointer ' +
+                    (menu.helpCurrentStep === i
+                      ? ([
+                          'bg-blue-400',
+                          'bg-green-400',
+                          'bg-orange-400',
+                          'bg-emerald-400',
+                          'bg-purple-400'
+                        ][menu.helpCurrentStep] + ' scale-125')
+                      : 'bg-white/25 hover:bg-white/50')">
+          </button>
+        }
       </div>
 
       <!-- Navigation -->
-      <div class="flex items-center justify-center gap-2 px-4 pb-4">
-        <button (click)="showHelpModal = false"
-                class="flex items-center justify-center px-4 py-2 rounded-xl transition-all duration-200 cursor-pointer
-                       bg-blue-500/20 hover:bg-blue-500/40 text-blue-300 hover:text-blue-100
-                       border border-blue-500/20 hover:border-blue-400/50">
-          <span class="text-sm">Schliessen</span>
-        </button>
+      <div class="flex items-center justify-between px-4 pb-4 gap-2">
+        @if (menu.helpCurrentStep > 0) {
+          <button (click)="menu.prevHelpStep()"
+                  class="flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-200 cursor-pointer
+                         bg-white/5 hover:bg-white/15 text-white/50 hover:text-white
+                         hover:scale-110 active:scale-90 active:bg-white/20">
+            <span class="material-icons text-xl">chevron_left</span>
+          </button>
+        } @else {
+          <div class="w-9 h-9"></div>
+        }
+
+        @if (menu.helpCurrentStep < menu.helpTotalSteps - 1) {
+          <button (click)="menu.nextHelpStep()"
+                  class="flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-200 cursor-pointer
+                         bg-white/5 hover:bg-white/15 text-white/50 hover:text-white
+                         hover:scale-110 active:scale-90 active:bg-white/20">
+            <span class="material-icons text-xl">chevron_right</span>
+          </button>
+        } @else {
+          <button (click)="menu.closeHelp()"
+                  class="flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-200 cursor-pointer
+                         bg-blue-500/20 hover:bg-blue-500/40 text-blue-300 hover:text-blue-100
+                         border border-blue-500/20 hover:border-blue-400/50
+                         hover:scale-110 active:scale-90 hover:shadow-[0_0_12px_rgba(96,165,250,0.3)]">
+            <span class="material-icons text-xl">check</span>
+          </button>
+        }
       </div>
     </div>
   </div>
