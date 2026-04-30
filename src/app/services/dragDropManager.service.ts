@@ -1,4 +1,5 @@
 import { ApplicationRef, ComponentRef, createComponent, EnvironmentInjector, Injectable, NgZone } from '@angular/core';
+import { Subscription, timer } from 'rxjs';
 import interact from 'interactjs';
 import { ConveyorSegment } from '../models/conveyorSegment.model';
 import { DraggableItems } from '../models/draggableItem.model';
@@ -26,6 +27,7 @@ export interface DragSetupOptions {
 @Injectable({ providedIn: 'root' })
 export class DragDropManagerService {
   private opts: DragSetupOptions | null = null;
+  private spawnerIntervals = new Map<string, Subscription>();
 
   constructor(
     private ngZone: NgZone,
@@ -147,8 +149,15 @@ export class DragDropManagerService {
 
             const placedItem = this.itemManager.clonedItems.find(i => i.id === element.id);
             if (placedItem?.spawningResource) {
-              const adjacentOutput = this.resourceExchangeService.checkAdjacentOutput(targetCol, targetRow, this.itemManager.clonedItems, this.itemManager.itemStates);
-              this.resourceExchangeService.onSpawnerPlaced(element.id, targetCol, targetRow, adjacentOutput, this.itemManager.clonedItems, this.itemManager.itemStates);
+              this.spawnerIntervals.get(element.id)?.unsubscribe();
+              const spawnRate = placedItem.rate ?? 5000;
+              const sub = timer(spawnRate, spawnRate).subscribe(() => {
+                this.ngZone.run(() => {
+                  const adjacentOutput = this.resourceExchangeService.checkAdjacentOutput(targetCol, targetRow, this.itemManager.clonedItems, this.itemManager.itemStates);
+                  this.resourceExchangeService.onSpawnerPlaced(element.id, targetCol, targetRow, adjacentOutput, this.itemManager.clonedItems, this.itemManager.itemStates);
+                });
+              });
+              this.spawnerIntervals.set(element.id, sub);
             }
 
             gridContainer.appendChild(element);
@@ -204,6 +213,7 @@ export class DragDropManagerService {
         size: sourceItem.size || 'large', helpText: sourceItem.helpText || '',
         spawningResource: sourceItem.spawningResource, resource: null,
         input: sourceItem.input, output: sourceItem.output,
+        rate: sourceItem.rate,
       });
       this.itemManager.itemStates[uniqueId] = { col: -1, row: -1, isAtStartPosition: true };
 
@@ -222,6 +232,8 @@ export class DragDropManagerService {
     if (!this.opts) return;
     const { items, gridCellSizePx, conveyorGrid, gridRowCount, gridColumns, detectChanges, postRemove, getGridRect } = this.opts;
 
+    this.spawnerIntervals.get(itemId)?.unsubscribe();
+    this.spawnerIntervals.delete(itemId);
     this.itemManager.removeItem(itemId, items);
     target.remove();
 
