@@ -1,5 +1,5 @@
 import {Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
-import {DraggableItems, ItemSize} from '../../models/draggable-item.model';
+import {DraggableItems, ItemSize} from '../../models/draggableItem.model';
 import {TooltipDirective} from '../../directives/tooltip.directive';
 import {TitleCasePipe} from '@angular/common';
 

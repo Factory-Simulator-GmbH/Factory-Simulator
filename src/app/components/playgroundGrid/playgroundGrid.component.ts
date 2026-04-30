@@ -1,10 +1,10 @@
 import { Component, ElementRef, EventEmitter, Input, Output, ViewChild } from '@angular/core';
-import { ConveyorSegment } from '../../models/conveyor-segment.model';
+import { ConveyorSegment } from '../../models/conveyorSegment.model';
 
 @Component({
   selector: 'app-playground-grid',
   standalone: true,
-  templateUrl: './playground-grid.component.html',
+  templateUrl: './playgroundGrid.component.html',
 })
 export class PlaygroundGridComponent {
   @ViewChild('gridTable', { static: true })

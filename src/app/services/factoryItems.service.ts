@@ -1,7 +1,7 @@
 import {Injectable} from '@angular/core';
-import {ConveyorSegment} from '../models/conveyor-segment.model';
-import {DraggableItems} from '../models/draggable-item.model';
-import {ItemBasePosition, ItemState} from '../models/item-position.model';
+import {ConveyorSegment} from '../models/conveyorSegment.model';
+import {DraggableItems} from '../models/draggableItem.model';
+import {ItemBasePosition, ItemState} from '../models/itemPosition.model';
 import {LayoutService} from './layout.service';
 
 @Injectable({
