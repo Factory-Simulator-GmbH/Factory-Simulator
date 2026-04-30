@@ -73,7 +73,7 @@
     "size": "large",
     "helpText": "<strong>Spawner</strong><br>Erzeugt neue Ressourcen (Kupfer).",
     "spawningResource": "kupfer",
-    "rate": 5000
+    "rate": 7000
   },
   {
     "id": "Spawner3",
@@ -82,7 +82,7 @@
     "size": "large",
     "helpText": "<strong>Spawner</strong><br>Erzeugt neue Ressourcen (Plastik).",
     "spawningResource": "plastik",
-    "rate": 5000
+    "rate": 10000
   },
   {
     "id": "input",

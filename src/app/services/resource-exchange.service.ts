@@ -12,6 +12,7 @@ export class ResourceExchangeService {
 
     conveyorResourceChanged$ = new Subject<{ row: number; col: number; resource: string | null }>();
     itemResourceChanged$ = new Subject<{ itemid: string; resource: string | null }>();
+    conveyorJam$ = new Subject<{ row: number; col: number }>();
 
     // prüft, ob neben einem Spawner ein Output liegt, und gibt die itemid des Outputs zurück oder null, wenn kein Output nebenan liegt
     checkAdjacentOutput(
@@ -119,8 +120,10 @@ export class ResourceExchangeService {
             { col: outputCol + 1, row: outputRow, entry: 'left' },
         ];
         for (const n of neighbors) {
-            if (conveyorGrid[n.row]?.[n.col]?.active && conveyorGrid[n.row]?.[n.col]?.entry === n.entry) {
+            if (conveyorGrid[n.row]?.[n.col]?.active && conveyorGrid[n.row]?.[n.col]?.entry === n.entry && conveyorGrid[n.row]?.[n.col]?.resource === null) {
                 return { col: n.col, row: n.row };
+            } else if (conveyorGrid[n.row]?.[n.col]?.active && conveyorGrid[n.row]?.[n.col]?.entry === n.entry && conveyorGrid[n.row]?.[n.col]?.resource !== null) {
+                this.conveyorJam$.next({ row: n.row, col: n.col });
             }
         }
         return null;
@@ -143,7 +146,7 @@ export class ResourceExchangeService {
                     this.itemResourceChanged$.next({ itemid: adjacentOutput.itemid, resource: outputItem.resource });
                 }
             }
-        } 
+        }
     }
 
     onOutputResourceChanged(
@@ -167,7 +170,7 @@ export class ResourceExchangeService {
                 col: adjacentConveyor.col,
                 resource,
             });
-        } 
+        }
     }
 
     onInputResourceChanged(
@@ -193,7 +196,7 @@ export class ResourceExchangeService {
                 inputItem.resource = null;
                 this.itemResourceChanged$.next({ itemid: id, resource: null });
             }
-        } 
+        }
     }
     onConveyorResourceChanged(
         resource: string | null,
@@ -202,7 +205,7 @@ export class ResourceExchangeService {
         conveyorGrid: ConveyorSegment[][],
         items: DraggableItems[],
         itemStates: Record<string, ItemState>,
-    ): void {
+    ): boolean {
         const cell = conveyorGrid[row]?.[col];
 
         // 1. Erst prüfen ob Weitergabe an nächstes Rollband möglich
@@ -210,9 +213,14 @@ export class ResourceExchangeService {
             const nextCell = this.getNextCellByExit(cell.exit, col, row);
             const next = conveyorGrid[nextCell.row]?.[nextCell.col];
             if (next?.active) {
-                next.resource = resource;
-                this.conveyorResourceChanged$.next({ row: nextCell.row, col: nextCell.col, resource });
-                return;
+                if (next.resource === null) {
+                    next.resource = resource;
+                    this.conveyorResourceChanged$.next({ row: nextCell.row, col: nextCell.col, resource });
+                    return true;
+                } else {
+                    this.conveyorJam$.next({ row: nextCell.row, col: nextCell.col });
+                    return false;
+                }
             }
         }
 
@@ -227,9 +235,11 @@ export class ResourceExchangeService {
                     cell.resource = null;
                     this.conveyorResourceChanged$.next({ row, col, resource: null });
                     this.itemResourceChanged$.next({ itemid: adjacentInput.itemid, resource: inputItem.resource });
+                    return true;
                 }
             }
-        } 
+        }
+        return false;
     }
 
     private getNextCellByExit(exit: string, col: number, row: number): { col: number; row: number } {
@@ -239,4 +249,5 @@ export class ResourceExchangeService {
         if (exit === 'right') return { col: col + 1, row };
         return { col, row };
     }
+
 }
