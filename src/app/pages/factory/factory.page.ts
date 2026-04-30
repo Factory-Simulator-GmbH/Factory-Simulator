@@ -1,5 +1,5 @@
 import { AfterViewInit, ChangeDetectorRef, Component, ElementRef, HostListener, NgZone, OnInit, ViewChild } from '@angular/core';
-import { delay, filter, mergeMap, of } from 'rxjs';
+import { delay, filter, mergeMap, of, take } from 'rxjs';
 import itemsData from '../../../../public/assets/items.json';
 import { PlaygroundGridComponent } from '../../components/playgroundGrid/playgroundGrid.component';
 import { ItemsComponent } from '../../components/items/items.component';
@@ -60,11 +60,52 @@ export class FactoryPage implements AfterViewInit, OnInit {
     this.updateGridCellSize();
     this.calculateColumnsAndCreateGrid();
 
+    this.resourceExchangeService.conveyorJam$.subscribe(({ row, col }: { row: number; col: number }) => {
+      this.resourceExchangeService.conveyorResourceChanged$.pipe(
+        filter(e => e.row === row && e.col === col && e.resource === null),
+        take(1)
+      ).subscribe(() => {
+        // Outputs mit wartender Ressource erneut prüfen
+        for (const item of this.itemManager.clonedItems) {
+          if (item.type !== 'output' || item.resource === null) continue;
+          const state = this.itemManager.itemStates[item.id];
+          if (!state || state.isAtStartPosition) continue;
+          const adjacentConveyor = this.resourceExchangeService.checkAdjacentConveyor(
+            state.col, state.row, this.conveyorGrid
+          );
+          if (adjacentConveyor) {
+            this.resourceExchangeService.onOutputResourceChanged(
+              item.id, state.col, state.row, adjacentConveyor, this.itemManager.clonedItems, this.conveyorGrid
+            );
+            this.cdr.detectChanges();
+          }
+        }
+        // Rollband-Nachbarn erneut anstoßen, die auf die freigewordene Zelle zeigen
+        const pointsTo = [
+          { dr: -1, dc: 0, exit: 'down' },
+          { dr:  1, dc: 0, exit: 'up'   },
+          { dr:  0, dc: -1, exit: 'right' },
+          { dr:  0, dc:  1, exit: 'left'  },
+        ];
+        for (const { dr, dc, exit } of pointsTo) {
+          const waiting = this.conveyorGrid[row + dr]?.[col + dc];
+          if (waiting?.active && waiting.resource && waiting.exit === exit) {
+            this.resourceExchangeService.conveyorResourceChanged$.next({
+              row: row + dr, col: col + dc, resource: waiting.resource,
+            });
+          }
+        }
+      });
+    });
+
     this.resourceExchangeService.conveyorResourceChanged$
       .pipe(filter(({ resource }) => resource !== null), mergeMap(event => of(event).pipe(delay(1000))))
       .subscribe(({ row, col, resource }) => {
-        this.resourceExchangeService.onConveyorResourceChanged(resource, col, row, this.conveyorGrid, this.itemManager.clonedItems, this.itemManager.itemStates);
-        this.conveyorGrid[row][col].resource = null;
+        const moved = this.resourceExchangeService.onConveyorResourceChanged(resource, col, row, this.conveyorGrid, this.itemManager.clonedItems, this.itemManager.itemStates);
+        if (moved) {
+          this.conveyorGrid[row][col].resource = null;
+          this.resourceExchangeService.conveyorResourceChanged$.next({ row, col, resource: null });
+        }
         this.cdr.detectChanges();
       });
 
