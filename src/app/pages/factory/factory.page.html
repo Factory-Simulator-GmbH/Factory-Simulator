@@ -168,50 +168,33 @@
 
   </section>
 
-    <!-- Fullscreen Item-Bar: slide in/out von rechts, Breite proportional zur Item-Größe -->
-    @if (isFullscreen) {
-      <div
-        class="flex-none self-stretch relative z-50 bg-slate-900/90 border-l border-white/10 overflow-hidden"
-        style="transition: width 0.3s ease, opacity 0.3s ease;"
-        [style.width]="showFullscreenItemBar ? (getItemSizePx('large') * 2 + 100) + 'px' : '0px'"
-        [style.opacity]="showFullscreenItemBar ? '1' : '0'"
-      >
-        @if (interaction.isDraggingItem) {
-          <div class="absolute inset-0 z-30 bg-black/50 pointer-events-none"></div>
-        }
-        <div class="h-full overflow-y-auto sidebar-scrollbar p-3">
-          <app-items
-            [items]="items"
-            [simpleMode]="true"
-            [activeDraggedItemId]="interaction.activeDraggedItemId"
-            [isDraggingItem]="interaction.isDraggingItem"
-            [getItemSizePx]="getItemSizePx"
-            [tooltipsEnabled]="menu.showItemTooltips"
-            (itemMouseDown)="onItemMouseDown($event)">
-          </app-items>
-        </div>
+    <!-- Item-Bar: im Fullscreen rechts als Sidebar, sonst unten -->
+    <div
+      [class]="isFullscreen
+        ? 'flex-none self-stretch relative z-50 bg-slate-900/90 border-l border-white/10 overflow-hidden'
+        : 'flex-none mt-4 relative z-50'"
+      [style.transition]="isFullscreen ? 'width 0.3s ease, opacity 0.3s ease' : 'none'"
+      [style.width]="isFullscreen ? (showFullscreenItemBar ? (getItemSizePx('large') * 2 + 100) + 'px' : '0px') : 'auto'"
+      [style.opacity]="isFullscreen ? (showFullscreenItemBar ? '1' : '0') : '1'"
+    >
+      @if (interaction.isDraggingItem) {
+        <div [class]="'absolute inset-0 z-30 bg-black/50 pointer-events-none ' + (isFullscreen ? '' : 'rounded-xl')"></div>
+      }
+      <div [class]="isFullscreen ? 'h-full overflow-y-auto sidebar-scrollbar p-3' : ''">
+        <app-items
+          [items]="items"
+          [simpleMode]="isFullscreen"
+          [activeDraggedItemId]="interaction.activeDraggedItemId"
+          [isDraggingItem]="interaction.isDraggingItem"
+          [getItemSizePx]="getItemSizePx"
+          [tooltipsEnabled]="menu.showItemTooltips"
+          (itemMouseDown)="onItemMouseDown($event)">
+        </app-items>
       </div>
-    }
+    </div>
 
   </div><!-- Ende Wrapper -->
 
-  <!-- Normal-Modus Item-Bar: flex-none unter der Section -->
-  @if (!isFullscreen) {
-    <div class="flex-none mt-4 relative z-50">
-      @if (interaction.isDraggingItem) {
-        <div class="absolute inset-0 z-30 bg-black/50 pointer-events-none rounded-xl"></div>
-      }
-      <app-items
-        [items]="items"
-        [simpleMode]="false"
-        [activeDraggedItemId]="interaction.activeDraggedItemId"
-        [isDraggingItem]="interaction.isDraggingItem"
-        [getItemSizePx]="getItemSizePx"
-        [tooltipsEnabled]="menu.showItemTooltips"
-        (itemMouseDown)="onItemMouseDown($event)">
-      </app-items>
-    </div>
-  }
 
 </div><!-- Ende Hauptcontainer -->
 
