@@ -8,6 +8,9 @@
     </header>
   }
 
+  <!-- Fullscreen: flex-row; Normal: flex-col -->
+  <div [class]="'flex-1 min-h-0 overflow-hidden ' + (isFullscreen ? 'flex flex-row' : 'flex flex-col')">
+
   <section [class]="'flex-1 min-h-0 relative flex flex-col overflow-hidden transition-all ' +
                    (!isFullscreen ? 'rounded-3xl border border-white/10 bg-white/5 backdrop-blur' : 'rounded-none bg-black/20')"
            (wheel)="onWheel($event)">
@@ -33,6 +36,12 @@
             (gridScroll)="onScroll($event)">
 
             <div class="flex items-center gap-2 relative">
+              @if (isFullscreen) {
+                <button class="bg-slate-900/80 rounded-xl px-4 py-2 text-white shadow"
+                        (click)="showFullscreenItemBar = !showFullscreenItemBar; console.log('showFullscreenItemBar: ', showFullscreenItemBar)">
+                  Items
+                </button>
+              }
 
               <!-- Glühbirne lightbulb-glow im scss animiert -->
               <button (click)="menu.toggleMenu(); $event.stopPropagation()"
@@ -159,15 +168,42 @@
 
   </section>
 
+    <!-- Fullscreen Item-Bar: slide in/out von rechts, Breite proportional zur Item-Größe -->
+    @if (isFullscreen) {
+      <div
+        class="flex-none self-stretch relative z-50 bg-slate-900/90 border-l border-white/10 overflow-hidden"
+        style="transition: width 0.3s ease, opacity 0.3s ease;"
+        [style.width]="showFullscreenItemBar ? (getItemSizePx('large') * 2 + 100) + 'px' : '0px'"
+        [style.opacity]="showFullscreenItemBar ? '1' : '0'"
+      >
+        @if (interaction.isDraggingItem) {
+          <div class="absolute inset-0 z-30 bg-black/50 pointer-events-none"></div>
+        }
+        <div class="h-full overflow-y-auto sidebar-scrollbar p-3">
+          <app-items
+            [items]="items"
+            [simpleMode]="true"
+            [activeDraggedItemId]="interaction.activeDraggedItemId"
+            [isDraggingItem]="interaction.isDraggingItem"
+            [getItemSizePx]="getItemSizePx"
+            [tooltipsEnabled]="menu.showItemTooltips"
+            (itemMouseDown)="onItemMouseDown($event)">
+          </app-items>
+        </div>
+      </div>
+    }
+
+  </div><!-- Ende Wrapper -->
+
+  <!-- Normal-Modus Item-Bar: flex-none unter der Section -->
   @if (!isFullscreen) {
     <div class="flex-none mt-4 relative z-50">
-
       @if (interaction.isDraggingItem) {
         <div class="absolute inset-0 z-30 bg-black/50 pointer-events-none rounded-xl"></div>
       }
-
       <app-items
         [items]="items"
+        [simpleMode]="false"
         [activeDraggedItemId]="interaction.activeDraggedItemId"
         [isDraggingItem]="interaction.isDraggingItem"
         [getItemSizePx]="getItemSizePx"
@@ -177,7 +213,7 @@
     </div>
   }
 
-</div>
+</div><!-- Ende Hauptcontainer -->
 
 @if (menu.showShortcutsModal) {
   <div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm"

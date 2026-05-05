@@ -22,6 +22,7 @@ import { ItemManagerService } from '../../services/itemManager.service';
   standalone: true,
   imports: [PlaygroundGridComponent, ItemsComponent],
   templateUrl: './factory.page.html',
+  styleUrl: './factory.page.scss'
 })
 export class FactoryPage implements AfterViewInit, OnInit {
   @ViewChild(PlaygroundGridComponent) playgroundGrid!: PlaygroundGridComponent;
@@ -37,6 +38,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
   isFullscreen = false;
   conveyorGrid: ConveyorSegment[][] = [];
   items: DraggableItems[] = itemsData as DraggableItems[];
+  showFullscreenItemBar = true;
 
   private readonly resourceEmoji: Record<string, string> = { metall: '🔩', kupfer: '🟤', plastik: '🧴' };
 
@@ -288,4 +290,6 @@ export class FactoryPage implements AfterViewInit, OnInit {
     }
     badge.textContent = resource ? (this.resourceEmoji[resource] ?? resource) : '';
   }
+
+  protected readonly console = console;
 }
