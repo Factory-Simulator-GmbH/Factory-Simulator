@@ -100,8 +100,14 @@ export class DragDropManagerService {
           const currentX = Number(element.getAttribute('data-x') ?? '0');
           const currentY = Number(element.getAttribute('data-y') ?? '0');
           const effectiveZoom = isInGrid ? zoomLevel : 1.0;
-          const nextX = currentX + event.dx / effectiveZoom;
-          const nextY = currentY + event.dy / effectiveZoom;
+          let nextX = currentX + event.dx / effectiveZoom;
+          let nextY = currentY + event.dy / effectiveZoom;
+          if (isInGrid) {
+            const maxX = gridColumns * gridCellSizePx - element.offsetWidth / effectiveZoom;
+            const maxY = gridRowCount * gridCellSizePx - element.offsetHeight / effectiveZoom;
+            nextX = Math.min(nextX, maxX);
+            nextY = Math.min(nextY, maxY);
+          }
           element.style.transform = `translate(${nextX}px, ${nextY}px)`;
           element.setAttribute('data-x', String(nextX));
           element.setAttribute('data-y', String(nextY));
@@ -136,6 +142,13 @@ export class DragDropManagerService {
           } else {
             const itemRect = element.getBoundingClientRect();
             const containerRect = gridContainer.getBoundingClientRect();
+            const currentGridRect = getGridRect();
+            const rawRow = (itemRect.top - currentGridRect.top) / zoomLevel / gridCellSizePx;
+            const rawCol = (itemRect.left - currentGridRect.left) / zoomLevel / gridCellSizePx;
+            if (rawRow >= gridRowCount || rawCol >= gridColumns) {
+              this.removePlacedItem(element, element.id);
+              return;
+            }
             let targetCol = Math.max(0, Math.min(Math.round(((itemRect.left - containerRect.left) / zoomLevel) / gridCellSizePx), gridColumns - 1));
             let targetRow = Math.max(0, Math.min(Math.round(((itemRect.top - containerRect.top) / zoomLevel) / gridCellSizePx), gridRowCount - 1));
 
