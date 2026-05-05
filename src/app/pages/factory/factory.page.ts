@@ -127,10 +127,14 @@ export class FactoryPage implements AfterViewInit, OnInit {
             i.type === 'machine' && this.itemManager.itemStates[i.id]?.col === adjacentMachine.col && this.itemManager.itemStates[i.id]?.row === adjacentMachine.row
           );
           if (machineItem && resource) {
+            const el = document.getElementById(itemid);
             if (machineItem.input && resource in machineItem.input) {
+              el?.classList.remove('ring-red-500', 'shadow-[0_0_20px_rgba(239,68,68,0.6)]');
+              el?.classList.add('ring-4', 'ring-green-500', 'shadow-[0_0_20px_rgba(34,197,94,0.6)]');
               this.resourceExchangeService.onInputResourceChanged(itemid, itemState.col, itemState.row, adjacentMachine, this.itemManager.clonedItems, this.itemManager.itemStates);
             } else {
-              document.getElementById(itemid)?.classList.add('ring-4', 'ring-red-500', 'shadow-[0_0_20px_rgba(239,68,68,0.6)]');
+              el?.classList.remove('ring-green-500', 'shadow-[0_0_20px_rgba(34,197,94,0.6)]');
+              el?.classList.add('ring-4', 'ring-red-500', 'shadow-[0_0_20px_rgba(239,68,68,0.6)]');
             }
           }
         }
