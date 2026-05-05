@@ -114,7 +114,7 @@
       <div class="px-2 py-0.5 text-[10px] text-white/50 uppercase font-bold bg-black/40 relative z-10">
         Minimap
       </div>
-      <div #minimapContent class="relative h-28 overflow-hidden bg-slate-950">
+      <div #minimapContent class="relative overflow-hidden bg-slate-950 w-full" [style.aspect-ratio]="gridColumns + ' / ' + gridRowCount">
 
         @if (!minimap.ready) {
           <!-- Ladeanimation -->
