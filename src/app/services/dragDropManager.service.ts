@@ -47,8 +47,6 @@ export class DragDropManagerService {
 
     interact('.draggable-item').unset();
 
-    const gridRect = getGridRect();
-
     interact(gridElement).dropzone({
       accept: '.draggable-item',
       overlap: 0.5,
@@ -62,11 +60,13 @@ export class DragDropManagerService {
       },
       modifiers: [
         interact.modifiers.snap({
-          targets: [interact.createSnapGrid({
-            x: gridCellSizePx * zoomLevel,
-            y: gridCellSizePx * zoomLevel,
-            offset: { x: gridRect.left % gridCellSizePx, y: gridRect.top % gridCellSizePx },
-          })],
+          targets: [(x: number, y: number) => {
+            const rect = getGridRect();
+            return {
+              x: Math.round((x - rect.left) / gridCellSizePx) * gridCellSizePx + rect.left,
+              y: Math.round((y - rect.top) / gridCellSizePx) * gridCellSizePx + rect.top,
+            };
+          }],
           relativePoints: [{ x: 0, y: 0 }],
         }),
       ],
