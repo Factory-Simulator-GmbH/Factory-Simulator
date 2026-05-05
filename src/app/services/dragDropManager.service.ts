@@ -62,6 +62,9 @@ export class DragDropManagerService {
         interact.modifiers.snap({
           targets: [(x: number, y: number) => {
             const rect = getGridRect();
+            if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+              return null as any;
+            }
             return {
               x: Math.round((x - rect.left) / gridCellSizePx) * gridCellSizePx + rect.left,
               y: Math.round((y - rect.top) / gridCellSizePx) * gridCellSizePx + rect.top,
@@ -124,10 +127,20 @@ export class DragDropManagerService {
           const gridContainer = document.getElementById('grid-items-container');
           element.style.zIndex = '';
 
-          const isInGrid = element.classList.contains('can-drop');
+          const hasCanDrop = element.classList.contains('can-drop');
+          const currentGridRect = getGridRect();
+          const viewportEl = gridElement.closest('[data-grid-viewport]') ?? gridElement.parentElement;
+          const viewportRect = viewportEl?.getBoundingClientRect() ?? currentGridRect;
+          const visibleGridBottom = Math.min(currentGridRect.bottom, viewportRect.bottom);
+          const visibleGridRight = Math.min(currentGridRect.right, viewportRect.right);
+          const cursorInGrid = event.clientX >= currentGridRect.left &&
+                               event.clientX <= visibleGridRight &&
+                               event.clientY >= currentGridRect.top &&
+                               event.clientY <= visibleGridBottom;
+          const isInGrid = hasCanDrop && cursorInGrid;
           let overlap = false;
           try {
-            overlap = this.itemManager.isOverlapping(element, conveyorGrid, gridRowCount, gridColumns, gridCellSizePx, getGridRect());
+            overlap = this.itemManager.isOverlapping(element, conveyorGrid, gridRowCount, gridColumns, gridCellSizePx, currentGridRect);
           } catch (_) {}
 
           if (!isInGrid || overlap || !gridContainer) {
