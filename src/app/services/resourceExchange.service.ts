@@ -11,7 +11,6 @@ export class ResourceExchangeService {
 
     conveyorResourceChanged$ = new Subject<{ row: number; col: number; resource: string | null }>();
     itemResourceChanged$ = new Subject<{ itemid: string; resource: string | null }>();
-    conveyorJam$ = new Subject<{ row: number; col: number }>();
 
     // prüft, ob neben einem Spawner ein Output liegt, und gibt die itemid des Outputs zurück oder null, wenn kein Output nebenan liegt
     checkAdjacentOutput(
