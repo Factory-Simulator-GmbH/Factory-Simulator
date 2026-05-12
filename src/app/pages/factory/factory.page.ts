@@ -335,6 +335,4 @@ export class FactoryPage implements AfterViewInit, OnInit {
     }
     badge.textContent = resource ? (this.resourceEmoji[resource] ?? resource) : '';
   }
-
-  protected readonly console = console;
 }
