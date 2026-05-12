@@ -82,7 +82,47 @@ export class ConveyorGridService {
         cell.endpoint = false;
       }
       console.log(`Zelle: (${current.row}, ${current.col}), Entry: ${cell.entry}, Exit: ${cell.exit}`);
-      
+    }
+
+    // Fehlende Entry/Exit aus bestehenden aktiven Nachbarzellen ableiten
+    // (z.B. wenn eine Zelle einzeln neu platziert wird und an ein bestehendes Band anschliesst)
+    for (const { row, col } of pathCells) {
+      const cell = conveyorGrid[row][col];
+
+      if (!cell.entry) {
+        if (conveyorGrid[row]?.[col - 1]?.active && conveyorGrid[row]?.[col - 1]?.exit === 'right') cell.entry = 'left';
+        else if (conveyorGrid[row]?.[col + 1]?.active && conveyorGrid[row]?.[col + 1]?.exit === 'left') cell.entry = 'right';
+        else if (conveyorGrid[row - 1]?.[col]?.active && conveyorGrid[row - 1]?.[col]?.exit === 'down') cell.entry = 'up';
+        else if (conveyorGrid[row + 1]?.[col]?.active && conveyorGrid[row + 1]?.[col]?.exit === 'up') cell.entry = 'down';
+      }
+
+      if (!cell.exit) {
+        if (conveyorGrid[row]?.[col - 1]?.active && conveyorGrid[row]?.[col - 1]?.entry === 'right') cell.exit = 'left';
+        else if (conveyorGrid[row]?.[col + 1]?.active && conveyorGrid[row]?.[col + 1]?.entry === 'left') cell.exit = 'right';
+        else if (conveyorGrid[row - 1]?.[col]?.active && conveyorGrid[row - 1]?.[col]?.entry === 'down') cell.exit = 'up';
+        else if (conveyorGrid[row + 1]?.[col]?.active && conveyorGrid[row + 1]?.[col]?.entry === 'up') cell.exit = 'down';
+      }
+
+      // Fallback: fehlende Richtung als Umkehrung der bekannten setzen (isolierter Start/End)
+      if (!cell.entry && cell.exit === 'up') cell.entry = 'down';
+      else if (!cell.entry && cell.exit === 'down') cell.entry = 'up';
+      else if (!cell.entry && cell.exit === 'left') cell.entry = 'right';
+      else if (!cell.entry && cell.exit === 'right') cell.entry = 'left';
+
+      if (!cell.exit && cell.entry === 'up') cell.exit = 'down';
+      else if (!cell.exit && cell.entry === 'down') cell.exit = 'up';
+      else if (!cell.exit && cell.entry === 'left') cell.exit = 'right';
+      else if (!cell.exit && cell.entry === 'right') cell.exit = 'left';
+
+      // endpoint: false wenn die Ausgangsrichtung auf eine aktive Zelle zeigt
+      if (cell.exit && cell.endpoint) {
+        let nr = row, nc = col;
+        if (cell.exit === 'up') nr--;
+        else if (cell.exit === 'down') nr++;
+        else if (cell.exit === 'left') nc--;
+        else if (cell.exit === 'right') nc++;
+        if (conveyorGrid[nr]?.[nc]?.active) cell.endpoint = false;
+      }
     }
   }
 

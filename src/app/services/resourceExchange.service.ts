@@ -11,6 +11,7 @@ export class ResourceExchangeService {
 
     conveyorResourceChanged$ = new Subject<{ row: number; col: number; resource: string | null }>();
     itemResourceChanged$ = new Subject<{ itemid: string; resource: string | null }>();
+    conveyorJam$ = new Subject<{ row: number; col: number }>();
 
     // prüft, ob neben einem Spawner ein Output liegt, und gibt die itemid des Outputs zurück oder null, wenn kein Output nebenan liegt
     checkAdjacentOutput(
@@ -118,8 +119,10 @@ export class ResourceExchangeService {
             { col: outputCol + 1, row: outputRow, entry: 'left' },
         ];
         for (const n of neighbors) {
-            if (conveyorGrid[n.row]?.[n.col]?.active && conveyorGrid[n.row]?.[n.col]?.entry === n.entry) {
+            if (conveyorGrid[n.row]?.[n.col]?.active && conveyorGrid[n.row]?.[n.col]?.entry === n.entry && conveyorGrid[n.row]?.[n.col]?.resource === null) {
                 return { col: n.col, row: n.row };
+            } else if (conveyorGrid[n.row]?.[n.col]?.active && conveyorGrid[n.row]?.[n.col]?.entry === n.entry && conveyorGrid[n.row]?.[n.col]?.resource !== null) {
+                this.conveyorJam$.next({ row: n.row, col: n.col });
             }
         }
         return null;
@@ -135,17 +138,13 @@ export class ResourceExchangeService {
     ): void {
         if (adjacentOutput) {
             const outputState = itemStates[adjacentOutput.itemid];
-            console.log(`Spawner "${id}" platziert bei (${col}, ${row}). Output "${adjacentOutput.itemid}" nebenan bei (${outputState?.col}, ${outputState?.row})`);
             if (outputState) {
                 const outputItem = items.find(i => i.id === adjacentOutput.itemid);
                 if (outputItem) {
                     outputItem.resource = items.find(i => i.id === id)?.spawningResource ?? null;
-                    console.log(`Ressource "${outputItem.resource}" in Output "${adjacentOutput.itemid}" gespeichert.`);
                     this.itemResourceChanged$.next({ itemid: adjacentOutput.itemid, resource: outputItem.resource });
                 }
             }
-        } else {
-            console.log(`Spawner "${id}" platziert bei (${col}, ${row}). Kein Output nebenan.`);
         }
     }
 
@@ -158,7 +157,6 @@ export class ResourceExchangeService {
         conveyorGrid: ConveyorSegment[][],
     ): void {
         if (adjacentConveyor) {
-            console.log(`Output "${id}" platziert bei (${col}, ${row}). Rollband nebenan bei (${adjacentConveyor.col}, ${adjacentConveyor.row})`);
             const outputItem = items.find(i => i.id === id);
             conveyorGrid[adjacentConveyor.row][adjacentConveyor.col].resource = outputItem?.resource ?? null;
             const resource = conveyorGrid[adjacentConveyor.row][adjacentConveyor.col].resource;
@@ -166,14 +164,11 @@ export class ResourceExchangeService {
                 outputItem.resource = null;
                 this.itemResourceChanged$.next({ itemid: id, resource: null });
             }
-            console.log(`Ressource "${resource}" in Rollband bei (${adjacentConveyor.col}, ${adjacentConveyor.row}) platziert.`);
             this.conveyorResourceChanged$.next({
                 row: adjacentConveyor.row,
                 col: adjacentConveyor.col,
                 resource,
             });
-        } else {
-            console.log(`Output "${id}" platziert bei (${col}, ${row}). Kein Rollband nebenan.`);
         }
     }
 
@@ -196,13 +191,10 @@ export class ResourceExchangeService {
             );
             if (machineItem) {
                 machineItem.resource = inputItem.resource;
-                console.log(`Ressource "${machineItem.resource}" an Maschine "${machineItem.id}" bei (${adjacentMaschine.col}, ${adjacentMaschine.row}) übergeben.`);
                 this.itemResourceChanged$.next({ itemid: machineItem.id, resource: machineItem.resource });
                 inputItem.resource = null;
                 this.itemResourceChanged$.next({ itemid: id, resource: null });
             }
-        } else {
-            console.log(`Input "${id}" bei (${col}, ${row}): keine Maschine nebenan.`);
         }
     }
     onConveyorResourceChanged(
@@ -212,40 +204,41 @@ export class ResourceExchangeService {
         conveyorGrid: ConveyorSegment[][],
         items: DraggableItems[],
         itemStates: Record<string, ItemState>,
-    ): void {
+    ): boolean {
         const cell = conveyorGrid[row]?.[col];
 
-        // 1. Erst prüfen ob Weitergabe an nächstes Rollband möglich (nicht beim Endpoint)
-        if (cell?.active && cell.exit && !cell.endpoint) {
+        // 1. Erst prüfen ob Weitergabe an nächstes Rollband möglich
+        if (cell?.active && cell.exit) {
             const nextCell = this.getNextCellByExit(cell.exit, col, row);
             const next = conveyorGrid[nextCell.row]?.[nextCell.col];
             if (next?.active) {
-                next.resource = resource;
-                console.log(`Ressource "${resource}" weitergegeben an Rollband bei (${nextCell.col}, ${nextCell.row}).`);
-                this.conveyorResourceChanged$.next({ row: nextCell.row, col: nextCell.col, resource });
-                return;
+                if (next.resource === null) {
+                    next.resource = resource;
+                    this.conveyorResourceChanged$.next({ row: nextCell.row, col: nextCell.col, resource });
+                    return true;
+                } else {
+                    this.conveyorJam$.next({ row: nextCell.row, col: nextCell.col });
+                    return false;
+                }
             }
         }
 
-        // 2. Nur am Endpoint prüfen ob Weitergabe an Input möglich
-        if (!cell?.endpoint) return;
+        // 2. Prüfen ob Weitergabe an Input möglich
+        if (!cell) return false;
         const adjacentInput = this.checkAdjacentInput(col, row, items, itemStates);
         if (adjacentInput) {
             const inputState = itemStates[adjacentInput.itemid];
-            console.log(`ressource "${cell.resource}" bei (${col}, ${row}). Input "${adjacentInput.itemid}" nebenan bei (${inputState?.col}, ${inputState?.row})`);
             if (inputState) {
                 const inputItem = items.find(i => i.id === adjacentInput.itemid);
                 if (inputItem) {
                     inputItem.resource = resource;
-                    console.log(`Ressource "${inputItem.resource}" in Input "${adjacentInput.itemid}" gespeichert.`);
                     cell.resource = null;
                     this.conveyorResourceChanged$.next({ row, col, resource: null });
                     this.itemResourceChanged$.next({ itemid: adjacentInput.itemid, resource: inputItem.resource });
                 }
             }
-        } else {
-            console.log(`Rossource "${resource}" platziert bei (${col}, ${row}). Kein Input nebenan.`);
         }
+        return false;
     }
 
     private getNextCellByExit(exit: string, col: number, row: number): { col: number; row: number } {

@@ -1,4 +1,5 @@
 import { ApplicationRef, ComponentRef, createComponent, EnvironmentInjector, Injectable, NgZone } from '@angular/core';
+import { Subscription, timer } from 'rxjs';
 import interact from 'interactjs';
 import { ConveyorSegment } from '../models/conveyorSegment.model';
 import { DraggableItems } from '../models/draggableItem.model';
@@ -26,6 +27,7 @@ export interface DragSetupOptions {
 @Injectable({ providedIn: 'root' })
 export class DragDropManagerService {
   private opts: DragSetupOptions | null = null;
+  private spawnerIntervals = new Map<string, Subscription>();
 
   constructor(
     private ngZone: NgZone,
@@ -45,8 +47,6 @@ export class DragDropManagerService {
 
     interact('.draggable-item').unset();
 
-    const gridRect = getGridRect();
-
     interact(gridElement).dropzone({
       accept: '.draggable-item',
       overlap: 0.5,
@@ -60,11 +60,16 @@ export class DragDropManagerService {
       },
       modifiers: [
         interact.modifiers.snap({
-          targets: [interact.createSnapGrid({
-            x: gridCellSizePx * zoomLevel,
-            y: gridCellSizePx * zoomLevel,
-            offset: { x: gridRect.left % gridCellSizePx, y: gridRect.top % gridCellSizePx },
-          })],
+          targets: [(x: number, y: number) => {
+            const rect = getGridRect();
+            if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+              return null as any;
+            }
+            return {
+              x: Math.round((x - rect.left) / gridCellSizePx) * gridCellSizePx + rect.left,
+              y: Math.round((y - rect.top) / gridCellSizePx) * gridCellSizePx + rect.top,
+            };
+          }],
           relativePoints: [{ x: 0, y: 0 }],
         }),
       ],
@@ -98,8 +103,14 @@ export class DragDropManagerService {
           const currentX = Number(element.getAttribute('data-x') ?? '0');
           const currentY = Number(element.getAttribute('data-y') ?? '0');
           const effectiveZoom = isInGrid ? zoomLevel : 1.0;
-          const nextX = currentX + event.dx / effectiveZoom;
-          const nextY = currentY + event.dy / effectiveZoom;
+          let nextX = currentX + event.dx / effectiveZoom;
+          let nextY = currentY + event.dy / effectiveZoom;
+          if (isInGrid) {
+            const maxX = gridColumns * gridCellSizePx - element.offsetWidth / effectiveZoom;
+            const maxY = gridRowCount * gridCellSizePx - element.offsetHeight / effectiveZoom;
+            nextX = Math.min(nextX, maxX);
+            nextY = Math.min(nextY, maxY);
+          }
           element.style.transform = `translate(${nextX}px, ${nextY}px)`;
           element.setAttribute('data-x', String(nextX));
           element.setAttribute('data-y', String(nextY));
@@ -116,10 +127,20 @@ export class DragDropManagerService {
           const gridContainer = document.getElementById('grid-items-container');
           element.style.zIndex = '';
 
-          const isInGrid = element.classList.contains('can-drop');
+          const hasCanDrop = element.classList.contains('can-drop');
+          const currentGridRect = getGridRect();
+          const viewportEl = gridElement.closest('[data-grid-viewport]') ?? gridElement.parentElement;
+          const viewportRect = viewportEl?.getBoundingClientRect() ?? currentGridRect;
+          const visibleGridBottom = Math.min(currentGridRect.bottom, viewportRect.bottom);
+          const visibleGridRight = Math.min(currentGridRect.right, viewportRect.right);
+          const cursorInGrid = event.clientX >= currentGridRect.left &&
+                               event.clientX <= visibleGridRight &&
+                               event.clientY >= currentGridRect.top &&
+                               event.clientY <= visibleGridBottom;
+          const isInGrid = hasCanDrop && cursorInGrid;
           let overlap = false;
           try {
-            overlap = this.itemManager.isOverlapping(element, conveyorGrid, gridRowCount, gridColumns, gridCellSizePx, getGridRect());
+            overlap = this.itemManager.isOverlapping(element, conveyorGrid, gridRowCount, gridColumns, gridCellSizePx, currentGridRect);
           } catch (_) {}
 
           if (!isInGrid || overlap || !gridContainer) {
@@ -134,6 +155,13 @@ export class DragDropManagerService {
           } else {
             const itemRect = element.getBoundingClientRect();
             const containerRect = gridContainer.getBoundingClientRect();
+            const currentGridRect = getGridRect();
+            const rawRow = (itemRect.top - currentGridRect.top) / zoomLevel / gridCellSizePx;
+            const rawCol = (itemRect.left - currentGridRect.left) / zoomLevel / gridCellSizePx;
+            if (rawRow >= gridRowCount || rawCol >= gridColumns) {
+              this.removePlacedItem(element, element.id);
+              return;
+            }
             let targetCol = Math.max(0, Math.min(Math.round(((itemRect.left - containerRect.left) / zoomLevel) / gridCellSizePx), gridColumns - 1));
             let targetRow = Math.max(0, Math.min(Math.round(((itemRect.top - containerRect.top) / zoomLevel) / gridCellSizePx), gridRowCount - 1));
 
@@ -147,8 +175,15 @@ export class DragDropManagerService {
 
             const placedItem = this.itemManager.clonedItems.find(i => i.id === element.id);
             if (placedItem?.spawningResource) {
-              const adjacentOutput = this.resourceExchangeService.checkAdjacentOutput(targetCol, targetRow, this.itemManager.clonedItems, this.itemManager.itemStates);
-              this.resourceExchangeService.onSpawnerPlaced(element.id, targetCol, targetRow, adjacentOutput, this.itemManager.clonedItems, this.itemManager.itemStates);
+              this.spawnerIntervals.get(element.id)?.unsubscribe();
+              const spawnRate = placedItem.rate ?? 5000;
+              const sub = timer(spawnRate, spawnRate).subscribe(() => {
+                this.ngZone.run(() => {
+                  const adjacentOutput = this.resourceExchangeService.checkAdjacentOutput(targetCol, targetRow, this.itemManager.clonedItems, this.itemManager.itemStates);
+                  this.resourceExchangeService.onSpawnerPlaced(element.id, targetCol, targetRow, adjacentOutput, this.itemManager.clonedItems, this.itemManager.itemStates);
+                });
+              });
+              this.spawnerIntervals.set(element.id, sub);
             }
 
             gridContainer.appendChild(element);
@@ -204,6 +239,7 @@ export class DragDropManagerService {
         size: sourceItem.size || 'large', helpText: sourceItem.helpText || '',
         spawningResource: sourceItem.spawningResource, resource: null,
         input: sourceItem.input, output: sourceItem.output,
+        rate: sourceItem.rate,
       });
       this.itemManager.itemStates[uniqueId] = { col: -1, row: -1, isAtStartPosition: true };
 
@@ -222,6 +258,8 @@ export class DragDropManagerService {
     if (!this.opts) return;
     const { items, gridCellSizePx, conveyorGrid, gridRowCount, gridColumns, detectChanges, postRemove, getGridRect } = this.opts;
 
+    this.spawnerIntervals.get(itemId)?.unsubscribe();
+    this.spawnerIntervals.delete(itemId);
     this.itemManager.removeItem(itemId, items);
     target.remove();
 
