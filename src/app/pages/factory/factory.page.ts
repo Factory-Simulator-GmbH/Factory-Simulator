@@ -1,6 +1,5 @@
 import { AfterViewInit, ChangeDetectorRef, Component, ElementRef, HostListener, NgZone, OnInit, ViewChild } from '@angular/core';
-import { delay, filter, mergeMap, of, take } from 'rxjs';
-import itemsData from '../../../../public/assets/items.json';
+import { delay, filter, mergeMap, of, ReplaySubject, take } from 'rxjs';
 import { PlaygroundGridComponent } from '../../components/playgroundGrid/playgroundGrid.component';
 import { ItemsComponent } from '../../components/items/items.component';
 import { ConveyorSegment } from '../../models/conveyorSegment.model';
@@ -16,6 +15,7 @@ import { ConveyorPainterService } from '../../services/conveyorPainter.service';
 import { DragDropManagerService } from '../../services/dragDropManager.service';
 import { ConnectionEvaluatorService } from '../../services/connectionEvaluator.service';
 import { ItemManagerService } from '../../services/itemManager.service';
+import { GameDataService } from '../../services/game-data.service';
 
 @Component({
   selector: 'app-factory-page',
@@ -37,7 +37,8 @@ export class FactoryPage implements AfterViewInit, OnInit {
   zoomLevel = 1.0;
   isFullscreen = false;
   conveyorGrid: ConveyorSegment[][] = [];
-  items: DraggableItems[] = itemsData as DraggableItems[];
+  items: DraggableItems[] = [];
+  private itemsReady$ = new ReplaySubject<void>(1);
   showFullscreenItemBar = false;
 
   private readonly resourceEmoji: Record<string, string> = { metall: '🔩', kupfer: '🟤', plastik: '🧴' };
@@ -56,11 +57,15 @@ export class FactoryPage implements AfterViewInit, OnInit {
     private dragDrop: DragDropManagerService,
     private connectionEvaluator: ConnectionEvaluatorService,
     public itemManager: ItemManagerService,
+    private gameData: GameDataService,
   ) {}
 
-  ngOnInit(): void {
+  async ngOnInit(): Promise<void> {
     this.updateGridCellSize();
     this.calculateColumnsAndCreateGrid();
+
+    this.items = await this.gameData.loadItems();
+    this.itemsReady$.next();
 
     this.resourceExchangeService.conveyorJam$.subscribe(({ row, col }: { row: number; col: number }) => {
       this.resourceExchangeService.conveyorResourceChanged$.pipe(
@@ -146,13 +151,15 @@ export class FactoryPage implements AfterViewInit, OnInit {
   }
 
   ngAfterViewInit(): void {
-    setTimeout(() => requestAnimationFrame(() => requestAnimationFrame(() => {
-      void this.playgroundGrid.gridTableRef.nativeElement.getBoundingClientRect();
-      this.itemManager.captureBasePositions([...this.items, ...this.itemManager.clonedItems], this.getGridRect());
-      this.itemManager.initializeStates(this.items);
-      this.setupInteractDragging();
-      this.updateMinimap();
-    })), 100);
+    this.itemsReady$.pipe(take(1)).subscribe(() => {
+      setTimeout(() => requestAnimationFrame(() => requestAnimationFrame(() => {
+        void this.playgroundGrid.gridTableRef.nativeElement.getBoundingClientRect();
+        this.itemManager.captureBasePositions([...this.items, ...this.itemManager.clonedItems], this.getGridRect());
+        this.itemManager.initializeStates(this.items);
+        this.setupInteractDragging();
+        this.updateMinimap();
+      })), 100);
+    });
   }
 
   // ── Grid helpers ──────────────────────────────────────────────────────────
