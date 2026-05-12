@@ -12,6 +12,7 @@ import {TitleCasePipe} from '@angular/common';
 })
 export class ItemsComponent implements OnInit {
   @Input({required: true}) items!: DraggableItems[];
+  @Input({required: true}) simpleMode!: boolean;
   @Input({required: true}) activeDraggedItemId!: string | null;
   @Input({required: true}) getItemSizePx!: (size: ItemSize) => number;
   @Input({required: true}) isDraggingItem!: boolean;
