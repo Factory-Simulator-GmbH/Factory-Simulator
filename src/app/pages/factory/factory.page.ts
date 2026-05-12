@@ -1,4 +1,4 @@
-import { AfterViewInit, ChangeDetectorRef, Component, ElementRef, HostListener, NgZone, OnInit, ViewChild } from '@angular/core';
+import { AfterViewInit, ChangeDetectorRef, Component, ElementRef, HostListener, OnInit, ViewChild } from '@angular/core';
 import { delay, filter, mergeMap, of } from 'rxjs';
 import itemsData from '../../../../public/assets/items.json';
 import { PlaygroundGridComponent } from '../../components/playgroundGrid/playgroundGrid.component';
@@ -38,7 +38,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
   isFullscreen = false;
   conveyorGrid: ConveyorSegment[][] = [];
   items: DraggableItems[] = itemsData as DraggableItems[];
-  showFullscreenItemBar = true;
+  showFullscreenItemBar = false;
 
   private readonly resourceEmoji: Record<string, string> = { metall: '🔩', kupfer: '🟤', plastik: '🧴' };
 
