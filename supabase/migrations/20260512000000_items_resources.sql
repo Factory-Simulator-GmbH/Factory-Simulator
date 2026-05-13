@@ -13,9 +13,9 @@ create table public.items (
 );
 
 insert into public.items (id, type, label, size, help_text, spawning_resource, rate) values
-  ('Spawner1', 'spawner', 'Metall Spawner',  'large', '<strong>Spawner</strong><br>Erzeugt neue Ressourcen (Metall).',  'metall',  1000),
-  ('Spawner2', 'spawner', 'Kupfer Spawner',  'large', '<strong>Spawner</strong><br>Erzeugt neue Ressourcen (Kupfer).',  'kupfer',  7000),
-  ('Spawner3', 'spawner', 'Plastik Spawner', 'large', '<strong>Spawner</strong><br>Erzeugt neue Ressourcen (Plastik).', 'plastik', 10000);
+  ('Spawner1', 'spawner', 'Metall Spawner',  'large', '<strong>Metall Spawner</strong><br>Erzeugt in regelmässigen Abständen neues Metall.',  'metall',  1000),
+  ('Spawner2', 'spawner', 'Kupfer Spawner',  'large', '<strong>Kupfer Spawner</strong><br>Erzeugt in regelmässigen Abständen neues Kupfer.',  'kupfer',  7000),
+  ('Spawner3', 'spawner', 'Plastik Spawner', 'large', '<strong>Plastik Spawner</strong><br>Erzeugt in regelmässigen Abständen neues Plastik.', 'plastik', 10000);
 
 insert into public.items (id, type, label, size, help_text, input, output) values
   ('maschine1', 'machine', 'Metallpresse',          'large', '<strong>Metallpresse – Maschine</strong><br>Verarbeitet Metall zu Gehäusen.<br>Benötigt mindestens eine Input- und eine Output-Seite.<br><strong>Rezept:</strong><br><p>5x Metall → 1x Gehäuse</p>',                                '{"metall": 5}',                 'gehäuse'),
@@ -26,7 +26,7 @@ insert into public.items (id, type, label, size, help_text, input, output) value
 
 insert into public.items (id, type, label, size, help_text, max_available_count) values
   ('input',  'input',  'Input',  'small', '<strong>Input-Modul</strong><br>Schnittstelle für den Ressourcen-Austausch zwischen Förderbändern und Maschinen.',  5),
-  ('output', 'output', 'Output', 'small', '<strong>Output-Modul</strong><br>Schnittstelle für den Ressourcen-Austausch zwischen Förderbändern und Maschinen.', 7);
+  ('output', 'output', 'Output', 'small', '<strong>Output-Modul</strong><br>Schnittstelle für den Ressourcen-Austausch zwischen Spawnern/Maschinen und Förderbändern.', 7);
 
 -- Resources
 create table public.resources (
