@@ -33,7 +33,7 @@
         [class.relative]="activeDraggedItemId === item.id"
         [class.z-50]="activeDraggedItemId === item.id"
         [class.not-available]="!isAvailable(item.id)"
-        [class.hidden]="activeFilter !== null && item.type !== activeFilter"
+        [class.hidden]="activeFilter !== null && item.type !== activeFilter && !simpleMode"
         [style.width.px]="getItemSizePx(item.size)"
         [style.height.px]="getItemSizePx(item.size)"
         [style.font-size]="'clamp(14px, ' + getItemSizePx(item.size) * 0.12 + 'px, 9999px)'"
