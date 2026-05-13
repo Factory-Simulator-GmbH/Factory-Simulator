@@ -1,6 +1,6 @@
 import { AfterViewInit, ChangeDetectorRef, Component, ElementRef, HostListener, NgZone, OnInit, signal, ViewChild } from '@angular/core';
 import { DatePipe, NgClass } from '@angular/common';
-import { debounceTime, delay, filter, mergeMap, of, ReplaySubject, Subject, take } from 'rxjs';
+import { delay, filter, mergeMap, of, ReplaySubject, take } from 'rxjs';
 import { FormsModule } from '@angular/forms';
 import { PlaygroundGridComponent } from '../../components/playgroundGrid/playgroundGrid.component';
 import { ItemsComponent } from '../../components/items/items.component';
@@ -51,7 +51,6 @@ export class FactoryPage implements AfterViewInit, OnInit {
   activeLayoutId: string | null = null;
   activeLayoutName = '';
   isDirty = false;
-  autoSaveEnabled = false;
   showSavePopover = false;
   savePopoverName = '';
   layoutSaving = false;
@@ -66,9 +65,9 @@ export class FactoryPage implements AfterViewInit, OnInit {
   confirmDeleteId: string | null = null;
   pendingSwitchLayout: SavedLayout | null = null;
   discardHolding = false;
+  resetHolding = false;
   private discardHoldTimer: ReturnType<typeof setTimeout> | null = null;
-
-  private readonly markDirty$ = new Subject<void>();
+  private resetHoldTimer: ReturnType<typeof setTimeout> | null = null;
 
   private readonly resourceEmoji: Record<string, string> = { metall: '🔩', kupfer: '🟤', plastik: '🧴' };
 
@@ -96,9 +95,6 @@ export class FactoryPage implements AfterViewInit, OnInit {
     this.updateGridCellSize();
     this.calculateColumnsAndCreateGrid();
 
-    this.markDirty$.pipe(debounceTime(4000)).subscribe(() => {
-      if (this.autoSaveEnabled && this.activeLayoutId && this.isDirty) this.performAutoSave();
-    });
 
     this.items = this.route.snapshot.data['items'];
     this.itemsReady$.next();
@@ -336,7 +332,6 @@ export class FactoryPage implements AfterViewInit, OnInit {
       this.isDirty = true;
       this.cdr.detectChanges();
     }
-    this.markDirty$.next();
   }
 
   // ── Toolbar: save button ─────────────────────────────────────────────────
@@ -389,17 +384,6 @@ export class FactoryPage implements AfterViewInit, OnInit {
         this.cdr.detectChanges();
       });
     }
-  }
-
-  private async performAutoSave(): Promise<void> {
-    if (!this.activeLayoutId || !this.isDirty) return;
-    try {
-      await this.factoryLayoutService.overwriteLayout(this.activeLayoutId, this.buildLayoutSnapshot());
-      this.ngZone.run(() => {
-        this.isDirty = false;
-        this.cdr.detectChanges();
-      });
-    } catch { /* silent */ }
   }
 
   // ── Layouts modal (load / switch / delete / reset) ────────────────────────
@@ -490,6 +474,27 @@ export class FactoryPage implements AfterViewInit, OnInit {
     if (this.discardHoldTimer) {
       clearTimeout(this.discardHoldTimer);
       this.discardHoldTimer = null;
+    }
+    this.cdr.detectChanges();
+  }
+
+  onResetHoldStart(event: Event): void {
+    event.preventDefault();
+    if (this.resetHoldTimer) return;
+    this.resetHolding = true;
+    this.cdr.detectChanges();
+    this.resetHoldTimer = setTimeout(() => {
+      this.resetHoldTimer = null;
+      this.resetHolding = false;
+      this.resetFactory();
+    }, 1000);
+  }
+
+  onResetHoldEnd(): void {
+    this.resetHolding = false;
+    if (this.resetHoldTimer) {
+      clearTimeout(this.resetHoldTimer);
+      this.resetHoldTimer = null;
     }
     this.cdr.detectChanges();
   }

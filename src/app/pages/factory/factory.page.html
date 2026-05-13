@@ -177,17 +177,28 @@
                 </button>
 
                 @if (confirmResetOpen) {
-                  <div class="fixed inset-0 z-[70]" (click)="confirmResetOpen = false"></div>
+                  <div class="fixed inset-0 z-[70]" (click)="confirmResetOpen = false; onResetHoldEnd()"></div>
                   <div class="absolute top-full mt-2 right-0 z-[80] w-56
                               bg-slate-800 border border-white/10 rounded-xl shadow-xl p-3 space-y-2"
                        (click)="$event.stopPropagation()">
                     <p class="text-sm text-white">Fabrik zurücksetzen?</p>
                     <div class="flex gap-2">
-                      <button (click)="resetFactory()"
-                              class="flex-1 py-1.5 rounded text-sm bg-white/10 hover:bg-red-500/20 hover:border-red-500/30 hover:text-red-200 text-white border border-white/10 cursor-pointer transition-colors">
-                        Ja
+                      <button (mousedown)="onResetHoldStart($event)"
+                              (mouseup)="onResetHoldEnd()"
+                              (mouseleave)="onResetHoldEnd()"
+                              (touchstart)="onResetHoldStart($event)"
+                              (touchend)="onResetHoldEnd()"
+                              (touchcancel)="onResetHoldEnd()"
+                              class="relative flex-1 py-1.5 rounded text-sm overflow-hidden
+                                     bg-white/10 hover:bg-white/15 text-white border border-white/10
+                                     cursor-pointer transition-colors select-none">
+                        <span class="absolute inset-y-0 left-0 bg-red-500/35 ease-linear"
+                              [style.width]="resetHolding ? '100%' : '0%'"
+                              [style.transitionProperty]="'width'"
+                              [style.transitionDuration]="resetHolding ? '1000ms' : '180ms'"></span>
+                        <span class="relative">Ja</span>
                       </button>
-                      <button (click)="confirmResetOpen = false"
+                      <button (click)="confirmResetOpen = false; onResetHoldEnd()"
                               class="flex-1 py-1.5 rounded text-sm hover:bg-white/5 text-white/60 cursor-pointer">
                         Nein
                       </button>
@@ -224,22 +235,6 @@
                     </button>
 
                     <div class="mx-3 h-px bg-white/8"></div>
-
-                    <!-- Auto-Save (nur wenn aktiver Spielstand) -->
-                    @if (activeLayoutId) {
-                      <button (click)="autoSaveEnabled = !autoSaveEnabled; $event.stopPropagation()"
-                              class="w-full group flex items-center justify-between px-3.5 py-2.5 rounded-xl
-                                     hover:bg-white/5 active:bg-white/10 active:scale-[0.98]
-                                     transition-all duration-150 cursor-pointer">
-                        <span class="text-sm font-medium text-white/50 group-hover:text-white transition-colors duration-150">Auto-Save</span>
-                        <div class="w-9 h-5 rounded-full transition-all duration-200 flex items-center px-0.5 flex-none"
-                             [class]="autoSaveEnabled ? 'bg-sky-500' : 'bg-white/15'">
-                          <div class="w-4 h-4 rounded-full bg-white shadow transition-all duration-200"
-                               [class]="autoSaveEnabled ? 'translate-x-4' : 'translate-x-0'"></div>
-                        </div>
-                      </button>
-                      <div class="mx-3 h-px bg-white/8"></div>
-                    }
 
                     <!-- Toggle Item Tipps -->
                     <button (click)="menu.toggleItemTooltips(); $event.stopPropagation()"
