@@ -68,6 +68,8 @@ export class FactoryPage implements AfterViewInit, OnInit {
         if (moved) {
           this.conveyorGrid[row][col].resource = null;
           this.resourceExchangeService.conveyorResourceChanged$.next({ row, col, resource: null });
+        } else if (this.conveyorGrid[row][col]?.resource !== null) {
+          this.resourceExchangeService.conveyorResourceChanged$.next({ row, col, resource });
         }
         this.cdr.detectChanges();
       });
