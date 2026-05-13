@@ -124,6 +124,21 @@ export class ConveyorGridService {
         if (conveyorGrid[nr]?.[nc]?.active) cell.endpoint = false;
       }
     }
+
+    // Nachbar-Zellen außerhalb von pathCells aktualisieren: wenn eine neu gemalte Zelle
+    // an eine bestehende Endpoint-Zelle angrenzt, muss deren endpoint-Flag gecleart werden
+    for (const { row, col } of pathCells) {
+      for (const { dr, dc } of [{ dr: -1, dc: 0 }, { dr: 1, dc: 0 }, { dr: 0, dc: -1 }, { dr: 0, dc: 1 }]) {
+        const neighbor = conveyorGrid[row + dr]?.[col + dc];
+        if (!neighbor?.active || !neighbor.endpoint || !neighbor.exit) continue;
+        let nr = row + dr, nc = col + dc;
+        if (neighbor.exit === 'up') nr--;
+        else if (neighbor.exit === 'down') nr++;
+        else if (neighbor.exit === 'left') nc--;
+        else if (neighbor.exit === 'right') nc++;
+        if (conveyorGrid[nr]?.[nc]?.active) neighbor.endpoint = false;
+      }
+    }
   }
 
   getExitDirection(

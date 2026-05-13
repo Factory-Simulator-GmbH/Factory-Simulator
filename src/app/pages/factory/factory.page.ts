@@ -221,11 +221,32 @@ export class FactoryPage implements AfterViewInit, OnInit {
 
   @HostListener('document:mouseup')
   onDocumentMouseUp(): void {
+    const wasPainting = this.interaction.paintMode === 'on';
     this.interaction.resetInteractions();
     this.connectionEvaluator.evaluate(
       this.conveyorGrid, this.itemManager.clonedItems, this.itemManager.itemStates,
       this.gridRowCount, this.gridColumns, this.getItemSizePx, this.gridCellSizePx,
     );
+    if (wasPainting) {
+      this.retriggerStuckConveyorResources();
+    }
+  }
+
+  private retriggerStuckConveyorResources(): void {
+    for (let row = 0; row < this.gridRowCount; row++) {
+      for (let col = 0; col < this.gridColumns; col++) {
+        const cell = this.conveyorGrid[row]?.[col];
+        if (!cell?.active || !cell.resource || !cell.exit) continue;
+        let nr = row, nc = col;
+        if (cell.exit === 'up') nr--;
+        else if (cell.exit === 'down') nr++;
+        else if (cell.exit === 'left') nc--;
+        else if (cell.exit === 'right') nc++;
+        if (this.conveyorGrid[nr]?.[nc]?.active) {
+          this.resourceExchangeService.conveyorResourceChanged$.next({ row, col, resource: cell.resource });
+        }
+      }
+    }
   }
 
   @HostListener('window:blur')
