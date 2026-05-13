@@ -1,0 +1,38 @@
+<div class="relative min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-800 text-white flex flex-col items-center justify-center text-center px-6 py-24 overflow-hidden gap-10">
+
+  <div class="absolute inset-0 home-bg-grid pointer-events-none opacity-60"></div>
+  <div class="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-white/5 rounded-full blur-3xl pointer-events-none home-pulse-glow"></div>
+
+  <div class="relative flex flex-col items-center gap-10">
+
+    <img src="/favicon.png" alt="Logo" class="w-20 h-20" />
+
+    <h1 class="text-6xl font-extrabold tracking-tight">Factory Simulator</h1>
+
+    <div class="flex flex-col gap-5 max-w-md text-slate-400">
+      <p>
+        Baue deine eigene Fabrik von Grund auf. Platziere Maschinen, zeichne Förderbänder
+        und verbinde alles zu einer reibungslosen Produktionskette.
+      </p>
+      <p>
+        Starte mit einfachen Rohstoffen wie Metall, Kupfer und Plastik und verarbeite sie
+        über mehrere Produktionsstufen zu immer komplexeren Produkten.
+      </p>
+      <p>
+        Am Ende deiner Kette warten Leiterplatten, Kabel, Elektronik und schließlich
+        ein fertig montierter PC.
+      </p>
+    </div>
+
+    <svg class="w-5 h-10 text-slate-500" viewBox="0 0 24 48" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 0 L12 34 M5 26 L12 36 L19 26" />
+    </svg>
+
+    <a routerLink="/auth"
+       class="px-8 py-3.5 bg-white text-slate-950 font-semibold rounded-xl transition-all duration-300 hover:scale-105 hover:shadow-[0_0_30px_rgba(255,255,255,0.2)]">
+      Loslegen
+    </a>
+
+  </div>
+
+</div>
