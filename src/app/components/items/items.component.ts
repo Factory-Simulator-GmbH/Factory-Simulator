@@ -1,4 +1,4 @@
-import {Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
+import {Component, EventEmitter, Input, OnChanges, Output, SimpleChanges} from '@angular/core';
 import {DraggableItems, ItemSize} from '../../models/draggableItem.model';
 import {TooltipDirective} from '../../directives/tooltip.directive';
 import {TitleCasePipe} from '@angular/common';
@@ -10,7 +10,7 @@ import {TitleCasePipe} from '@angular/common';
   templateUrl: './items.component.html',
   styleUrl: './items.component.scss'
 })
-export class ItemsComponent implements OnInit {
+export class ItemsComponent implements OnChanges {
   @Input({required: true}) items!: DraggableItems[];
   @Input({required: true}) simpleMode!: boolean;
   @Input({required: true}) activeDraggedItemId!: string | null;
@@ -23,7 +23,13 @@ export class ItemsComponent implements OnInit {
   filters: string[] = [];
   activeFilter: string | null = null;
 
-  ngOnInit(): void {
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['items'] && this.items?.length) {
+      this.createFilters();
+    }
+  }
+
+  private createFilters() {
     for (let item of this.items) {
       if (!this.filters.includes(item.type)) {
         this.filters.push(item.type);
@@ -45,6 +51,5 @@ export class ItemsComponent implements OnInit {
     } else {
       this.activeFilter = filter;
     }
-    console.log(this.activeFilter)
   }
 }
