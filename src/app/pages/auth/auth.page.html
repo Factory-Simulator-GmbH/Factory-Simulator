@@ -11,15 +11,6 @@
       <div class="flex flex-col gap-3">
         <div class="flex gap-4 border-b border-white/10">
           <button
-            (click)="mode.set('signup')"
-            class="pb-2 text-sm font-medium transition-colors"
-            [class.text-white]="mode() === 'signup'"
-            [class.border-b-2]="mode() === 'signup'"
-            [class.border-white]="mode() === 'signup'"
-            [class.text-slate-500]="mode() !== 'signup'">
-            Registrieren
-          </button>
-          <button
             (click)="mode.set('login')"
             class="pb-2 text-sm font-medium transition-colors"
             [class.text-white]="mode() === 'login'"
@@ -27,6 +18,15 @@
             [class.border-white]="mode() === 'login'"
             [class.text-slate-500]="mode() !== 'login'">
             Anmelden
+          </button>
+          <button
+            (click)="mode.set('signup')"
+            class="pb-2 text-sm font-medium transition-colors"
+            [class.text-white]="mode() === 'signup'"
+            [class.border-b-2]="mode() === 'signup'"
+            [class.border-white]="mode() === 'signup'"
+            [class.text-slate-500]="mode() !== 'signup'">
+            Registrieren
           </button>
         </div>
         <div class="mt-2">

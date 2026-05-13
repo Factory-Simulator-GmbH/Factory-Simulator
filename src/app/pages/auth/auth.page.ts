@@ -10,7 +10,7 @@ import {AuthService} from '../../services/auth.service';
   templateUrl: './auth.page.html',
 })
 export class AuthPage {
-  mode = signal<'login' | 'signup'>('signup');
+  mode = signal<'login' | 'signup'>('login');
   username = '';
   password = '';
   showPassword = signal(false);
@@ -44,7 +44,7 @@ export class AuthPage {
     route: ActivatedRoute,
   ) {
     route.queryParams.subscribe(params => {
-      this.mode.set(params['mode'] === 'login' ? 'login' : 'signup');
+      this.mode.set(params['mode'] === 'signup' ? 'signup' : 'login');
     });
   }
 
