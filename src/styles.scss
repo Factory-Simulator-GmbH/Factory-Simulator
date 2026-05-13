@@ -37,6 +37,86 @@ html, body {
   animation: fadeInUp 0.2s ease-out forwards;
 }
 
+@keyframes homeHeroSlide {
+  to { transform: translateY(0); }
+}
+
+@keyframes homePopUp {
+  from { opacity: 0; transform: scale(0.85) translateY(8px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes drawArrow {
+  0%   { stroke-dashoffset: 120; opacity: 0; }
+  10%  { opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 1; }
+}
+
+.home-hero-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+  transform: translateY(20vh);
+  transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+  &.home-hero-up { transform: translateY(0); }
+}
+
+.home-pop-up {
+  opacity: 0;
+  animation: homePopUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.home-draw-arrow {
+  stroke-dasharray: 120;
+  stroke-dashoffset: 120;
+  opacity: 0;
+  animation: drawArrow 0.4s ease forwards;
+}
+
+.home-delay-4 { animation-delay: 0.8s; }
+.home-delay-5 { animation-delay: 1.2s; }
+.home-delay-6 { animation-delay: 1.5s; }
+@keyframes homeFadeInUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes homeFloat {
+  0%, 100% { transform: translateY(0) rotate(-3deg); }
+  50%       { transform: translateY(-10px) rotate(3deg); }
+}
+
+@keyframes homeGridMove {
+  from { transform: translate(0, 0); }
+  to   { transform: translate(40px, 40px); }
+}
+
+@keyframes homePulseGlow {
+  0%, 100% { opacity: 0.4; }
+  50%       { opacity: 0.7; }
+}
+
+.home-fade-in-up {
+  opacity: 0;
+  animation: homeFadeInUp 0.7s ease forwards;
+}
+
+.home-float { animation: homeFloat 4s ease-in-out infinite, homeFadeInUp 0.7s ease forwards; }
+.home-pulse-glow { animation: homePulseGlow 3s ease-in-out infinite; }
+
+.home-delay-1 { animation-delay: 0.1s; }
+.home-delay-2 { animation-delay: 0.25s; }
+.home-delay-3 { animation-delay: 0.45s; }
+
+.home-bg-grid {
+  background-image:
+    linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  animation: homeGridMove 4s linear infinite;
+}
+
 @keyframes helpSlideInRight {
   from { opacity: 0; transform: translateX(40px); }
   to   { opacity: 1; transform: translateX(0); }

@@ -1,4 +1,4 @@
-import { AfterViewInit, ChangeDetectorRef, Component, ElementRef, HostListener, NgZone, OnInit, ViewChild } from '@angular/core';
+import { AfterViewInit, ChangeDetectorRef, Component, ElementRef, HostListener, NgZone, OnInit, signal, ViewChild } from '@angular/core';
 import { delay, filter, mergeMap, of, ReplaySubject, take } from 'rxjs';
 import { PlaygroundGridComponent } from '../../components/playgroundGrid/playgroundGrid.component';
 import { ItemsComponent } from '../../components/items/items.component';
@@ -15,7 +15,8 @@ import { ConveyorPainterService } from '../../services/conveyorPainter.service';
 import { DragDropManagerService } from '../../services/dragDropManager.service';
 import { ConnectionEvaluatorService } from '../../services/connectionEvaluator.service';
 import { ItemManagerService } from '../../services/itemManager.service';
-import { GameDataService } from '../../services/game-data.service';
+import { AuthService } from '../../services/auth.service';
+import { ActivatedRoute } from '@angular/router';
 
 @Component({
   selector: 'app-factory-page',
@@ -30,6 +31,8 @@ export class FactoryPage implements AfterViewInit, OnInit {
   @ViewChild('minimapContent') minimapContentRef!: ElementRef<HTMLElement>;
 
   // Grid state (used by template)
+  dropdownOpen = signal(false);
+
   readonly gridCellSizeVw = 2.5;
   gridCellSizePx = 0;
   readonly gridRowCount = 30;
@@ -57,14 +60,15 @@ export class FactoryPage implements AfterViewInit, OnInit {
     private dragDrop: DragDropManagerService,
     private connectionEvaluator: ConnectionEvaluatorService,
     public itemManager: ItemManagerService,
-    private gameData: GameDataService,
+    public auth: AuthService,
+    private route: ActivatedRoute,
   ) {}
 
-  async ngOnInit(): Promise<void> {
+  ngOnInit(): void {
     this.updateGridCellSize();
     this.calculateColumnsAndCreateGrid();
 
-    this.items = await this.gameData.loadItems();
+    this.items = this.route.snapshot.data['items'];
     this.itemsReady$.next();
 
     this.resourceExchangeService.conveyorJam$.subscribe(({ row, col }: { row: number; col: number }) => {
