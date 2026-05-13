@@ -22,6 +22,7 @@ export interface DragSetupOptions {
   items: DraggableItems[];               // reference — mutations visible
   detectChanges: () => void;
   postRemove: () => void;                // re-runs setupInteractDragging after item deletion
+  onLayoutChange?: () => void;           // fires when items are placed/moved/removed
 }
 
 @Injectable({ providedIn: 'root' })
@@ -188,6 +189,7 @@ export class DragDropManagerService {
 
             gridContainer.appendChild(element);
             this.factoryItemsService.placeItemInGrid(element, targetCol * gridCellSizePx, targetRow * gridCellSizePx);
+            this.opts?.onLayoutChange?.();
           }
 
           this.connectionEvaluator.evaluate(
@@ -254,6 +256,80 @@ export class DragDropManagerService {
     });
   }
 
+  placeItemAt(sourceItem: DraggableItems, col: number, row: number, items: DraggableItems[]): void {
+    if (!this.opts) return;
+    const { gridCellSizePx, conveyorGrid, gridRowCount, gridColumns, detectChanges } = this.opts;
+
+    const uniqueId = `${sourceItem.id}-clone-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const componentRef = createComponent(DraggableItemComponent, { environmentInjector: this.envInjector });
+    componentRef.instance.item = sourceItem;
+    componentRef.instance.itemId = uniqueId;
+    componentRef.instance.sizePx = this.layoutService.getItemSizePx(sourceItem.size, gridCellSizePx);
+
+    const hostEl = componentRef.location.nativeElement as HTMLElement;
+    document.body.appendChild(hostEl);
+    this.appRef.attachView(componentRef.hostView);
+    componentRef.changeDetectorRef.detectChanges();
+
+    const innerDiv = hostEl.querySelector('.draggable-item') as HTMLElement;
+    document.body.appendChild(innerDiv);
+    hostEl.remove();
+
+    innerDiv.setAttribute('data-item-id', uniqueId);
+    innerDiv.setAttribute('id', uniqueId);
+
+    const sourceItemRef = items.find(i => i.label === sourceItem.label);
+    if (sourceItemRef) {
+      sourceItemRef.currentAvailableCount = (sourceItemRef.currentAvailableCount ?? sourceItemRef.maxAvailableCount ?? 1) - 1;
+    }
+
+    this.itemManager.componentRefs.set(uniqueId, componentRef);
+    this.itemManager.clonedItems.push({
+      id: uniqueId, type: sourceItem.type || '', label: sourceItem.label || '',
+      size: sourceItem.size || 'large', helpText: sourceItem.helpText || '',
+      spawningResource: sourceItem.spawningResource, resource: null,
+      input: sourceItem.input, output: sourceItem.output,
+      rate: sourceItem.rate,
+    });
+    this.itemManager.itemStates[uniqueId] = { col, row, isAtStartPosition: false };
+
+    if (sourceItem.spawningResource) {
+      this.spawnerIntervals.get(uniqueId)?.unsubscribe();
+      const spawnRate = sourceItem.rate ?? 5000;
+      const sub = timer(spawnRate, spawnRate).subscribe(() => {
+        this.ngZone.run(() => {
+          const adjacentOutput = this.resourceExchangeService.checkAdjacentOutput(col, row, this.itemManager.clonedItems, this.itemManager.itemStates);
+          this.resourceExchangeService.onSpawnerPlaced(uniqueId, col, row, adjacentOutput, this.itemManager.clonedItems, this.itemManager.itemStates);
+        });
+      });
+      this.spawnerIntervals.set(uniqueId, sub);
+    }
+
+    const gridContainer = document.getElementById('grid-items-container');
+    if (gridContainer) {
+      gridContainer.appendChild(innerDiv);
+      this.factoryItemsService.placeItemInGrid(innerDiv, col * gridCellSizePx, row * gridCellSizePx);
+    }
+
+    this.connectionEvaluator.evaluate(
+      conveyorGrid, this.itemManager.clonedItems,
+      this.itemManager.itemStates, gridRowCount, gridColumns,
+      (size) => this.layoutService.getItemSizePx(size, gridCellSizePx), gridCellSizePx,
+    );
+    detectChanges();
+  }
+
+  clearAllItems(items: DraggableItems[]): void {
+    const ids = this.itemManager.clonedItems.map(i => i.id);
+    for (const id of ids) {
+      this.spawnerIntervals.get(id)?.unsubscribe();
+      this.spawnerIntervals.delete(id);
+      const el = document.getElementById(id);
+      if (el) el.remove();
+      this.itemManager.removeItem(id, items);
+    }
+  }
+
   removePlacedItem(target: HTMLElement, itemId: string): void {
     if (!this.opts) return;
     const { items, gridCellSizePx, conveyorGrid, gridRowCount, gridColumns, detectChanges, postRemove, getGridRect } = this.opts;
@@ -262,6 +338,7 @@ export class DragDropManagerService {
     this.spawnerIntervals.delete(itemId);
     this.itemManager.removeItem(itemId, items);
     target.remove();
+    this.opts.onLayoutChange?.();
 
     this.connectionEvaluator.evaluate(
       conveyorGrid, this.itemManager.clonedItems,

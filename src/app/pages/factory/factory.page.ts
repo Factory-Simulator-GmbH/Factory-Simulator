@@ -1,5 +1,7 @@
 import { AfterViewInit, ChangeDetectorRef, Component, ElementRef, HostListener, NgZone, OnInit, signal, ViewChild } from '@angular/core';
-import { delay, filter, mergeMap, of, ReplaySubject, take } from 'rxjs';
+import { DatePipe, NgClass } from '@angular/common';
+import { debounceTime, delay, filter, mergeMap, of, ReplaySubject, Subject, take } from 'rxjs';
+import { FormsModule } from '@angular/forms';
 import { PlaygroundGridComponent } from '../../components/playgroundGrid/playgroundGrid.component';
 import { ItemsComponent } from '../../components/items/items.component';
 import { ConveyorSegment } from '../../models/conveyorSegment.model';
@@ -17,11 +19,12 @@ import { ConnectionEvaluatorService } from '../../services/connectionEvaluator.s
 import { ItemManagerService } from '../../services/itemManager.service';
 import { AuthService } from '../../services/auth.service';
 import { ActivatedRoute } from '@angular/router';
+import { FactoryLayoutService, SavedLayout } from '../../services/factoryLayout.service';
 
 @Component({
   selector: 'app-factory-page',
   standalone: true,
-  imports: [PlaygroundGridComponent, ItemsComponent],
+  imports: [PlaygroundGridComponent, ItemsComponent, FormsModule, DatePipe, NgClass],
   templateUrl: './factory.page.html',
   styleUrl: './factory.page.scss'
 })
@@ -44,10 +47,34 @@ export class FactoryPage implements AfterViewInit, OnInit {
   private itemsReady$ = new ReplaySubject<void>(1);
   showFullscreenItemBar = false;
 
+  // Active layout (toolbar)
+  activeLayoutId: string | null = null;
+  activeLayoutName = '';
+  isDirty = false;
+  autoSaveEnabled = false;
+  showSavePopover = false;
+  savePopoverName = '';
+  layoutSaving = false;
+
+  // Layouts dropdown (load / delete / reset)
+  showLayoutsDropdown = false;
+  savedLayouts: SavedLayout[] = [];
+  layoutsLoading = false;
+  layoutLoadingId: string | null = null;
+  layoutError = '';
+  confirmResetOpen = false;
+  confirmDeleteId: string | null = null;
+  pendingSwitchLayout: SavedLayout | null = null;
+  discardHolding = false;
+  private discardHoldTimer: ReturnType<typeof setTimeout> | null = null;
+
+  private readonly markDirty$ = new Subject<void>();
+
   private readonly resourceEmoji: Record<string, string> = { metall: '🔩', kupfer: '🟤', plastik: '🧴' };
 
   constructor(
     private cdr: ChangeDetectorRef,
+    private ngZone: NgZone,
     private factoryGridService: FactoryGridService,
     private factoryItemsService: FactoryItemsService,
     private layoutService: LayoutService,
@@ -62,11 +89,16 @@ export class FactoryPage implements AfterViewInit, OnInit {
     public itemManager: ItemManagerService,
     public auth: AuthService,
     private route: ActivatedRoute,
+    private factoryLayoutService: FactoryLayoutService,
   ) {}
 
   ngOnInit(): void {
     this.updateGridCellSize();
     this.calculateColumnsAndCreateGrid();
+
+    this.markDirty$.pipe(debounceTime(4000)).subscribe(() => {
+      if (this.autoSaveEnabled && this.activeLayoutId && this.isDirty) this.performAutoSave();
+    });
 
     this.items = this.route.snapshot.data['items'];
     this.itemsReady$.next();
@@ -244,7 +276,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
   onContextMenu(event: MouseEvent): void {
     event.preventDefault();
     const itemEl = (event.target as HTMLElement)?.closest('.draggable-item') as HTMLElement | null;
-    if (itemEl) { this.dragDrop.removePlacedItem(itemEl, itemEl.id); }
+    if (itemEl) { this.dragDrop.removePlacedItem(itemEl, itemEl.id); this.markDirty(); }
   }
 
   onCellMouseDown(event: MouseEvent, rowIndex: number, colIndex: number): void {
@@ -252,11 +284,13 @@ export class FactoryPage implements AfterViewInit, OnInit {
     event.preventDefault();
     this.interaction.mousePressed = true;
     this.painter.startPainting(this.conveyorGrid, rowIndex, colIndex, event.button === 2 ? 'off' : 'on');
+    this.markDirty();
   }
 
   onCellMouseEnter(rowIndex: number, colIndex: number): void {
     if (!this.interaction.mousePressed || this.interaction.isDraggingItem) return;
     this.painter.continuePainting(this.conveyorGrid, rowIndex, colIndex);
+    this.markDirty();
   }
 
   onMinimapMouseDown(event: MouseEvent): void {
@@ -285,6 +319,300 @@ export class FactoryPage implements AfterViewInit, OnInit {
 
   onWheel(_event: WheelEvent): void { /* zoom deaktiviert */ }
 
+  get hasFactoryContent(): boolean {
+    for (const item of this.itemManager.clonedItems) {
+      if (!this.itemManager.itemStates[item.id]?.isAtStartPosition) return true;
+    }
+    for (const row of this.conveyorGrid) {
+      for (const cell of row) {
+        if (cell.active) return true;
+      }
+    }
+    return false;
+  }
+
+  private markDirty(): void {
+    if (!this.isDirty) {
+      this.isDirty = true;
+      this.cdr.detectChanges();
+    }
+    this.markDirty$.next();
+  }
+
+  // ── Toolbar: save button ─────────────────────────────────────────────────
+
+  onSaveButtonClick(): void {
+    if (this.activeLayoutId) {
+      this.performSaveOverwrite();
+    } else {
+      this.showSavePopover = !this.showSavePopover;
+      this.savePopoverName = '';
+    }
+  }
+
+  async confirmSaveNew(): Promise<void> {
+    const name = this.savePopoverName.trim();
+    if (!name) return;
+    this.layoutSaving = true;
+    this.cdr.detectChanges();
+    try {
+      const saved = await this.factoryLayoutService.saveLayout(name, this.buildLayoutSnapshot());
+      this.ngZone.run(() => {
+        this.activeLayoutId = saved.id;
+        this.activeLayoutName = saved.name;
+        this.isDirty = false;
+        this.showSavePopover = false;
+        this.savePopoverName = '';
+      });
+    } catch {
+      // silent – user can retry
+    } finally {
+      this.ngZone.run(() => {
+        this.layoutSaving = false;
+        this.cdr.detectChanges();
+      });
+    }
+  }
+
+  private async performSaveOverwrite(): Promise<void> {
+    if (!this.activeLayoutId) return;
+    this.layoutSaving = true;
+    this.cdr.detectChanges();
+    try {
+      await this.factoryLayoutService.overwriteLayout(this.activeLayoutId, this.buildLayoutSnapshot());
+      this.ngZone.run(() => { this.isDirty = false; });
+    } catch {
+      // silent
+    } finally {
+      this.ngZone.run(() => {
+        this.layoutSaving = false;
+        this.cdr.detectChanges();
+      });
+    }
+  }
+
+  private async performAutoSave(): Promise<void> {
+    if (!this.activeLayoutId || !this.isDirty) return;
+    try {
+      await this.factoryLayoutService.overwriteLayout(this.activeLayoutId, this.buildLayoutSnapshot());
+      this.ngZone.run(() => {
+        this.isDirty = false;
+        this.cdr.detectChanges();
+      });
+    } catch { /* silent */ }
+  }
+
+  // ── Layouts modal (load / switch / delete / reset) ────────────────────────
+
+  async openLayoutsDropdown(): Promise<void> {
+    this.dropdownOpen.set(false);
+    this.showLayoutsDropdown = true;
+    this.layoutError = '';
+    this.confirmDeleteId = null;
+    this.confirmResetOpen = false;
+    await this.refreshLayouts();
+  }
+
+  closeLayoutsDropdown(): void {
+    this.showLayoutsDropdown = false;
+    this.layoutError = '';
+    this.confirmDeleteId = null;
+    this.confirmResetOpen = false;
+  }
+
+  private async refreshLayouts(): Promise<void> {
+    this.layoutsLoading = true;
+    this.cdr.detectChanges();
+    try {
+      const list = await this.factoryLayoutService.listLayouts();
+      this.ngZone.run(() => { this.savedLayouts = list; });
+    } catch {
+      this.ngZone.run(() => { this.layoutError = 'Spielstände konnten nicht geladen werden.'; });
+    } finally {
+      this.ngZone.run(() => {
+        this.layoutsLoading = false;
+        this.cdr.detectChanges();
+      });
+    }
+  }
+
+  async loadLayout(layout: SavedLayout): Promise<void> {
+    if (this.activeLayoutId === layout.id) { this.closeLayoutsDropdown(); return; }
+
+    // Bei ungespeicherten Änderungen: Nutzer entscheiden lassen
+    if (this.activeLayoutId && this.isDirty) {
+      this.pendingSwitchLayout = layout;
+      this.cdr.detectChanges();
+      return;
+    }
+
+    await this.doLoadLayout(layout);
+  }
+
+  async confirmSwitchWithSave(): Promise<void> {
+    const target = this.pendingSwitchLayout;
+    if (!target) return;
+    this.pendingSwitchLayout = null;
+    if (this.activeLayoutId) {
+      try {
+        await this.factoryLayoutService.overwriteLayout(this.activeLayoutId, this.buildLayoutSnapshot());
+      } catch { /* fall through */ }
+    }
+    await this.doLoadLayout(target);
+  }
+
+  async confirmSwitchDiscard(): Promise<void> {
+    const target = this.pendingSwitchLayout;
+    if (!target) return;
+    this.pendingSwitchLayout = null;
+    await this.doLoadLayout(target);
+  }
+
+  cancelSwitch(): void {
+    this.pendingSwitchLayout = null;
+    this.onDiscardHoldEnd();
+  }
+
+  onDiscardHoldStart(event: Event): void {
+    event.preventDefault();
+    if (this.discardHoldTimer) return;
+    this.discardHolding = true;
+    this.cdr.detectChanges();
+    this.discardHoldTimer = setTimeout(() => {
+      this.discardHoldTimer = null;
+      this.discardHolding = false;
+      this.confirmSwitchDiscard();
+    }, 3000);
+  }
+
+  onDiscardHoldEnd(): void {
+    this.discardHolding = false;
+    if (this.discardHoldTimer) {
+      clearTimeout(this.discardHoldTimer);
+      this.discardHoldTimer = null;
+    }
+    this.cdr.detectChanges();
+  }
+
+  private async doLoadLayout(layout: SavedLayout): Promise<void> {
+    this.layoutError = '';
+    this.layoutLoadingId = layout.id;
+    this.cdr.detectChanges();
+    try {
+      const raw = await this.factoryLayoutService.loadLayoutData(layout.id) as {
+        conveyorGrid: ConveyorSegment[][];
+        items: Array<{ label: string; col: number; row: number }>;
+      };
+      this.ngZone.run(() => {
+        this.applyLayoutSnapshot(raw);
+        this.activeLayoutId = layout.id;
+        this.activeLayoutName = layout.name;
+        this.isDirty = false;
+        this.closeLayoutsDropdown();
+      });
+    } catch {
+      this.ngZone.run(() => { this.layoutError = 'Laden fehlgeschlagen.'; });
+    } finally {
+      this.ngZone.run(() => {
+        this.layoutLoadingId = null;
+        this.cdr.detectChanges();
+      });
+    }
+  }
+
+  async deleteLayout(id: string): Promise<void> {
+    this.layoutError = '';
+    this.confirmDeleteId = null;
+    try {
+      await this.factoryLayoutService.deleteLayout(id);
+      if (this.activeLayoutId === id) {
+        this.activeLayoutId = null;
+        this.activeLayoutName = '';
+        this.isDirty = false;
+      }
+      await this.refreshLayouts();
+    } catch {
+      this.layoutError = 'Löschen fehlgeschlagen.';
+      this.cdr.detectChanges();
+    }
+  }
+
+  async createNewLayout(): Promise<void> {
+    if (this.activeLayoutId && this.isDirty) {
+      try {
+        await this.factoryLayoutService.overwriteLayout(this.activeLayoutId, this.buildLayoutSnapshot());
+      } catch { /* silent */ }
+    }
+    this.dragDrop.clearAllItems(this.items);
+    for (const row of this.conveyorGrid) {
+      for (const cell of row) {
+        cell.active = false; cell.entry = null; cell.exit = null;
+        cell.resource = null; cell.endpoint = null;
+      }
+    }
+    this.activeLayoutId = null;
+    this.activeLayoutName = '';
+    this.isDirty = false;
+    this.closeLayoutsDropdown();
+    this.updateMinimap();
+    this.cdr.detectChanges();
+    // Sofort den Namen abfragen
+    this.savePopoverName = '';
+    this.showSavePopover = true;
+  }
+
+  resetFactory(): void {
+    this.dragDrop.clearAllItems(this.items);
+    for (const row of this.conveyorGrid) {
+      for (const cell of row) {
+        cell.active = false; cell.entry = null; cell.exit = null;
+        cell.resource = null; cell.endpoint = null;
+      }
+    }
+    this.confirmResetOpen = false;
+    this.updateMinimap();
+    if (this.activeLayoutId) {
+      this.markDirty();
+    } else {
+      this.isDirty = false;
+      this.cdr.detectChanges();
+    }
+  }
+
+  private buildLayoutSnapshot(): unknown {
+    return {
+      conveyorGrid: this.conveyorGrid,
+      items: this.itemManager.clonedItems
+        .filter(i => !this.itemManager.itemStates[i.id]?.isAtStartPosition)
+        .map(i => ({
+          label: i.label,
+          col: this.itemManager.itemStates[i.id].col,
+          row: this.itemManager.itemStates[i.id].row,
+        })),
+    };
+  }
+
+  private applyLayoutSnapshot(raw: { conveyorGrid: ConveyorSegment[][]; items: Array<{ label: string; col: number; row: number }> }): void {
+    this.dragDrop.clearAllItems(this.items);
+    for (let r = 0; r < this.conveyorGrid.length; r++) {
+      for (let c = 0; c < this.conveyorGrid[r].length; c++) {
+        const saved = raw.conveyorGrid[r]?.[c];
+        Object.assign(this.conveyorGrid[r][c], saved ?? { active: false, entry: null, exit: null, resource: null, endpoint: null });
+      }
+    }
+    requestAnimationFrame(() => {
+      for (const entry of raw.items) {
+        const source = this.items.find(i => i.label === entry.label);
+        if (!source || (source.currentAvailableCount ?? source.maxAvailableCount ?? 1) <= 0) continue;
+        this.dragDrop.placeItemAt(source, entry.col, entry.row, this.items);
+      }
+      this.itemManager.captureBasePositions([...this.items, ...this.itemManager.clonedItems], this.getGridRect());
+      this.setupInteractDragging();
+      this.updateMinimap();
+      this.cdr.detectChanges();
+    });
+  }
+
   toggleFullscreen(): void {
     this.isFullscreen = !this.isFullscreen;
     requestAnimationFrame(() => setTimeout(() => {
@@ -310,6 +638,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
       items: this.items,
       detectChanges: () => this.cdr.detectChanges(),
       postRemove: () => this.setupInteractDragging(),
+      onLayoutChange: () => this.markDirty(),
     });
   }
 
