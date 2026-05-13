@@ -62,6 +62,9 @@ export class DragDropManagerService {
         interact.modifiers.snap({
           targets: [(x: number, y: number) => {
             const rect = getGridRect();
+            if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+              return null as any;
+            }
             return {
               x: Math.round((x - rect.left) / gridCellSizePx) * gridCellSizePx + rect.left,
               y: Math.round((y - rect.top) / gridCellSizePx) * gridCellSizePx + rect.top,
@@ -100,8 +103,14 @@ export class DragDropManagerService {
           const currentX = Number(element.getAttribute('data-x') ?? '0');
           const currentY = Number(element.getAttribute('data-y') ?? '0');
           const effectiveZoom = isInGrid ? zoomLevel : 1.0;
-          const nextX = currentX + event.dx / effectiveZoom;
-          const nextY = currentY + event.dy / effectiveZoom;
+          let nextX = currentX + event.dx / effectiveZoom;
+          let nextY = currentY + event.dy / effectiveZoom;
+          if (isInGrid) {
+            const maxX = gridColumns * gridCellSizePx - element.offsetWidth / effectiveZoom;
+            const maxY = gridRowCount * gridCellSizePx - element.offsetHeight / effectiveZoom;
+            nextX = Math.min(nextX, maxX);
+            nextY = Math.min(nextY, maxY);
+          }
           element.style.transform = `translate(${nextX}px, ${nextY}px)`;
           element.setAttribute('data-x', String(nextX));
           element.setAttribute('data-y', String(nextY));
@@ -118,10 +127,20 @@ export class DragDropManagerService {
           const gridContainer = document.getElementById('grid-items-container');
           element.style.zIndex = '';
 
-          const isInGrid = element.classList.contains('can-drop');
+          const hasCanDrop = element.classList.contains('can-drop');
+          const currentGridRect = getGridRect();
+          const viewportEl = gridElement.closest('[data-grid-viewport]') ?? gridElement.parentElement;
+          const viewportRect = viewportEl?.getBoundingClientRect() ?? currentGridRect;
+          const visibleGridBottom = Math.min(currentGridRect.bottom, viewportRect.bottom);
+          const visibleGridRight = Math.min(currentGridRect.right, viewportRect.right);
+          const cursorInGrid = event.clientX >= currentGridRect.left &&
+                               event.clientX <= visibleGridRight &&
+                               event.clientY >= currentGridRect.top &&
+                               event.clientY <= visibleGridBottom;
+          const isInGrid = hasCanDrop && cursorInGrid;
           let overlap = false;
           try {
-            overlap = this.itemManager.isOverlapping(element, conveyorGrid, gridRowCount, gridColumns, gridCellSizePx, getGridRect());
+            overlap = this.itemManager.isOverlapping(element, conveyorGrid, gridRowCount, gridColumns, gridCellSizePx, currentGridRect);
           } catch (_) {}
 
           if (!isInGrid || overlap || !gridContainer) {
@@ -136,6 +155,13 @@ export class DragDropManagerService {
           } else {
             const itemRect = element.getBoundingClientRect();
             const containerRect = gridContainer.getBoundingClientRect();
+            const currentGridRect = getGridRect();
+            const rawRow = (itemRect.top - currentGridRect.top) / zoomLevel / gridCellSizePx;
+            const rawCol = (itemRect.left - currentGridRect.left) / zoomLevel / gridCellSizePx;
+            if (rawRow >= gridRowCount || rawCol >= gridColumns) {
+              this.removePlacedItem(element, element.id);
+              return;
+            }
             let targetCol = Math.max(0, Math.min(Math.round(((itemRect.left - containerRect.left) / zoomLevel) / gridCellSizePx), gridColumns - 1));
             let targetRow = Math.max(0, Math.min(Math.round(((itemRect.top - containerRect.top) / zoomLevel) / gridCellSizePx), gridRowCount - 1));
 

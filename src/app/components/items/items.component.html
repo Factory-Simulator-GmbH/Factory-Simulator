@@ -1,23 +1,25 @@
-<div class="relative mt-4 rounded-2xl border border-white/10 bg-white/5 p-4">
+<div [class]="simpleMode ? 'relative p-3' : 'relative mt-4 rounded-2xl border border-white/10 bg-white/5 p-4'">
   @if (isDraggingItem) {
     <div class="absolute inset-0 z-40 rounded-2xl bg-black/50 pointer-events-none"></div>
   }
 
-  <div class="mb-3 text-xs font-semibold tracking-wide text-white">
-    <p>Items</p>
-    <div id="filter-tags">
-      @for (filter of filters; track filter) {
-        <button
-          (click)="setActiveFilter(filter)"
-          [attr.data-active]="activeFilter === filter"
-          class="mr-2 mt-2 rounded-xl px-3 py-1 text-white/80 bg-white/10 transition-colors duration-200 hover:bg-white/20 focus:outline-none
+  @if (!simpleMode) {
+    <div class="mb-3 text-xs font-semibold tracking-wide text-white">
+      <p>Items</p>
+      <div id="filter-tags">
+        @for (filter of filters; track filter) {
+          <button
+            (click)="setActiveFilter(filter)"
+            [attr.data-active]="activeFilter === filter"
+            class="mr-2 mt-2 rounded-xl px-3 py-1 text-white/80 bg-white/10 transition-colors duration-200 hover:bg-white/20 focus:outline-none
           data-[active=true]:bg-white/30 data-[active=true]:ring-2 data-[active=true]:ring-white/50"
-        >
-          {{ filter | titlecase }}
-        </button>
-      }
+          >
+            {{ filter | titlecase }}
+          </button>
+        }
+      </div>
     </div>
-  </div>
+  }
 
   <div
     id="item-palette"
