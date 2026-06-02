@@ -28,6 +28,8 @@ export interface DragSetupOptions {
 export class DragDropManagerService {
   private opts: DragSetupOptions | null = null;
   private spawnerIntervals = new Map<string, Subscription>();
+  private scrollRaf: number | null = null;
+  private scrollViewport: HTMLElement | null = null;
 
   constructor(
     private ngZone: NgZone,
@@ -44,8 +46,9 @@ export class DragDropManagerService {
   setup(options: DragSetupOptions): void {
     this.opts = options;
     const { gridElement, getGridRect, gridCellSizePx, zoomLevel, gridColumns, gridRowCount, conveyorGrid, items, detectChanges } = options;
-
     interact('.draggable-item').unset();
+    interact('.source-item').unset();
+    interact(gridElement).unset();
 
     interact(gridElement).dropzone({
       accept: '.draggable-item',
@@ -53,6 +56,8 @@ export class DragDropManagerService {
       ondragenter: (event) => event.relatedTarget.classList.add('can-drop'),
       ondragleave: (event) => event.relatedTarget.classList.remove('can-drop'),
     });
+
+    this.scrollViewport = (gridElement.closest('[data-grid-viewport]') ?? gridElement.parentElement) as HTMLElement;
 
     interact('.draggable-item').draggable({
       cursorChecker: (_action, _interactable, element) => {
@@ -88,18 +93,35 @@ export class DragDropManagerService {
             detectChanges();
           });
 
-          const transform = element.style.transform;
-          const match = transform.match(/translate(?:3d)?\(\s*(-?\d+(?:\.\d+)?)px,\s*(-?\d+(?:\.\d+)?)px/);
-          element.setAttribute('data-x', match ? match[1] : '0');
-          element.setAttribute('data-y', match ? match[2] : '0');
+          // Platzierte Items aus dem grid-items-container in document.body verschieben,
+          // damit sie beim Edge-Scroll nicht mit dem Grid mitscrollen
+          const wasPlaced = element.parentElement?.id === 'grid-items-container';
+          if (wasPlaced) {
+            const rect = element.getBoundingClientRect();
+            document.body.appendChild(element);
+            element.style.left = '0';
+            element.style.top = '0';
+            element.setAttribute('data-x', String(rect.left));
+            element.setAttribute('data-y', String(rect.top));
+            element.style.transform = `translate(${rect.left}px, ${rect.top}px)`;
+          } else {
+            const transform = element.style.transform;
+            const match = transform.match(/translate(?:3d)?\(\s*(-?\d+(?:\.\d+)?)px,\s*(-?\d+(?:\.\d+)?)px/);
+            element.setAttribute('data-x', match ? match[1] : '0');
+            element.setAttribute('data-y', match ? match[2] : '0');
+          }
           element.style.position = 'relative';
           element.style.zIndex = '9999';
           element.classList.remove('can-drop');
+          element.setAttribute('data-dragging', 'true');
+          element.removeAttribute('data-entered-playground');
         },
 
         move: (event) => {
           const element = event.target as HTMLElement;
           const isInGrid = element.parentElement?.id === 'grid-items-container';
+          const vp = this.scrollViewport;
+
           const currentX = Number(element.getAttribute('data-x') ?? '0');
           const currentY = Number(element.getAttribute('data-y') ?? '0');
           const effectiveZoom = isInGrid ? zoomLevel : 1.0;
@@ -114,9 +136,32 @@ export class DragDropManagerService {
           element.style.transform = `translate(${nextX}px, ${nextY}px)`;
           element.setAttribute('data-x', String(nextX));
           element.setAttribute('data-y', String(nextY));
+
+          // Edge-Scroll: nur wenn das Item bereits einmal komplett im Playground war.
+          // Davor (Item kommt aus der Sidebar) soll der Grid sich nicht verschieben.
+          if (vp) {
+            const vpRect = vp.getBoundingClientRect();
+            const itemRect = element.getBoundingClientRect();
+            const fullyInside = itemRect.left >= vpRect.left && itemRect.right <= vpRect.right
+                             && itemRect.top >= vpRect.top && itemRect.bottom <= vpRect.bottom;
+            if (fullyInside) element.setAttribute('data-entered-playground', 'true');
+
+            if (element.getAttribute('data-entered-playground') === 'true') {
+              const zone = 80, speed = 10;
+              let dx = 0, dy = 0;
+              if (event.clientX < vpRect.left + zone)   dx = -speed * (1 - (event.clientX - vpRect.left) / zone);
+              if (event.clientX > vpRect.right - zone)  dx =  speed * (1 - (vpRect.right - event.clientX) / zone);
+              if (event.clientY < vpRect.top + zone)    dy = -speed * (1 - (event.clientY - vpRect.top) / zone);
+              if (event.clientY > vpRect.bottom - zone) dy =  speed * (1 - (vpRect.bottom - event.clientY) / zone);
+              this.startEdgeScroll(vp, dx, dy);
+            } else {
+              this.stopEdgeScroll();
+            }
+          }
         },
 
         end: (event) => {
+          this.stopEdgeScroll();
           this.ngZone.run(() => {
             this.interactionState.isDraggingItem = false;
             this.interactionState.activeDraggedItemId = null;
@@ -126,6 +171,7 @@ export class DragDropManagerService {
           const element = event.target as HTMLElement;
           const gridContainer = document.getElementById('grid-items-container');
           element.style.zIndex = '';
+          element.removeAttribute('data-dragging');
 
           const hasCanDrop = element.classList.contains('can-drop');
           const currentGridRect = getGridRect();
@@ -252,6 +298,28 @@ export class DragDropManagerService {
 
       interaction.start({ name: 'drag' }, interact('.draggable-item'), innerDiv);
     });
+  }
+
+  private startEdgeScroll(vp: HTMLElement, dx: number, dy: number): void {
+    this.stopEdgeScroll();
+    if (dx === 0 && dy === 0) return;
+    const tick = () => {
+      vp.scrollLeft += dx;
+      vp.scrollTop += dy;
+      this.scrollRaf = requestAnimationFrame(tick);
+    };
+    this.scrollRaf = requestAnimationFrame(tick);
+  }
+
+  stopAutoScroll(): void {
+    this.stopEdgeScroll();
+  }
+
+  private stopEdgeScroll(): void {
+    if (this.scrollRaf !== null) {
+      cancelAnimationFrame(this.scrollRaf);
+      this.scrollRaf = null;
+    }
   }
 
   removePlacedItem(target: HTMLElement, itemId: string): void {

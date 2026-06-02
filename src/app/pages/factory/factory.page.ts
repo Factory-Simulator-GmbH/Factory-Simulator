@@ -222,6 +222,7 @@ export class FactoryPage implements AfterViewInit, OnInit {
   @HostListener('document:mouseup')
   onDocumentMouseUp(): void {
     const wasPainting = this.interaction.paintMode === 'on';
+    this.dragDrop.stopAutoScroll();
     this.interaction.resetInteractions();
     this.connectionEvaluator.evaluate(
       this.conveyorGrid, this.itemManager.clonedItems, this.itemManager.itemStates,
@@ -297,10 +298,11 @@ export class FactoryPage implements AfterViewInit, OnInit {
   onScroll(event: Event): void {
     this.updateMinimap(event.target as HTMLElement);
     requestAnimationFrame(() => {
-      this.itemManager.captureBasePositions([...this.items, ...this.itemManager.clonedItems], this.getGridRect());
-      this.setupInteractDragging();
+      if (!this.interaction.isDraggingItem) {
+        this.itemManager.captureBasePositions([...this.items, ...this.itemManager.clonedItems], this.getGridRect());
+        this.itemManager.repositionAll(this.gridCellSizePx, this.getGridRect());
+      }
       this.cdr.detectChanges();
-      this.itemManager.repositionAll(this.gridCellSizePx, this.getGridRect());
     });
   }
 

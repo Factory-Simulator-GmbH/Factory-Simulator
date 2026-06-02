@@ -37,6 +37,15 @@ export class FactoryItemsService {
       const element = document.getElementById(item.id);
       if (!element) continue;
 
+      // Aktuell gedraggte Items: bestehende Position beibehalten, nicht messen
+      // (das temporäre Entfernen des Transforms würde sie kurz auf 0,0 setzen)
+      if (element.getAttribute('data-dragging') === 'true') {
+        if (existingPositions?.[item.id]) {
+          itemBasePositions[item.id] = existingPositions[item.id];
+        }
+        continue;
+      }
+
       const state = itemStates?.[item.id];
 
       // Bereits platzierte Items behalten ihre bestehende base-Position —
@@ -137,6 +146,11 @@ export class FactoryItemsService {
       if (!element) continue;
 
       const state = itemStates[item.id];
+
+      // Aktuell gedraggte Items NIE neu positionieren — egal welcher Zustand,
+      // egal in welchem Parent. Sonst kann ein Scroll/Resize mitten im Drag
+      // die Position überschreiben.
+      if (element.getAttribute('data-dragging') === 'true') continue;
 
       if (!state || state.isAtStartPosition) {
         element.style.transform = '';
