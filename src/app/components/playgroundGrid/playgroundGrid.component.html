@@ -1,8 +1,13 @@
 <div class="relative flex flex-col w-full h-full bg-black/40 border border-white/20 rounded-xl p-2 overflow-hidden">
 
-  <div class="mb-2 flex items-center justify-between text-xs font-semibold tracking-wide text-white px-2 flex-none">
-    <span>Playground</span>
-    <ng-content></ng-content>
+  <div class="mb-2 flex items-center text-xs font-semibold tracking-wide text-white px-2 flex-none gap-3">
+    <span class="flex-1">Playground</span>
+    <div class="flex-1 flex justify-center min-w-0">
+      <ng-content select="[slot=status]"></ng-content>
+    </div>
+    <div class="flex-1 flex justify-end">
+      <ng-content></ng-content>
+    </div>
   </div>
 
   <div
