@@ -11,7 +11,6 @@ export class ResourceExchangeService {
 
     conveyorResourceChanged$ = new Subject<{ row: number; col: number; resource: string | null }>();
     itemResourceChanged$ = new Subject<{ itemid: string; resource: string | null }>();
-    conveyorJam$ = new Subject<{ row: number; col: number }>();
 
     // prüft, ob neben einem Spawner ein Output liegt, und gibt die itemid des Outputs zurück oder null, wenn kein Output nebenan liegt
     checkAdjacentOutput(
@@ -121,8 +120,6 @@ export class ResourceExchangeService {
         for (const n of neighbors) {
             if (conveyorGrid[n.row]?.[n.col]?.active && conveyorGrid[n.row]?.[n.col]?.entry === n.entry && conveyorGrid[n.row]?.[n.col]?.resource === null) {
                 return { col: n.col, row: n.row };
-            } else if (conveyorGrid[n.row]?.[n.col]?.active && conveyorGrid[n.row]?.[n.col]?.entry === n.entry && conveyorGrid[n.row]?.[n.col]?.resource !== null) {
-                this.conveyorJam$.next({ row: n.row, col: n.col });
             }
         }
         return null;
@@ -217,7 +214,6 @@ export class ResourceExchangeService {
                     this.conveyorResourceChanged$.next({ row: nextCell.row, col: nextCell.col, resource });
                     return true;
                 } else {
-                    this.conveyorJam$.next({ row: nextCell.row, col: nextCell.col });
                     return false;
                 }
             }
