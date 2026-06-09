@@ -11,7 +11,9 @@ export class GameDataService {
   async loadItems(): Promise<DraggableItems[]> {
     const {data, error} = await this.supabase.client
       .from('items')
-      .select('*');
+      .select('*')
+      .order('size', {ascending: true})
+      .order('id', {ascending: true});
 
     if (error) throw error;
 
