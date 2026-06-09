@@ -69,6 +69,8 @@ export class FactoryPage implements AfterViewInit, OnInit {
   private discardHoldTimer: ReturnType<typeof setTimeout> | null = null;
   private resetHoldTimer: ReturnType<typeof setTimeout> | null = null;
 
+  private splitterConveyorIndex = new Map<string, number>();
+
   private readonly resourceEmoji: Record<string, string> = { metall: '🔩', kupfer: '🟤', plastik: '🧴' };
 
   constructor(
@@ -104,19 +106,27 @@ export class FactoryPage implements AfterViewInit, OnInit {
         filter(e => e.row === row && e.col === col && e.resource === null),
         take(1)
       ).subscribe(() => {
-        // Outputs mit wartender Ressource erneut prüfen
+        // Outputs und Splitter mit wartender Ressource erneut prüfen
         for (const item of this.itemManager.clonedItems) {
-          if (item.type !== 'output' || item.resource === null) continue;
+          if ((item.type !== 'output' && item.type !== 'splitter') || item.resource === null) continue;
           const state = this.itemManager.itemStates[item.id];
           if (!state || state.isAtStartPosition) continue;
-          const adjacentConveyor = this.resourceExchangeService.checkAdjacentConveyor(
-            state.col, state.row, this.conveyorGrid
-          );
-          if (adjacentConveyor) {
-            this.resourceExchangeService.onOutputResourceChanged(
-              item.id, state.col, state.row, adjacentConveyor, this.itemManager.clonedItems, this.conveyorGrid
-            );
-            this.cdr.detectChanges();
+
+          if (item.type === 'splitter') {
+            const adjacentConveyors = this.resourceExchangeService.checkAdjacentConveyors(state.col, state.row, this.conveyorGrid);
+            if (adjacentConveyors.length > 0) {
+              const lastIndex = this.splitterConveyorIndex.get(item.id) ?? 0;
+              const targetIndex = lastIndex % adjacentConveyors.length;
+              this.splitterConveyorIndex.set(item.id, targetIndex + 1);
+              this.resourceExchangeService.onOutputResourceChanged(item.id, state.col, state.row, adjacentConveyors[targetIndex], this.itemManager.clonedItems, this.conveyorGrid);
+              this.cdr.detectChanges();
+            }
+          } else {
+            const adjacentConveyor = this.resourceExchangeService.checkAdjacentConveyor(state.col, state.row, this.conveyorGrid);
+            if (adjacentConveyor) {
+              this.resourceExchangeService.onOutputResourceChanged(item.id, state.col, state.row, adjacentConveyor, this.itemManager.clonedItems, this.conveyorGrid);
+              this.cdr.detectChanges();
+            }
           }
         }
         // Rollband-Nachbarn erneut anstoßen, die auf die freigewordene Zelle zeigen
@@ -176,6 +186,21 @@ export class FactoryPage implements AfterViewInit, OnInit {
               el?.classList.add('ring-4', 'ring-red-500', 'shadow-[0_0_20px_rgba(239,68,68,0.6)]');
             }
           }
+        }
+      } else if (item?.type === 'splitter') {
+        const adjacentConveyors = this.resourceExchangeService.checkAdjacentConveyors(itemState.col, itemState.row, this.conveyorGrid);
+        if (adjacentConveyors.length > 0) {
+          const lastIndex = this.splitterConveyorIndex.get(itemid) ?? 0;
+          const targetIndex = lastIndex % adjacentConveyors.length;
+          this.splitterConveyorIndex.set(itemid, targetIndex + 1);
+
+          const targetConveyor = adjacentConveyors[targetIndex];
+          this.resourceExchangeService.onOutputResourceChanged(
+            itemid, itemState.col, itemState.row,
+            targetConveyor,
+            this.itemManager.clonedItems,
+            this.conveyorGrid
+          );
         }
       }
       this.cdr.detectChanges();

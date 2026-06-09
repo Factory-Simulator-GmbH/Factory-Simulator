@@ -44,8 +44,8 @@ export class ResourceExchangeService {
         }
         return null;
     }
-    // prüft, ob neben einem Spawner ein Input liegt, und gibt die itemid des Items zurück oder null, wenn kein Output nebenan liegt
-    checkAdjacentInput(
+    // prüft, ob neben einem Förderband ein Input liegt, und gibt die itemid des Items zurück oder null, wenn kein Input nebenan liegt
+    checkAdjacentInputOrSplitter(
         conveyorCol: number,
         conveyorRow: number,
         items: DraggableItems[],
@@ -57,7 +57,7 @@ export class ResourceExchangeService {
         const minRow = conveyorRow - 1;
         const maxRow = conveyorRow + conveyorSize;
         for (const item of items) {
-            if (item.type !== 'input') continue;
+            if (item.type !== 'input' && item.type !== 'splitter') continue;
             const state = itemStates[item.id];
             if (!state || state.isAtStartPosition) continue;
             const c = state.col;
@@ -71,7 +71,7 @@ export class ResourceExchangeService {
                 (c === maxCol && r === minRow) ||
                 (c === minCol && r === maxRow) ||
                 (c === maxCol && r === maxRow);
-            if (inRing && !insideConveyor && !isCorner) return { itemid: item.id };
+            if (inRing && !insideConveyor && !isCorner) return { itemid: item.id }; // todo: nur das erste item zu returnen ist inkonsistent und kann sich buggy anfühlen
         }
         return null;
     }
@@ -107,25 +107,35 @@ export class ResourceExchangeService {
     }
 
     // prüft, ob neben einem Output ein aktives Rollband liegt, und gibt die Koordinaten des Rollbands zurück oder null, wenn kein Rollband nebenan liegt
-    checkAdjacentConveyor(
+    checkAdjacentConveyors(
         outputCol: number,
         outputRow: number,
         conveyorGrid: ConveyorSegment[][],
-    ): { col: number; row: number } | null {
+    ): { col: number; row: number }[] {
         const neighbors = [
             { col: outputCol, row: outputRow - 1, entry: 'down' },
             { col: outputCol, row: outputRow + 1, entry: 'up' },
             { col: outputCol - 1, row: outputRow, entry: 'right' },
             { col: outputCol + 1, row: outputRow, entry: 'left' },
         ];
+        const conveyors: { col: number; row: number }[] = [];
         for (const n of neighbors) {
             if (conveyorGrid[n.row]?.[n.col]?.active && conveyorGrid[n.row]?.[n.col]?.entry === n.entry && conveyorGrid[n.row]?.[n.col]?.resource === null) {
-                return { col: n.col, row: n.row };
+                conveyors.push({ col: n.col, row: n.row });
             } else if (conveyorGrid[n.row]?.[n.col]?.active && conveyorGrid[n.row]?.[n.col]?.entry === n.entry && conveyorGrid[n.row]?.[n.col]?.resource !== null) {
                 this.conveyorJam$.next({ row: n.row, col: n.col });
             }
         }
-        return null;
+        return conveyors;
+    }
+
+    checkAdjacentConveyor(
+        outputCol: number,
+        outputRow: number,
+        conveyorGrid: ConveyorSegment[][],
+    ): { col: number; row: number } | null {
+        let conveyors = this.checkAdjacentConveyors(outputCol, outputRow, conveyorGrid)
+        return conveyors.length > 0 ? conveyors[0] : null
     }
 
     onSpawnerPlaced(
@@ -225,7 +235,7 @@ export class ResourceExchangeService {
 
         // 2. Prüfen ob Weitergabe an Input möglich
         if (!cell) return false;
-        const adjacentInput = this.checkAdjacentInput(col, row, items, itemStates);
+        const adjacentInput = this.checkAdjacentInputOrSplitter(col, row, items, itemStates);
         if (adjacentInput) {
             const inputState = itemStates[adjacentInput.itemid];
             if (inputState) {
