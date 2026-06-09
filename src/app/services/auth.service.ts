@@ -29,11 +29,11 @@ export class AuthService {
     return this.sessionReady;
   }
 
-  async signUp(username: string, password: string): Promise<void> {
+  async signUp(username: string, password: string, role: 'user' | 'admin' = 'user'): Promise<void> {
     const {error} = await this.supabase.client.auth.signUp({
       email: `${username}@${DOMAIN}`,
       password,
-      options: {data: {username, role: 'user'}},
+      options: {data: {username, role}},
     });
     if (error) throw error;
   }

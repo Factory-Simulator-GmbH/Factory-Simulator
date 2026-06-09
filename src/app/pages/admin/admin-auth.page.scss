@@ -1,0 +1,17 @@
+.admin-bg {
+  background-color: #0f172a;
+}
+
+.admin-content {
+  background: transparent;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%       { transform: translateX(-10px); }
+  40%       { transform: translateX(10px); }
+  60%       { transform: translateX(-7px); }
+  80%       { transform: translateX(7px); }
+}
+
+.shake { animation: shake 0.55s ease-in-out; }

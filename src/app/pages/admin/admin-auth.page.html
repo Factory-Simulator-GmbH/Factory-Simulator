@@ -1,0 +1,174 @@
+<div class="admin-bg min-h-screen text-white flex flex-col px-8 py-8 relative">
+  <div class="absolute inset-0 home-bg-grid pointer-events-none opacity-60"></div>
+
+  <div class="relative z-10 flex items-center justify-between">
+    <a routerLink="/" class="flex items-center gap-3">
+      <img src="/favicon.png" alt="Logo" class="w-8 h-8" />
+      <span class="text-xl font-extrabold tracking-tight">Factory Simulator</span>
+    </a>
+    <a routerLink="/auth" title="Zur normalen Anmeldung"
+       class="flex items-center gap-2 text-sm text-white/50 hover:text-white transition-colors">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+      </svg>
+      Nutzer Login
+    </a>
+  </div>
+
+  <div class="relative z-10 flex-1 flex flex-col items-center justify-center">
+    <div class="admin-content w-full max-w-sm flex flex-col gap-6 rounded-2xl px-8 py-8">
+
+      <div class="flex flex-col items-center gap-2 mb-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+        </svg>
+        <span class="text-xs font-semibold tracking-widest uppercase text-red-500">Nur für Administratoren</span>
+        <h1 class="text-2xl font-extrabold tracking-tight text-center">
+          {{ mode() === 'signup' ? 'Admin Account erstellen' : 'Admin Anmeldung' }}
+        </h1>
+      </div>
+
+      <div class="flex gap-4 border-b border-white/20">
+        <button
+          (click)="mode.set('login'); error.set(null)"
+          class="pb-2 text-sm font-medium transition-colors"
+          [class.text-white]="mode() === 'login'"
+          [class.border-b-2]="mode() === 'login'"
+          [class.border-white]="mode() === 'login'"
+          [class.text-white/40]="mode() !== 'login'">
+          Anmelden
+        </button>
+        <button
+          (click)="mode.set('signup'); error.set(null); openPinModal()"
+          class="pb-2 text-sm font-medium transition-colors"
+          [class.text-white]="mode() === 'signup'"
+          [class.border-b-2]="mode() === 'signup'"
+          [class.border-white]="mode() === 'signup'"
+          [class.text-white/40]="mode() !== 'signup'">
+          Registrieren
+        </button>
+      </div>
+
+      <form (ngSubmit)="submit()" class="flex flex-col gap-4">
+
+        <div class="flex flex-col gap-1.5">
+          <label class="text-sm text-white/70">Benutzername</label>
+          <input
+            [(ngModel)]="username"
+            name="username"
+            type="text"
+            required
+            autocomplete="username"
+            placeholder="Dein Name"
+            class="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-white/40 transition-colors"
+          />
+        </div>
+
+        <div class="flex flex-col gap-1.5">
+          <label class="text-sm text-white/70">Passwort</label>
+          <div class="relative">
+            <input
+              [(ngModel)]="password"
+              name="password"
+              [type]="showPassword() ? 'text' : 'password'"
+              required
+              autocomplete="current-password"
+              placeholder="Mindestens 8 Zeichen"
+              class="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 pr-11 text-white placeholder-white/30 focus:outline-none focus:border-white/60 transition-colors"
+            />
+            <button type="button" (click)="showPassword.set(!showPassword())"
+              class="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors">
+              @if (showPassword()) {
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-5 0-9-4-9-7a9.77 9.77 0 012.05-3.95M6.53 6.53A9.77 9.77 0 0112 5c5 0 9 4 9 7a9.77 9.77 0 01-1.56 2.94M3 3l18 18" />
+                </svg>
+              } @else {
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+              }
+            </button>
+          </div>
+        </div>
+
+        @if (mode() === 'signup' && password.length > 0) {
+          <div class="flex flex-col gap-1.5">
+            <div class="flex items-center gap-2">
+              <div class="flex-1 h-1 rounded-full transition-colors duration-300"
+                   [class.bg-red-500]="passwordStrength === 'weak'"
+                   [class.bg-yellow-400]="passwordStrength === 'medium'"
+                   [class.bg-green-400]="passwordStrength === 'strong'"></div>
+              <span class="text-xs"
+                    [class.text-red-400]="passwordStrength === 'weak'"
+                    [class.text-yellow-400]="passwordStrength === 'medium'"
+                    [class.text-green-400]="passwordStrength === 'strong'">
+                {{ passwordStrength === 'weak' ? 'Zu schwach' : passwordStrength === 'medium' ? 'Mittel' : 'Sicher' }}
+              </span>
+            </div>
+            @if (!passwordValid) {
+              <p class="text-xs text-white/50">
+                @if (!passwordChecks.length) { 8+ Zeichen · }
+                @if (!passwordChecks.uppercase) { Großbuchstabe · }
+                @if (!passwordChecks.lowercase) { Kleinbuchstabe · }
+                @if (!passwordChecks.number) { Zahl }
+              </p>
+            }
+          </div>
+        }
+
+        @if (error()) {
+          <p class="text-red-400 text-sm text-center">{{ error() }}</p>
+        }
+
+        <button
+          type="submit"
+          [disabled]="loading() || (mode() === 'signup' && (!pinVerified() || !passwordValid))"
+          class="mt-2 px-6 py-3 bg-white hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed text-blue-900 font-semibold rounded-xl transition-colors">
+          {{ loading() ? '...' : (mode() === 'signup' ? 'Account erstellen' : 'Anmelden') }}
+        </button>
+      </form>
+
+      <p class="text-center text-xs text-white/40">
+        Kein Admin?
+        <a routerLink="/auth" class="text-white/70 hover:text-white transition-colors ml-1">Zum Spieler Login</a>
+      </p>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- PIN Modal -->
+@if (pinModalOpen()) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+       (click)="closePinModal()">
+    <div class="bg-slate-950/90 backdrop-blur-sm border border-white/10 rounded-2xl px-8 py-6 flex flex-col items-center gap-4 shadow-2xl w-64"
+         (click)="$event.stopPropagation()">
+
+      <p class="text-sm font-semibold text-white">Master PIN</p>
+
+      <div class="flex gap-3 items-center justify-center h-9" [class.shake]="pinShake()">
+        @if (pinVerified()) {
+          <span class="text-2xl text-green-400">✓</span>
+        } @else {
+          @for (i of [].constructor(PIN_LENGTH); track $index) {
+            <div class="w-6 flex flex-col items-center gap-1">
+              <span class="text-xl font-mono font-bold h-7 flex items-center text-white">
+                {{ $index < pinInput().length ? pinInput()[$index] : '' }}
+              </span>
+              <span class="block h-px w-full transition-colors duration-100"
+                    [class.bg-white]="$index < pinInput().length"
+                    [class.bg-blue-600]="$index >= pinInput().length">
+              </span>
+            </div>
+          }
+        }
+      </div>
+
+      <input #pinField type="password" inputmode="numeric" autocomplete="off"
+             (keydown)="onPinKey($event)" class="sr-only" />
+
+    </div>
+  </div>
+}
