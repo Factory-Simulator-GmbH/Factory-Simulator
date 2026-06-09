@@ -1,6 +1,6 @@
-import { AfterViewInit, ChangeDetectorRef, Component, ElementRef, HostListener, NgZone, OnInit, signal, ViewChild } from '@angular/core';
+import { AfterViewInit, ChangeDetectorRef, Component, ElementRef, HostListener, NgZone, OnDestroy, OnInit, signal, ViewChild } from '@angular/core';
 import { DatePipe, NgClass } from '@angular/common';
-import { delay, filter, mergeMap, of, ReplaySubject, take } from 'rxjs';
+import { interval, ReplaySubject, Subscription, take } from 'rxjs';
 import { FormsModule } from '@angular/forms';
 import { PlaygroundGridComponent } from '../../components/playgroundGrid/playgroundGrid.component';
 import { ItemsComponent } from '../../components/items/items.component';
@@ -28,7 +28,7 @@ import { FactoryLayoutService, SavedLayout } from '../../services/factoryLayout.
   templateUrl: './factory.page.html',
   styleUrl: './factory.page.scss'
 })
-export class FactoryPage implements AfterViewInit, OnInit {
+export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
   @ViewChild(PlaygroundGridComponent) playgroundGrid!: PlaygroundGridComponent;
   @ViewChild('scrollContainer') scrollContainerRef!: ElementRef<HTMLElement>;
   @ViewChild('minimapContent') minimapContentRef!: ElementRef<HTMLElement>;
@@ -71,6 +71,9 @@ export class FactoryPage implements AfterViewInit, OnInit {
 
   private readonly resourceEmoji: Record<string, string> = { metall: '🔩', kupfer: '🟤', plastik: '🧴' };
 
+  // Globaler 1-Sekunden-Tick, der die komplette Ressourcen-Weitergabe abarbeitet.
+  private tickSub?: Subscription;
+
   constructor(
     private cdr: ChangeDetectorRef,
     private ngZone: NgZone,
@@ -98,88 +101,39 @@ export class FactoryPage implements AfterViewInit, OnInit {
 
     this.items = this.route.snapshot.data['items'];
     this.itemsReady$.next();
-
-    this.resourceExchangeService.conveyorJam$.subscribe(({ row, col }: { row: number; col: number }) => {
-      this.resourceExchangeService.conveyorResourceChanged$.pipe(
-        filter(e => e.row === row && e.col === col && e.resource === null),
-        take(1)
-      ).subscribe(() => {
-        // Outputs mit wartender Ressource erneut prüfen
-        for (const item of this.itemManager.clonedItems) {
-          if (item.type !== 'output' || item.resource === null) continue;
-          const state = this.itemManager.itemStates[item.id];
-          if (!state || state.isAtStartPosition) continue;
-          const adjacentConveyor = this.resourceExchangeService.checkAdjacentConveyor(
-            state.col, state.row, this.conveyorGrid
-          );
-          if (adjacentConveyor) {
-            this.resourceExchangeService.onOutputResourceChanged(
-              item.id, state.col, state.row, adjacentConveyor, this.itemManager.clonedItems, this.conveyorGrid
-            );
-            this.cdr.detectChanges();
-          }
-        }
-        // Rollband-Nachbarn erneut anstoßen, die auf die freigewordene Zelle zeigen
-        const pointsTo = [
-          { dr: -1, dc: 0, exit: 'down' },
-          { dr:  1, dc: 0, exit: 'up'   },
-          { dr:  0, dc: -1, exit: 'right' },
-          { dr:  0, dc:  1, exit: 'left'  },
-        ];
-        for (const { dr, dc, exit } of pointsTo) {
-          const waiting = this.conveyorGrid[row + dr]?.[col + dc];
-          if (waiting?.active && waiting.resource && waiting.exit === exit) {
-            this.resourceExchangeService.conveyorResourceChanged$.next({
-              row: row + dr, col: col + dc, resource: waiting.resource,
-            });
-          }
-        }
-      });
-    });
-
-    this.resourceExchangeService.conveyorResourceChanged$
-      .pipe(filter(({ resource }) => resource !== null), mergeMap(event => of(event).pipe(delay(1000))))
-      .subscribe(({ row, col, resource }) => {
-        const moved = this.resourceExchangeService.onConveyorResourceChanged(resource, col, row, this.conveyorGrid, this.itemManager.clonedItems, this.itemManager.itemStates);
-        if (moved) {
-          this.conveyorGrid[row][col].resource = null;
-          this.resourceExchangeService.conveyorResourceChanged$.next({ row, col, resource: null });
-        }
-        this.cdr.detectChanges();
-      });
-
-    this.resourceExchangeService.itemResourceChanged$.subscribe(({ itemid, resource }) => {
-      this.updateItemResourceBadge(itemid, resource);
-      if (resource === null) { this.cdr.detectChanges(); return; }
-
-      const itemState = this.itemManager.itemStates[itemid];
-      if (!itemState || itemState.isAtStartPosition) { this.cdr.detectChanges(); return; }
-
-      const item = this.itemManager.clonedItems.find(i => i.id === itemid);
-      if (item?.type === 'output') {
-        const adjacentConveyor = this.resourceExchangeService.checkAdjacentConveyor(itemState.col, itemState.row, this.conveyorGrid);
-        this.resourceExchangeService.onOutputResourceChanged(itemid, itemState.col, itemState.row, adjacentConveyor, this.itemManager.clonedItems, this.conveyorGrid);
-      } else if (item?.type === 'input') {
-        const adjacentMachine = this.resourceExchangeService.checkAdjacentMachine(itemState.col, itemState.row, this.itemManager.clonedItems, this.itemManager.itemStates);
-        if (adjacentMachine) {
-          const machineItem = this.itemManager.clonedItems.find(i =>
-            i.type === 'machine' && this.itemManager.itemStates[i.id]?.col === adjacentMachine.col && this.itemManager.itemStates[i.id]?.row === adjacentMachine.row
-          );
-          if (machineItem && resource) {
-            const el = document.getElementById(itemid);
-            if (machineItem.input && resource in machineItem.input) {
-              el?.classList.remove('ring-red-500', 'shadow-[0_0_20px_rgba(239,68,68,0.6)]');
-              el?.classList.add('ring-4', 'ring-green-500', 'shadow-[0_0_20px_rgba(34,197,94,0.6)]');
-              this.resourceExchangeService.onInputResourceChanged(itemid, itemState.col, itemState.row, adjacentMachine, this.itemManager.clonedItems, this.itemManager.itemStates);
-            } else {
-              el?.classList.remove('ring-green-500', 'shadow-[0_0_20px_rgba(34,197,94,0.6)]');
-              el?.classList.add('ring-4', 'ring-red-500', 'shadow-[0_0_20px_rgba(239,68,68,0.6)]');
-            }
-          }
-        }
+    // Globaler Tick: jede Sekunde wird der gesamte Ressourcen-Fluss einmal abgearbeitet.
+    this.tickSub = interval(1000).subscribe(() => {
+      const { changedItems, inputs } = this.resourceExchangeService.tick(
+        this.itemManager.clonedItems,
+        this.itemManager.itemStates,
+        this.conveyorGrid,
+      );
+      for (const itemid of changedItems) {
+        const item = this.itemManager.clonedItems.find(i => i.id === itemid);
+        this.updateItemResourceBadge(itemid, item?.resource ?? null);
+      }
+      for (const { inputId, accepted } of inputs) {
+        this.markInputAcceptance(inputId, accepted);
       }
       this.cdr.detectChanges();
     });
+  }
+
+  ngOnDestroy(): void {
+    this.tickSub?.unsubscribe();
+  }
+
+  // Markiert einen Input grün (Maschine akzeptiert die Ressource) bzw. rot (lehnt ab).
+  private markInputAcceptance(inputId: string, accepted: boolean): void {
+    const el = document.getElementById(inputId);
+    if (!el) return;
+    if (accepted) {
+      el.classList.remove('ring-red-500', 'shadow-[0_0_20px_rgba(239,68,68,0.6)]');
+      el.classList.add('ring-4', 'ring-green-500', 'shadow-[0_0_20px_rgba(34,197,94,0.6)]');
+    } else {
+      el.classList.remove('ring-green-500', 'shadow-[0_0_20px_rgba(34,197,94,0.6)]');
+      el.classList.add('ring-4', 'ring-red-500', 'shadow-[0_0_20px_rgba(239,68,68,0.6)]');
+    }
   }
 
   ngAfterViewInit(): void {
@@ -249,32 +203,13 @@ export class FactoryPage implements AfterViewInit, OnInit {
 
   @HostListener('document:mouseup')
   onDocumentMouseUp(): void {
-    const wasPainting = this.interaction.paintMode === 'on';
     this.interaction.resetInteractions();
     this.connectionEvaluator.evaluate(
       this.conveyorGrid, this.itemManager.clonedItems, this.itemManager.itemStates,
       this.gridRowCount, this.gridColumns, this.getItemSizePx, this.gridCellSizePx,
     );
-    if (wasPainting) {
-      this.retriggerStuckConveyorResources();
-    }
-  }
-
-  private retriggerStuckConveyorResources(): void {
-    for (let row = 0; row < this.gridRowCount; row++) {
-      for (let col = 0; col < this.gridColumns; col++) {
-        const cell = this.conveyorGrid[row]?.[col];
-        if (!cell?.active || !cell.resource || !cell.exit) continue;
-        let nr = row, nc = col;
-        if (cell.exit === 'up') nr--;
-        else if (cell.exit === 'down') nr++;
-        else if (cell.exit === 'left') nc--;
-        else if (cell.exit === 'right') nc++;
-        if (this.conveyorGrid[nr]?.[nc]?.active) {
-          this.resourceExchangeService.conveyorResourceChanged$.next({ row, col, resource: cell.resource });
-        }
-      }
-    }
+    // Festsitzende Ressourcen müssen nicht mehr manuell re-getriggert werden —
+    // der globale Tick (siehe ngOnInit) bewegt sie automatisch im nächsten Durchlauf.
   }
 
   @HostListener('window:blur')

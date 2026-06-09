@@ -2,16 +2,16 @@ import { Injectable } from '@angular/core';
 import { DraggableItems } from '../models/draggableItem.model';
 import { ItemState } from '../models/itemPosition.model';
 import { ConveyorSegment } from '../models/conveyorSegment.model';
-import { Subject } from 'rxjs';
 
 @Injectable({
     providedIn: 'root',
 })
 export class ResourceExchangeService {
 
-    conveyorResourceChanged$ = new Subject<{ row: number; col: number; resource: string | null }>();
-    itemResourceChanged$ = new Subject<{ itemid: string; resource: string | null }>();
-    conveyorJam$ = new Subject<{ row: number; col: number }>();
+    // Resultat eines Tick-Durchlaufs: welche Items/Conveyor-Zellen sich geändert haben,
+    // damit die Page nur die betroffenen Badges neu zeichnen muss.
+    // changedInputs: Inputs, die in diesem Tick einer Maschine zugeordnet wurden, samt
+    // Info ob die Maschine die Ressource akzeptiert (grün) oder nicht (rot).
 
     // prüft, ob neben einem Spawner ein Output liegt, und gibt die itemid des Outputs zurück oder null, wenn kein Output nebenan liegt
     checkAdjacentOutput(
@@ -121,13 +121,13 @@ export class ResourceExchangeService {
         for (const n of neighbors) {
             if (conveyorGrid[n.row]?.[n.col]?.active && conveyorGrid[n.row]?.[n.col]?.entry === n.entry && conveyorGrid[n.row]?.[n.col]?.resource === null) {
                 return { col: n.col, row: n.row };
-            } else if (conveyorGrid[n.row]?.[n.col]?.active && conveyorGrid[n.row]?.[n.col]?.entry === n.entry && conveyorGrid[n.row]?.[n.col]?.resource !== null) {
-                this.conveyorJam$.next({ row: n.row, col: n.col });
             }
         }
         return null;
     }
 
+    // Wird beim Platzieren eines Spawners aufgerufen: legt die Ressource direkt auf
+    // einen daneben liegenden Output. Die Weitergabe übernimmt danach tick().
     onSpawnerPlaced(
         id: string,
         col: number,
@@ -136,109 +136,102 @@ export class ResourceExchangeService {
         items: DraggableItems[],
         itemStates: Record<string, ItemState>,
     ): void {
-        if (adjacentOutput) {
-            const outputState = itemStates[adjacentOutput.itemid];
-            if (outputState) {
-                const outputItem = items.find(i => i.id === adjacentOutput.itemid);
-                if (outputItem) {
-                    outputItem.resource = items.find(i => i.id === id)?.spawningResource ?? null;
-                    this.itemResourceChanged$.next({ itemid: adjacentOutput.itemid, resource: outputItem.resource });
-                }
-            }
+        if (!adjacentOutput) return;
+        const outputState = itemStates[adjacentOutput.itemid];
+        if (!outputState) return;
+        const outputItem = items.find(i => i.id === adjacentOutput.itemid);
+        if (outputItem && !outputItem.resource) {
+            outputItem.resource = items.find(i => i.id === id)?.spawningResource ?? null;
         }
     }
 
-    onOutputResourceChanged(
-        id: string,
-        col: number,
-        row: number,
-        adjacentConveyor: { col: number; row: number } | null,
-        items: DraggableItems[],
-        conveyorGrid: ConveyorSegment[][],
-    ): void {
-        if (adjacentConveyor) {
-            const outputItem = items.find(i => i.id === id);
-            conveyorGrid[adjacentConveyor.row][adjacentConveyor.col].resource = outputItem?.resource ?? null;
-            const resource = conveyorGrid[adjacentConveyor.row][adjacentConveyor.col].resource;
-            if (outputItem) {
-                outputItem.resource = null;
-                this.itemResourceChanged$.next({ itemid: id, resource: null });
-            }
-            this.conveyorResourceChanged$.next({
-                row: adjacentConveyor.row,
-                col: adjacentConveyor.col,
-                resource,
-            });
-        }
-    }
-
-    onInputResourceChanged(
-        id: string,
-        col: number,
-        row: number,
-        adjacentMaschine: { col: number; row: number } | null,
+    // Verarbeitet den gesamten Spielstand genau einmal (ein "Tick").
+    // Reihenfolge: Senke zuerst (Input→Maschine, Conveyor→Input, Conveyor→Conveyor,
+    // Output→Conveyor), damit eine Ressource pro Tick höchstens ein Feld weiterrückt.
+    // Bereits in diesem Tick befüllte Conveyor-Zellen werden gemerkt, damit eine frisch
+    // aufgelegte Ressource nicht im selben Tick weiterspringt.
+    // Gibt die geänderten Item-Ids zurück (für Badge-Aktualisierung) sowie die
+    // Input→Maschine-Zuordnungen für die grün/rot-Markierung.
+    tick(
         items: DraggableItems[],
         itemStates: Record<string, ItemState>,
-    ): void {
-        const inputItem = items.find(i => i.id === id);
-        if (!inputItem?.resource) return;
+        conveyorGrid: ConveyorSegment[][],
+    ): { changedItems: Set<string>; inputs: { inputId: string; accepted: boolean }[] } {
+        const changedItems = new Set<string>();
+        const inputs: { inputId: string; accepted: boolean }[] = [];
+        const filledThisTick = new Set<string>();
+        const key = (c: number, r: number) => `${c},${r}`;
 
-        if (adjacentMaschine) {
+        // 1. Input → Maschine
+        for (const input of items) {
+            if (input.type !== 'input' || !input.resource) continue;
+            const state = itemStates[input.id];
+            if (!state || state.isAtStartPosition) continue;
+            const adjacentMachine = this.checkAdjacentMachine(state.col, state.row, items, itemStates);
+            if (!adjacentMachine) continue;
             const machineItem = items.find(i =>
                 i.type === 'machine' &&
-                itemStates[i.id]?.col === adjacentMaschine.col &&
-                itemStates[i.id]?.row === adjacentMaschine.row
+                itemStates[i.id]?.col === adjacentMachine.col &&
+                itemStates[i.id]?.row === adjacentMachine.row
             );
-            if (machineItem) {
-                machineItem.resource = inputItem.resource;
-                this.itemResourceChanged$.next({ itemid: machineItem.id, resource: machineItem.resource });
-                inputItem.resource = null;
-                this.itemResourceChanged$.next({ itemid: id, resource: null });
-            }
-        }
-    }
-    onConveyorResourceChanged(
-        resource: string | null,
-        col: number,
-        row: number,
-        conveyorGrid: ConveyorSegment[][],
-        items: DraggableItems[],
-        itemStates: Record<string, ItemState>,
-    ): boolean {
-        const cell = conveyorGrid[row]?.[col];
-
-        // 1. Erst prüfen ob Weitergabe an nächstes Rollband möglich
-        if (cell?.active && cell.exit) {
-            const nextCell = this.getNextCellByExit(cell.exit, col, row);
-            const next = conveyorGrid[nextCell.row]?.[nextCell.col];
-            if (next?.active) {
-                if (next.resource === null) {
-                    next.resource = resource;
-                    this.conveyorResourceChanged$.next({ row: nextCell.row, col: nextCell.col, resource });
-                    return true;
-                } else {
-                    this.conveyorJam$.next({ row: nextCell.row, col: nextCell.col });
-                    return false;
-                }
+            if (!machineItem) continue;
+            const accepted = !!(machineItem.input && input.resource in machineItem.input);
+            inputs.push({ inputId: input.id, accepted });
+            if (accepted) {
+                machineItem.resource = input.resource;
+                input.resource = null;
+                changedItems.add(machineItem.id);
+                changedItems.add(input.id);
             }
         }
 
-        // 2. Prüfen ob Weitergabe an Input möglich
-        if (!cell) return false;
-        const adjacentInput = this.checkAdjacentInput(col, row, items, itemStates);
-        if (adjacentInput) {
-            const inputState = itemStates[adjacentInput.itemid];
-            if (inputState) {
+        // 2. Conveyor → Input
+        for (let row = 0; row < conveyorGrid.length; row++) {
+            const cols = conveyorGrid[row]?.length ?? 0;
+            for (let col = 0; col < cols; col++) {
+                const cell = conveyorGrid[row][col];
+                if (!cell?.active || !cell.resource) continue;
+                const adjacentInput = this.checkAdjacentInput(col, row, items, itemStates);
+                if (!adjacentInput) continue;
                 const inputItem = items.find(i => i.id === adjacentInput.itemid);
-                if (inputItem) {
-                    inputItem.resource = resource;
+                if (inputItem && !inputItem.resource) {
+                    inputItem.resource = cell.resource;
                     cell.resource = null;
-                    this.conveyorResourceChanged$.next({ row, col, resource: null });
-                    this.itemResourceChanged$.next({ itemid: adjacentInput.itemid, resource: inputItem.resource });
+                    changedItems.add(adjacentInput.itemid);
                 }
             }
         }
-        return false;
+
+        // 3. Conveyor → Conveyor (entlang exit)
+        for (let row = 0; row < conveyorGrid.length; row++) {
+            const cols = conveyorGrid[row]?.length ?? 0;
+            for (let col = 0; col < cols; col++) {
+                const cell = conveyorGrid[row][col];
+                if (!cell?.active || !cell.resource || !cell.exit) continue;
+                if (filledThisTick.has(key(col, row))) continue;
+                const nextCell = this.getNextCellByExit(cell.exit, col, row);
+                const next = conveyorGrid[nextCell.row]?.[nextCell.col];
+                if (next?.active && next.resource === null) {
+                    next.resource = cell.resource;
+                    cell.resource = null;
+                    filledThisTick.add(key(nextCell.col, nextCell.row));
+                }
+            }
+        }
+
+        // 4. Output → Conveyor
+        for (const output of items) {
+            if (output.type !== 'output' || !output.resource) continue;
+            const state = itemStates[output.id];
+            if (!state || state.isAtStartPosition) continue;
+            const adjacentConveyor = this.checkAdjacentConveyor(state.col, state.row, conveyorGrid);
+            if (!adjacentConveyor) continue;
+            conveyorGrid[adjacentConveyor.row][adjacentConveyor.col].resource = output.resource;
+            output.resource = null;
+            changedItems.add(output.id);
+        }
+
+        return { changedItems, inputs };
     }
 
     private getNextCellByExit(exit: string, col: number, row: number): { col: number; row: number } {
