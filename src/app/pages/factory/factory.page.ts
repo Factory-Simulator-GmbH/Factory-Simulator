@@ -203,6 +203,17 @@ export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
 
   @HostListener('document:mouseup')
   onDocumentMouseUp(): void {
+    // Ein einzeln verlegtes Rollband (Maus geklickt, aber nicht gezogen) wieder entfernen –
+    // ausser es grenzt an einen Input oder Output (hat also einen Ein-/Ausgang).
+    if (this.interaction.paintMode === 'on' && this.interaction.pathCells.length === 1) {
+      const { row, col } = this.interaction.pathCells[0];
+      const hasIo = this.resourceExchangeService.conveyorCellHasIoNeighbor(
+        col, row, this.itemManager.clonedItems, this.itemManager.itemStates,
+      );
+      if (!hasIo) {
+        this.conveyorGrid[row][col] = { active: false, entry: null, exit: null, resource: null, endpoint: null };
+      }
+    }
     this.interaction.resetInteractions();
     this.connectionEvaluator.evaluate(
       this.conveyorGrid, this.itemManager.clonedItems, this.itemManager.itemStates,
