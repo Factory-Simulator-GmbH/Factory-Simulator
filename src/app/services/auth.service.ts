@@ -1,9 +1,11 @@
 import {Injectable, signal} from '@angular/core';
 import {Router} from '@angular/router';
 import {User} from '@supabase/supabase-js';
+import {environment} from '../../environments/environment';
 import {SupabaseService} from './supabase.service';
 
 const DOMAIN = 'factorysim.local';
+const DEFAULT_PASSWORD = environment.supabase.defaultUserPassword;
 
 @Injectable({
   providedIn: 'root',
@@ -29,19 +31,19 @@ export class AuthService {
     return this.sessionReady;
   }
 
-  async signUp(username: string, password: string): Promise<void> {
+  async signUp(username: string): Promise<void> {
     const {error} = await this.supabase.client.auth.signUp({
       email: `${username}@${DOMAIN}`,
-      password,
+      password: DEFAULT_PASSWORD,
       options: {data: {username, role: 'user'}},
     });
     if (error) throw error;
   }
 
-  async signIn(username: string, password: string): Promise<void> {
+  async signIn(username: string): Promise<void> {
     const {error} = await this.supabase.client.auth.signInWithPassword({
       email: `${username}@${DOMAIN}`,
-      password,
+      password: DEFAULT_PASSWORD,
     });
     if (error) throw error;
   }
