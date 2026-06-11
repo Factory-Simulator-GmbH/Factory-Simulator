@@ -1,5 +1,6 @@
 export const environment = {
   production: false,
+  adminMasterPin: '1234',
   supabase: {
     url: 'https://kxjiyzowropbbfwemile.supabase.co',
     anonKey:
