@@ -19,8 +19,8 @@ export class ResourceExchangeService {
         spawnerRow: number,
         items: DraggableItems[],
         itemStates: Record<string, ItemState>,
-        spawnerSize = 3,
     ): { itemid: string } | null {
+        const spawnerSize = 3;
         const minCol = spawnerCol - 1;
         const maxCol = spawnerCol + spawnerSize;
         const minRow = spawnerRow - 1;
@@ -104,18 +104,6 @@ export class ResourceExchangeService {
             if (inRing && !insideMachine && !isCorner) return { col: state.col, row: state.row };
         }
         return null;
-    }
-
-    // prüft, ob eine Rollband-Zelle (1×1) an einen Input ODER einen Output grenzt
-    // (also einen Ein- oder Ausgang hat). Nutzt die bestehenden Adjacency-Checks.
-    conveyorCellHasIoNeighbor(
-        col: number,
-        row: number,
-        items: DraggableItems[],
-        itemStates: Record<string, ItemState>,
-    ): boolean {
-        return !!this.checkAdjacentInput(col, row, items, itemStates)
-            || !!this.checkAdjacentOutput(col, row, items, itemStates, 1);
     }
 
     // prüft, ob neben einem Output ein aktives Rollband liegt, und gibt die Koordinaten des Rollbands zurück oder null, wenn kein Rollband nebenan liegt
