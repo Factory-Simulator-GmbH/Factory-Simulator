@@ -1,16 +1,15 @@
-import {Injectable} from '@angular/core';
-import {ConveyorSegment} from '../models/conveyorSegment.model';
-import {ConveyorGridService} from './conveyorGrid.service';
+import { Injectable } from '@angular/core';
+import { ConveyorSegment } from '../models/conveyorSegment.model';
+import { ConveyorGridService } from './conveyorGrid.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class FactoryGridService {
-  constructor(private conveyorGridService: ConveyorGridService) {
-  }
+  constructor(private conveyorGridService: ConveyorGridService) {}
 
   calculateColumns(gridCellSizePx: number, availableWidthPx: number): number {
-    return Math.max(1, Math.floor(availableWidthPx / gridCellSizePx))*2;
+    return Math.max(1, Math.floor(availableWidthPx / gridCellSizePx)) * 2;
   }
 
   createOrResizeGrid(
@@ -50,20 +49,31 @@ export class FactoryGridService {
     previewCells.add(key);
 
     if (paintMode === 'off') {
+      // 1. Arrays nutzen statt null
+      // 2. endpoint als Boolean (false) initialisieren
       conveyorGrid[rowIndex][colIndex] = {
         active: false,
-        entry: null,
-        exit: null,
+        entry: [],
+        exit: [],
         resource: null,
-        endpoint: null,
+        endpoint: false,
       };
+      
+      // 3. WICHTIG: Die gelöschte Zelle muss registriert werden,
+      // damit benachbarte Bänder ihre Verbindungen kappen können.
+      pathCells.push({ row: rowIndex, col: colIndex });
+      
+      // Update direkt nach dem Löschen triggern
+      this.conveyorGridService.updateNeighborsAfterPlacement(conveyorGrid, pathCells);
       return;
     }
 
+    // Beim Malen ('on'):
     conveyorGrid[rowIndex][colIndex].active = true;
-    pathCells.push({row: rowIndex, col: colIndex});
+    pathCells.push({ row: rowIndex, col: colIndex });
 
-    this.conveyorGridService.rebuildPathDirections(conveyorGrid, pathCells);
+    // 4. Die neue Update-Methode aufrufen, die Nachbarn automatisch mit einbezieht
+    this.conveyorGridService.updateNeighborsAfterPlacement(conveyorGrid, pathCells);
   }
 
   getConveyorSymbol(cell: ConveyorSegment): string {

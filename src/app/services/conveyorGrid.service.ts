@@ -1,20 +1,20 @@
-import {Injectable} from '@angular/core';
-import {ConveyorSegment, Direction} from '../models/conveyorSegment.model';
-
+import { Injectable } from '@angular/core';
+import { ConveyorSegment, Direction } from '../models/conveyorSegment.model';
 
 @Injectable({
   providedIn: 'root',
 })
 export class ConveyorGridService {
+  
   createGrid(rows: number, cols: number): ConveyorSegment[][] {
-    return Array.from({length: rows}, () =>
-      Array.from({length: cols}, () => ({
+    return Array.from({ length: rows }, () =>
+      Array.from({ length: cols }, () => ({
         active: false,
-        entry: null,
-        exit: null,
+        entry: [], // Korrekte Objekt-Syntax (nicht cell.entry = [])
+        exit: [],  // Korrekte Objekt-Syntax
         resource: null,
-        endpoint: null,
-      })),
+        endpoint: false, // Initialer Boolean-Wert
+      }))
     );
   }
 
@@ -27,10 +27,11 @@ export class ConveyorGridService {
 
     for (let row = 0; row < Math.min(rows, grid.length); row++) {
       for (let col = 0; col < Math.min(cols, grid[row].length); col++) {
+        // Arrays müssen beim Klonen kopiert werden, um Referenzfehler zu vermeiden
         next[row][col] = {
           active: grid[row][col].active,
-          entry: grid[row][col].entry,
-          exit: grid[row][col].exit,
+          entry: [...grid[row][col].entry], 
+          exit: [...grid[row][col].exit],   
           resource: grid[row][col].resource,
           endpoint: grid[row][col].endpoint,
         };
@@ -40,197 +41,138 @@ export class ConveyorGridService {
     return next;
   }
 
+  // NEU: Diese Methode sammelt alle geänderten Zellen + deren Nachbarn und baut sie neu
+  updateNeighborsAfterPlacement(
+    conveyorGrid: ConveyorSegment[][],
+    pathCells: { row: number; col: number }[]
+  ): void {
+    const cellsToUpdate = new Map<string, { row: number; col: number }>();
+
+    // 1. Ursprüngliche Zellen hinzufügen
+    pathCells.forEach(cell => {
+      cellsToUpdate.set(`${cell.row}-${cell.col}`, cell);
+      
+      // 2. Alle potenziellen 4 Nachbarn hinzufügen (falls sie auf dem Grid existieren)
+      const neighbors = [
+        { row: cell.row - 1, col: cell.col }, // Up
+        { row: cell.row + 1, col: cell.col }, // Down
+        { row: cell.row, col: cell.col - 1 }, // Left
+        { row: cell.row, col: cell.col + 1 }, // Right
+      ];
+
+      neighbors.forEach(n => {
+        if (conveyorGrid[n.row]?.[n.col]?.active) {
+          cellsToUpdate.set(`${n.row}-${n.col}`, n);
+        }
+      });
+    });
+
+    // 3. Rebuild für alle betroffenen Zellen ausführen
+    this.rebuildPathDirections(conveyorGrid, Array.from(cellsToUpdate.values()));
+  }
+
   rebuildPathDirections(
     conveyorGrid: ConveyorSegment[][],
-    pathCells: { row: number; col: number }[],
+    cellsToUpdate: { row: number; col: number }[],
   ): void {
-    for (const {row, col} of pathCells) {
-      conveyorGrid[row][col].entry = null;
-      conveyorGrid[row][col].exit = null;
+    
+    // Zuerst alle Arrays der betroffenen Zellen zurücksetzen
+    for (const { row, col } of cellsToUpdate) {
+      if (conveyorGrid[row]?.[col]) {
+        conveyorGrid[row][col].entry = [];
+        conveyorGrid[row][col].exit = [];
+        conveyorGrid[row][col].endpoint = false;
+      }
     }
 
-    for (let i = 0; i < pathCells.length; i++) {
-      const current = pathCells[i];
-      const prev = pathCells[i - 1] ?? null;
-      const next = pathCells[i + 1] ?? null;
+    // Nun die Verbindungen basierend auf den Nachbarn neu berechnen
+    for (const { row, col } of cellsToUpdate) {
+      const cell = conveyorGrid[row][col];
+      if (!cell.active) continue;
 
-      const cell = conveyorGrid[current.row][current.col];
+      const top = conveyorGrid[row - 1]?.[col];
+      const bottom = conveyorGrid[row + 1]?.[col];
+      const left = conveyorGrid[row]?.[col - 1];
+      const right = conveyorGrid[row]?.[col + 1];
 
-      if (prev) {
-        cell.entry = this.getEntryDirection(prev.row, prev.col, current.row, current.col);
+      // Nachbar OBEN (Top)
+      if (top?.active) {
+        if (!cell.entry.includes('up')) cell.entry.push('up' as Direction);
+        if (!cell.exit.includes('up')) cell.exit.push('up' as Direction);
+      }
+      // Nachbar UNTEN (Bottom)
+      if (bottom?.active) {
+        if (!cell.entry.includes('down')) cell.entry.push('down' as Direction);
+        if (!cell.exit.includes('down')) cell.exit.push('down' as Direction);
+      }
+      // Nachbar LINKS (Left)
+      if (left?.active) {
+        if (!cell.entry.includes('left')) cell.entry.push('left' as Direction);
+        if (!cell.exit.includes('left')) cell.exit.push('left' as Direction);
+      }
+      // Nachbar RECHTS (Right)
+      if (right?.active) {
+        if (!cell.entry.includes('right')) cell.entry.push('right' as Direction);
+        if (!cell.exit.includes('right')) cell.exit.push('right' as Direction);
       }
 
-      if (next) {
-        cell.exit = this.getExitDirection(current.row, current.col, next.row, next.col);
-        
-      }
-      if (pathCells[0] === current) {
-        if (cell.exit === 'up') cell.entry = 'down';
-        if (cell.exit === 'down') cell.entry = 'up';
-        if (cell.exit === 'left') cell.entry = 'right';
-        if (cell.exit === 'right') cell.entry = 'left';
-        
-      }
-      if(pathCells.length === i + 1){
-        if (cell.entry === 'up') cell.exit = 'down';
-        if (cell.entry === 'down') cell.exit = 'up';
-        if (cell.entry === 'left') cell.exit = 'right';
-        if (cell.entry === 'right') cell.exit = 'left';
+      // Endpoint-Logik: Ein Endpoint liegt vor, wenn das Band nur in EINE Richtung eine Verbindung hat
+      const totalConnections = Array.from(new Set([...cell.entry, ...cell.exit])).length;
+      if (totalConnections <= 1) {
         cell.endpoint = true;
-      }
-      else {
+      } else {
         cell.endpoint = false;
       }
-      console.log(`Zelle: (${current.row}, ${current.col}), Entry: ${cell.entry}, Exit: ${cell.exit}`);
-    }
-
-    // Fehlende Entry/Exit aus bestehenden aktiven Nachbarzellen ableiten
-    // (z.B. wenn eine Zelle einzeln neu platziert wird und an ein bestehendes Band anschliesst)
-    for (const { row, col } of pathCells) {
-      const cell = conveyorGrid[row][col];
-
-      if (!cell.entry) {
-        if (conveyorGrid[row]?.[col - 1]?.active && conveyorGrid[row]?.[col - 1]?.exit === 'right') cell.entry = 'left';
-        else if (conveyorGrid[row]?.[col + 1]?.active && conveyorGrid[row]?.[col + 1]?.exit === 'left') cell.entry = 'right';
-        else if (conveyorGrid[row - 1]?.[col]?.active && conveyorGrid[row - 1]?.[col]?.exit === 'down') cell.entry = 'up';
-        else if (conveyorGrid[row + 1]?.[col]?.active && conveyorGrid[row + 1]?.[col]?.exit === 'up') cell.entry = 'down';
-      }
-
-      if (!cell.exit) {
-        if (conveyorGrid[row]?.[col - 1]?.active && conveyorGrid[row]?.[col - 1]?.entry === 'right') cell.exit = 'left';
-        else if (conveyorGrid[row]?.[col + 1]?.active && conveyorGrid[row]?.[col + 1]?.entry === 'left') cell.exit = 'right';
-        else if (conveyorGrid[row - 1]?.[col]?.active && conveyorGrid[row - 1]?.[col]?.entry === 'down') cell.exit = 'up';
-        else if (conveyorGrid[row + 1]?.[col]?.active && conveyorGrid[row + 1]?.[col]?.entry === 'up') cell.exit = 'down';
-      }
-
-      // Fallback: fehlende Richtung als Umkehrung der bekannten setzen (isolierter Start/End)
-      if (!cell.entry && cell.exit === 'up') cell.entry = 'down';
-      else if (!cell.entry && cell.exit === 'down') cell.entry = 'up';
-      else if (!cell.entry && cell.exit === 'left') cell.entry = 'right';
-      else if (!cell.entry && cell.exit === 'right') cell.entry = 'left';
-
-      if (!cell.exit && cell.entry === 'up') cell.exit = 'down';
-      else if (!cell.exit && cell.entry === 'down') cell.exit = 'up';
-      else if (!cell.exit && cell.entry === 'left') cell.exit = 'right';
-      else if (!cell.exit && cell.entry === 'right') cell.exit = 'left';
-
-      // endpoint: false wenn die Ausgangsrichtung auf eine aktive Zelle zeigt
-      if (cell.exit && cell.endpoint) {
-        let nr = row, nc = col;
-        if (cell.exit === 'up') nr--;
-        else if (cell.exit === 'down') nr++;
-        else if (cell.exit === 'left') nc--;
-        else if (cell.exit === 'right') nc++;
-        if (conveyorGrid[nr]?.[nc]?.active) cell.endpoint = false;
-      }
-    }
-
-    // Nachbar-Zellen außerhalb von pathCells aktualisieren: wenn eine neu gemalte Zelle
-    // an eine bestehende Endpoint-Zelle angrenzt, muss deren endpoint-Flag gecleart werden
-    for (const { row, col } of pathCells) {
-      for (const { dr, dc } of [{ dr: -1, dc: 0 }, { dr: 1, dc: 0 }, { dr: 0, dc: -1 }, { dr: 0, dc: 1 }]) {
-        const neighbor = conveyorGrid[row + dr]?.[col + dc];
-        if (!neighbor?.active || !neighbor.endpoint || !neighbor.exit) continue;
-        let nr = row + dr, nc = col + dc;
-        if (neighbor.exit === 'up') nr--;
-        else if (neighbor.exit === 'down') nr++;
-        else if (neighbor.exit === 'left') nc--;
-        else if (neighbor.exit === 'right') nc++;
-        if (conveyorGrid[nr]?.[nc]?.active) neighbor.endpoint = false;
-      }
     }
   }
-
-  getExitDirection(
-    fromRow: number,
-    fromCol: number,
-    toRow: number,
-    toCol: number,
-  ): Direction | null {
-    if (toRow === fromRow - 1 && toCol === fromCol) return 'up';
-    if (toRow === fromRow + 1 && toCol === fromCol) return 'down';
-    if (toRow === fromRow && toCol === fromCol - 1) return 'left';
-    if (toRow === fromRow && toCol === fromCol + 1) return 'right';
-    return null;
-  }
-
-  getEntryDirection(
-    fromRow: number,
-    fromCol: number,
-    toRow: number,
-    toCol: number,
-  ): Direction | null {
-    if (toRow === fromRow + 1 && toCol === fromCol) return 'up';
-    if (toRow === fromRow - 1 && toCol === fromCol) return 'down';
-    if (toRow === fromRow && toCol === fromCol + 1) return 'left';
-    if (toRow === fromRow && toCol === fromCol - 1) return 'right';
-    return null;
-  }
-  
 
   getConveyorSymbol(cell: ConveyorSegment): string {
     if (!cell.active) return '';
 
-    if (cell.endpoint) {
-        if (cell.exit === 'right') return '→';
-        if (cell.exit === 'left') return '←';
-        if (cell.exit === 'up') return '↑';
-        if (cell.exit === 'down') return '↓';
-    }
+    // Kombiniere Entry und Exit um alle physischen Verbindungsrichtungen zu sehen
+    const connections = Array.from(new Set([...cell.entry, ...cell.exit]));
     
+    const hasUp = connections.includes('up' as Direction);
+    const hasDown = connections.includes('down' as Direction);
+    const hasLeft = connections.includes('left' as Direction);
+    const hasRight = connections.includes('right' as Direction);
 
-    if (cell.entry && cell.exit) {
-      if (
-        (cell.entry === 'left' && cell.exit === 'right') ||
-        (cell.entry === 'right' && cell.exit === 'left')
-      ) {
-        return '─';
-      }
+    const count = connections.length;
 
-      if (
-        (cell.entry === 'up' && cell.exit === 'down') ||
-        (cell.entry === 'down' && cell.exit === 'up')
-      ) {
-        return '│';
-      }
+    // 4 Richtungen (Kreuzung)
+    if (count === 4) return '╬';
 
-      if (
-        (cell.entry === 'down' && cell.exit === 'right') ||
-        (cell.entry === 'right' && cell.exit === 'down')
-      ) {
-        return '┌';
-      }
-
-      if (
-        (cell.entry === 'down' && cell.exit === 'left') ||
-        (cell.entry === 'left' && cell.exit === 'down')
-      ) {
-        return '┐';
-      }
-
-      if (
-        (cell.entry === 'up' && cell.exit === 'right') ||
-        (cell.entry === 'right' && cell.exit === 'up')
-      ) {
-        return '└';
-      }
-
-      if (
-        (cell.entry === 'up' && cell.exit === 'left') ||
-        (cell.entry === 'left' && cell.exit === 'up')
-      ) {
-        return '┘';
-      }
+    // 3 Richtungen (T-Stücke)
+    if (count === 3) {
+      if (!hasDown) return '┴';
+      if (!hasUp) return '┬';
+      if (!hasRight) return '┤';
+      if (!hasLeft) return '├';
     }
 
-    if (!cell.entry && cell.exit) {
-      if (cell.exit === 'left' || cell.exit === 'right') return '─';
-      if (cell.exit === 'up' || cell.exit === 'down') return '│';
+    // 2 Richtungen (Geraden & Kurven)
+    if (count === 2) {
+      if (hasUp && hasDown) return '│';
+      if (hasLeft && hasRight) return '─';
+      if (hasDown && hasRight) return '┌';
+      if (hasDown && hasLeft) return '┐';
+      if (hasUp && hasRight) return '└';
+      if (hasUp && hasLeft) return '┘';
     }
 
-    if (cell.entry === 'left' || cell.entry === 'right') return '─';
-    if (cell.entry === 'up' || cell.entry === 'down') return '│';
+    // 1 Richtung (Endpunkte/Startpunkte)
+    if (count === 1) {
+      if (hasRight && cell.endpoint) return '→'; // Optional: Richtungs-Pfeile beibehalten
+      if (hasLeft && cell.endpoint) return '←';
+      if (hasUp && cell.endpoint) return '↑';
+      if (hasDown && cell.endpoint) return '↓';
+      
+      // Fallback
+      if (hasUp || hasDown) return '│';
+      if (hasLeft || hasRight) return '─';
+    }
 
-    return '';
+    // Default Fallback
+    return '─';
   }
 }

@@ -4,7 +4,7 @@ import { interval, ReplaySubject, Subscription, take } from 'rxjs';
 import { FormsModule } from '@angular/forms';
 import { PlaygroundGridComponent } from '../../components/playgroundGrid/playgroundGrid.component';
 import { ItemsComponent } from '../../components/items/items.component';
-import { ConveyorSegment } from '../../models/conveyorSegment.model';
+import { ConveyorSegment, Direction } from '../../models/conveyorSegment.model'; // WICHTIG: Direction hier hinzugefügt
 import { DraggableItems, ItemSize } from '../../models/draggableItem.model';
 import { FactoryGridService } from '../../services/factoryGrid.service';
 import { FactoryItemsService } from '../../services/factoryItems.service';
@@ -20,6 +20,7 @@ import { ItemManagerService } from '../../services/itemManager.service';
 import { AuthService } from '../../services/auth.service';
 import { ActivatedRoute } from '@angular/router';
 import { FactoryLayoutService, SavedLayout } from '../../services/factoryLayout.service';
+import { ConveyorGridService } from '../../services/conveyorGrid.service';
 
 @Component({
   selector: 'app-factory-page',
@@ -81,6 +82,7 @@ export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
     private factoryItemsService: FactoryItemsService,
     private layoutService: LayoutService,
     private resourceExchangeService: ResourceExchangeService,
+    private conveyorGridService: ConveyorGridService,
     // Public — template binds directly to service properties
     public menu: MenuService,
     public minimap: MinimapService,
@@ -97,7 +99,6 @@ export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
   ngOnInit(): void {
     this.updateGridCellSize();
     this.calculateColumnsAndCreateGrid();
-
 
     this.items = this.route.snapshot.data['items'];
     this.itemsReady$.next();
@@ -203,13 +204,15 @@ export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
 
   @HostListener('document:mouseup')
   onDocumentMouseUp(): void {
+    if (this.interaction.pathCells && this.interaction.pathCells.length > 0) {
+      this.conveyorGridService.updateNeighborsAfterPlacement(this.conveyorGrid, this.interaction.pathCells);
+    }
+    
     this.interaction.resetInteractions();
     this.connectionEvaluator.evaluate(
       this.conveyorGrid, this.itemManager.clonedItems, this.itemManager.itemStates,
       this.gridRowCount, this.gridColumns, this.getItemSizePx, this.gridCellSizePx,
     );
-    // Festsitzende Ressourcen müssen nicht mehr manuell re-getriggert werden —
-    // der globale Tick (siehe ngOnInit) bewegt sie automatisch im nächsten Durchlauf.
   }
 
   @HostListener('window:blur')
@@ -507,8 +510,8 @@ export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
     this.dragDrop.clearAllItems(this.items);
     for (const row of this.conveyorGrid) {
       for (const cell of row) {
-        cell.active = false; cell.entry = null; cell.exit = null;
-        cell.resource = null; cell.endpoint = null;
+        cell.active = false; cell.entry = []; cell.exit = [];
+        cell.resource = null; cell.endpoint = false;
       }
     }
     this.activeLayoutId = null;
@@ -517,7 +520,6 @@ export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
     this.closeLayoutsDropdown();
     this.updateMinimap();
     this.cdr.detectChanges();
-    // Sofort den Namen abfragen
     this.savePopoverName = '';
     this.showSavePopover = true;
   }
@@ -526,8 +528,8 @@ export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
     this.dragDrop.clearAllItems(this.items);
     for (const row of this.conveyorGrid) {
       for (const cell of row) {
-        cell.active = false; cell.entry = null; cell.exit = null;
-        cell.resource = null; cell.endpoint = null;
+        cell.active = false; cell.entry = []; cell.exit = [];
+        cell.resource = null; cell.endpoint = false;
       }
     }
     this.confirmResetOpen = false;
@@ -558,7 +560,23 @@ export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
     for (let r = 0; r < this.conveyorGrid.length; r++) {
       for (let c = 0; c < this.conveyorGrid[r].length; c++) {
         const saved = raw.conveyorGrid[r]?.[c];
-        Object.assign(this.conveyorGrid[r][c], saved ?? { active: false, entry: null, exit: null, resource: null, endpoint: null });
+        
+        // Typisierung mit : Direction[] repariert den ts(7034) und ts(7005) Fehler
+        let normalizedEntry: Direction[] = [];
+        if (saved?.entry) {
+          normalizedEntry = Array.isArray(saved.entry) ? saved.entry : [saved.entry as any];
+        }
+
+        let normalizedExit: Direction[] = [];
+        if (saved?.exit) {
+          normalizedExit = Array.isArray(saved.exit) ? saved.exit : [saved.exit as any];
+        }
+
+        Object.assign(this.conveyorGrid[r][c], saved ?? { active: false, resource: null }, {
+            entry: normalizedEntry,
+            exit: normalizedExit,
+            endpoint: saved?.endpoint ?? false
+        });
       }
     }
     requestAnimationFrame(() => {

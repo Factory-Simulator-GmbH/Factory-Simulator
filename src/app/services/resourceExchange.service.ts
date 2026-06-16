@@ -1,17 +1,12 @@
 import { Injectable } from '@angular/core';
 import { DraggableItems } from '../models/draggableItem.model';
 import { ItemState } from '../models/itemPosition.model';
-import { ConveyorSegment } from '../models/conveyorSegment.model';
+import { ConveyorSegment, Direction } from '../models/conveyorSegment.model'; // WICHTIG: Direction importieren
 
 @Injectable({
     providedIn: 'root',
 })
 export class ResourceExchangeService {
-
-    // Resultat eines Tick-Durchlaufs: welche Items/Conveyor-Zellen sich geändert haben,
-    // damit die Page nur die betroffenen Badges neu zeichnen muss.
-    // changedInputs: Inputs, die in diesem Tick einer Maschine zugeordnet wurden, samt
-    // Info ob die Maschine die Ressource akzeptiert (grün) oder nicht (rot).
 
     // prüft, ob neben einem Spawner ein Output liegt, und gibt die itemid des Outputs zurück oder null, wenn kein Output nebenan liegt
     checkAdjacentOutput(
@@ -44,6 +39,7 @@ export class ResourceExchangeService {
         }
         return null;
     }
+
     // prüft, ob neben einem Spawner ein Input liegt, und gibt die itemid des Items zurück oder null, wenn kein Output nebenan liegt
     checkAdjacentInput(
         conveyorCol: number,
@@ -113,21 +109,21 @@ export class ResourceExchangeService {
         conveyorGrid: ConveyorSegment[][],
     ): { col: number; row: number } | null {
         const neighbors = [
-            { col: outputCol, row: outputRow - 1, entry: 'down' },
-            { col: outputCol, row: outputRow + 1, entry: 'up' },
-            { col: outputCol - 1, row: outputRow, entry: 'right' },
-            { col: outputCol + 1, row: outputRow, entry: 'left' },
+            { col: outputCol, row: outputRow - 1, entry: 'down' as Direction },
+            { col: outputCol, row: outputRow + 1, entry: 'up' as Direction },
+            { col: outputCol - 1, row: outputRow, entry: 'right' as Direction },
+            { col: outputCol + 1, row: outputRow, entry: 'left' as Direction },
         ];
         for (const n of neighbors) {
-            if (conveyorGrid[n.row]?.[n.col]?.active && conveyorGrid[n.row]?.[n.col]?.entry === n.entry && conveyorGrid[n.row]?.[n.col]?.resource === null) {
+            const targetCell = conveyorGrid[n.row]?.[n.col];
+            // ÄNDERUNG: targetCell.entry ist jetzt ein Array, daher .includes() statt ===
+            if (targetCell?.active && targetCell.entry.includes(n.entry) && targetCell.resource === null) {
                 return { col: n.col, row: n.row };
             }
         }
         return null;
     }
 
-    // Wird beim Platzieren eines Spawners aufgerufen: legt die Ressource direkt auf
-    // einen daneben liegenden Output. Die Weitergabe übernimmt danach tick().
     onSpawnerPlaced(
         id: string,
         col: number,
@@ -145,13 +141,6 @@ export class ResourceExchangeService {
         }
     }
 
-    // Verarbeitet den gesamten Spielstand genau einmal (ein "Tick").
-    // Reihenfolge: Senke zuerst (Input→Maschine, Conveyor→Input, Conveyor→Conveyor,
-    // Output→Conveyor), damit eine Ressource pro Tick höchstens ein Feld weiterrückt.
-    // Bereits in diesem Tick befüllte Conveyor-Zellen werden gemerkt, damit eine frisch
-    // aufgelegte Ressource nicht im selben Tick weiterspringt.
-    // Gibt die geänderten Item-Ids zurück (für Badge-Aktualisierung) sowie die
-    // Input→Maschine-Zuordnungen für die grün/rot-Markierung.
     tick(
         items: DraggableItems[],
         itemStates: Record<string, ItemState>,
@@ -207,8 +196,11 @@ export class ResourceExchangeService {
             const cols = conveyorGrid[row]?.length ?? 0;
             for (let col = 0; col < cols; col++) {
                 const cell = conveyorGrid[row][col];
-                if (!cell?.active || !cell.resource || !cell.exit) continue;
+                // ÄNDERUNG: Array-Check, ob exit existiert und nicht leer ist
+                if (!cell?.active || !cell.resource || !cell.exit || cell.exit.length === 0) continue;
                 if (filledThisTick.has(key(col, row))) continue;
+                
+                // ÄNDERUNG: Wir übergeben jetzt das Array
                 const nextCell = this.getNextCellByExit(cell.exit, col, row);
                 const next = conveyorGrid[nextCell.row]?.[nextCell.col];
                 if (next?.active && next.resource === null) {
@@ -234,11 +226,19 @@ export class ResourceExchangeService {
         return { changedItems, inputs };
     }
 
-    private getNextCellByExit(exit: string, col: number, row: number): { col: number; row: number } {
-        if (exit === 'up') return { col, row: row - 1 };
-        if (exit === 'down') return { col, row: row + 1 };
-        if (exit === 'left') return { col: col - 1, row };
-        if (exit === 'right') return { col: col + 1, row };
+    // ÄNDERUNG: Nimmt jetzt ein Array von Directions an
+    private getNextCellByExit(exits: Direction[], col: number, row: number): { col: number; row: number } {
+        if (!exits || exits.length === 0) return { col, row };
+        
+        // Da die Zelle mehrere Ausgänge haben kann, greifen wir für den
+        // reinen Ressourcentransport hier zunächst auf den ersten verfügbaren Ausgang zu.
+        // (Für echtes "Splitting" von Items müsste hier später erweiterte Logik rein).
+        const primaryExit = exits[0];
+        
+        if (primaryExit === 'up') return { col, row: row - 1 };
+        if (primaryExit === 'down') return { col, row: row + 1 };
+        if (primaryExit === 'left') return { col: col - 1, row };
+        if (primaryExit === 'right') return { col: col + 1, row };
         return { col, row };
     }
 }
