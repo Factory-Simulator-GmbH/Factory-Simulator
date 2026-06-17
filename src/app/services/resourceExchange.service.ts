@@ -107,32 +107,33 @@ export class ResourceExchangeService {
     }
 
     // prüft, ob neben einem Output ein aktives Rollband liegt, und gibt die Koordinaten des Rollbands zurück oder null, wenn kein Rollband nebenan liegt
-    checkAdjacentConveyors(
+    checkAllAdjacentConveyors(
         outputCol: number,
         outputRow: number,
         conveyorGrid: ConveyorSegment[][],
     ): { col: number; row: number }[] {
         const neighbors = [
             { col: outputCol, row: outputRow - 1, entry: 'down' },
-            { col: outputCol, row: outputRow + 1, entry: 'up' },
-            { col: outputCol - 1, row: outputRow, entry: 'right' },
-            { col: outputCol + 1, row: outputRow, entry: 'left' },
+          { col: outputCol + 1, row: outputRow, entry: 'left' },
+          { col: outputCol, row: outputRow + 1, entry: 'up' },
+          { col: outputCol - 1, row: outputRow, entry: 'right' },
         ];
-        const conveyors: { col: number; row: number }[] = [];
+        const neighbouringConveyors: { col: number; row: number }[] = [];
         for (const n of neighbors) {
-            if (conveyorGrid[n.row]?.[n.col]?.active && conveyorGrid[n.row]?.[n.col]?.entry === n.entry && conveyorGrid[n.row]?.[n.col]?.resource === null) {
-                conveyors.push({ col: n.col, row: n.row });
+            if (conveyorGrid[n.row]?.[n.col]?.active && conveyorGrid[n.row]?.[n.col]?.entry === n.entry) {
+                neighbouringConveyors.push({ col: n.col, row: n.row });
             }
         }
-        return conveyors;
+        return neighbouringConveyors;
     }
 
-    checkAdjacentConveyor(
+    checkFreeAdjacentConveyor(
       outputCol: number,
       outputRow: number,
       conveyorGrid: ConveyorSegment[][],
     ): { col: number; row: number } | null {
-      let conveyors = this.checkAdjacentConveyors(outputCol, outputRow, conveyorGrid)
+      let conveyors = this.checkAllAdjacentConveyors(outputCol, outputRow, conveyorGrid)
+        .filter(n => conveyorGrid[n.row][n.col].resource === null)
       return conveyors.length > 0 ? conveyors[0] : null
     }
 
@@ -244,17 +245,23 @@ export class ResourceExchangeService {
           const state = itemStates[splitter.id];
           if (!state || state.isAtStartPosition) continue;
 
-          const adjacentConveyors = this.checkAdjacentConveyors(state.col, state.row, conveyorGrid);
-          if (adjacentConveyors.length === 0) continue;
+          const allOutputs = this.checkAllAdjacentConveyors(state.col, state.row, conveyorGrid);
+          if (allOutputs.length === 0) continue;
 
           const lastIndex = this.splitterConveyorIndex.get(splitter.id) ?? 0;
-          const targetIndex = lastIndex % adjacentConveyors.length;
-          const targetConveyor = adjacentConveyors[targetIndex];
-          this.splitterConveyorIndex.set(splitter.id, targetIndex + 1);
 
-          conveyorGrid[targetConveyor.row][targetConveyor.col].resource = splitter.resource;
-          splitter.resource = null;
-          changedItems.add(splitter.id)
+          for (let i = 0; i < allOutputs.length; i++) {
+            const targetIndex = (lastIndex + i) % allOutputs.length;
+            const targetConveyor = allOutputs[targetIndex];
+            const cell = conveyorGrid[targetConveyor.row]?.[targetConveyor.col];
+            if (cell && cell.resource === null) {
+              cell.resource = splitter.resource;
+              splitter.resource = null;
+              changedItems.add(splitter.id);
+              this.splitterConveyorIndex.set(splitter.id, (targetIndex + 1) % allOutputs.length);
+              break;
+            }
+          }
         }
 
         // 5. Output → Conveyor
@@ -262,7 +269,7 @@ export class ResourceExchangeService {
             if (output.type !== 'output' || !output.resource) continue;
             const state = itemStates[output.id];
             if (!state || state.isAtStartPosition) continue;
-            const adjacentConveyor = this.checkAdjacentConveyor(state.col, state.row, conveyorGrid);
+            const adjacentConveyor = this.checkFreeAdjacentConveyor(state.col, state.row, conveyorGrid);
             if (!adjacentConveyor) continue;
             conveyorGrid[adjacentConveyor.row][adjacentConveyor.col].resource = output.resource;
             output.resource = null;
