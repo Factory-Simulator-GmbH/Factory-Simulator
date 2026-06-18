@@ -106,6 +106,38 @@ export class ResourceExchangeService {
         return null;
     }
 
+    // prüft, ob neben einer Maschine ein Output-Item liegt, und gibt dessen itemid zurück oder null
+    checkAdjacentOutputItem(
+        machineCol: number,
+        machineRow: number,
+        items: DraggableItems[],
+        itemStates: Record<string, ItemState>,
+    ): { itemid: string } | null {
+        const machineSize = 3;
+        const minCol = machineCol - 1;
+        const maxCol = machineCol + machineSize;
+        const minRow = machineRow - 1;
+        const maxRow = machineRow + machineSize;
+        for (const item of items) {
+            if (item.type !== 'output') continue;
+            const state = itemStates[item.id];
+            if (!state || state.isAtStartPosition) continue;
+            const c = state.col;
+            const r = state.row;
+            const inRing = c >= minCol && c <= maxCol && r >= minRow && r <= maxRow;
+            const insideMachine =
+                c >= machineCol && c < machineCol + machineSize &&
+                r >= machineRow && r < machineRow + machineSize;
+            const isCorner =
+                (c === minCol && r === minRow) ||
+                (c === maxCol && r === minRow) ||
+                (c === minCol && r === maxRow) ||
+                (c === maxCol && r === maxRow);
+            if (inRing && !insideMachine && !isCorner) return { itemid: item.id };
+        }
+        return null;
+    }
+
     // prüft, ob neben einem Output ein aktives Rollband liegt, und gibt die Koordinaten des Rollbands zurück oder null, wenn kein Rollband nebenan liegt
     checkAllAdjacentConveyors(
         outputCol: number,
@@ -176,6 +208,22 @@ export class ResourceExchangeService {
         const filledThisTick = new Set<string>();
         const key = (c: number, r: number) => `${c},${r}`;
 
+        // 0. Maschine -> Output
+        for (const machine of items) {
+            if (machine.type !== 'machine' || !machine.outputcount || !machine.output) continue;
+            const state = itemStates[machine.id];
+            if (!state || state.isAtStartPosition) continue;
+            const adjacentOutput = this.checkAdjacentOutputItem(state.col, state.row, items, itemStates);
+            if (!adjacentOutput) continue;
+            const outputItem = items.find(i => i.id === adjacentOutput.itemid);
+            if (outputItem && !outputItem.resource) {
+                outputItem.resource = machine.output;
+                machine.outputcount = false;
+                changedItems.add(machine.id);
+                changedItems.add(outputItem.id);
+            }
+        }
+
         // 1. Input → Maschine
         for (const input of items) {
             if (input.type !== 'input' || !input.resource) continue;
@@ -189,13 +237,19 @@ export class ResourceExchangeService {
                 itemStates[i.id]?.row === adjacentMachine.row
             );
             if (!machineItem) continue;
-            const accepted = !!(machineItem.input && input.resource in machineItem.input);
+            const accepted = !!(machineItem.input && input.resource in machineItem.input && machineItem.input[input.resource] > machineItem.inputcount![input.resource]);
             inputs.push({ inputId: input.id, accepted });
             if (accepted) {
-                machineItem.resource = input.resource;
+                machineItem.inputcount![input.resource] += 1;
                 input.resource = null;
                 changedItems.add(machineItem.id);
                 changedItems.add(input.id);
+            }
+            const outputCreatable = !!(machineItem.outputcount == false && JSON.stringify(machineItem.input) == JSON.stringify(machineItem.inputcount));
+            if (outputCreatable) {
+                machineItem.outputcount = true;
+                for (const k in machineItem.inputcount) machineItem.inputcount[k] = 0;
+                changedItems.add(machineItem.id);
             }
         }
 

@@ -34,6 +34,10 @@ export class PlaygroundGridComponent {
     metall: '🔩',
     kupfer: '🟤',
     plastik: '🧴',
+    kabel: '🔌',
+    gehäuse: '🏠',
+    leiterplatte: '🟩',
+    elektronik: '📱',
   };
 
   // Check if a cell is in the paint preview

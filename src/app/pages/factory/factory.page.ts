@@ -69,7 +69,7 @@ export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
   private discardHoldTimer: ReturnType<typeof setTimeout> | null = null;
   private resetHoldTimer: ReturnType<typeof setTimeout> | null = null;
 
-  private readonly resourceEmoji: Record<string, string> = { metall: '🔩', kupfer: '🟤', plastik: '🧴' };
+  private readonly resourceEmoji: Record<string, string> = { metall: '🔩', kupfer: '🟤', plastik: '🧴', kabel: '🔌', gehäuse: '🏠', leiterplatte: '🟩', elektronik: '📱' };
 
   // Globaler 1-Sekunden-Tick, der die komplette Ressourcen-Weitergabe abarbeitet.
   private tickSub?: Subscription;
@@ -114,6 +114,12 @@ export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
       }
       for (const { inputId, accepted } of inputs) {
         this.markInputAcceptance(inputId, accepted);
+      }
+      for (const item of this.itemManager.clonedItems) {
+        if (item.type !== 'machine') continue;
+        const state = this.itemManager.itemStates[item.id];
+        if (!state || state.isAtStartPosition) continue;
+        this.updateMachineStatus(item);
       }
       this.cdr.detectChanges();
     });
@@ -644,5 +650,31 @@ export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
       el.appendChild(badge);
     }
     badge.textContent = resource ? (this.resourceEmoji[resource] ?? resource) : '';
+  }
+
+  // Zeigt auf einer Maschine je Input-Ressource "Emoji aktuell/Soll" an und,
+  // sobald ein fertiges Produkt bereitliegt (outputcount), eine "➡️ Output"-Zeile.
+  private updateMachineStatus(machine: DraggableItems): void {
+    const el = document.getElementById(machine.id);
+    if (!el) return;
+    let panel = el.querySelector('.machine-status') as HTMLElement | null;
+    if (!panel) {
+      panel = document.createElement('div');
+      panel.className = 'machine-status absolute top-1 left-1 flex flex-col gap-0.5 text-xs leading-none pointer-events-none';
+      el.appendChild(panel);
+    }
+    const lines: string[] = [];
+    if (machine.input) {
+      for (const res of Object.keys(machine.input)) {
+        const have = machine.inputcount?.[res] ?? 0;
+        const need = machine.input[res];
+        lines.push(`${this.resourceEmoji[res] ?? res} ${have}/${need}`);
+      }
+    }
+    if (machine.outputcount && machine.output) {
+      lines.push(`➡️ ${this.resourceEmoji[machine.output] ?? machine.output}`);
+    }
+    panel.textContent = lines.join('\n');
+    panel.style.whiteSpace = 'pre';
   }
 }
