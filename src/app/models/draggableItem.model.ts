@@ -18,4 +18,5 @@ export interface DraggableItems {
   resource?: string | null;
   input?: Record<string, number>;
   output?: string;
+  inputcount?: Record<string, number>;
 }

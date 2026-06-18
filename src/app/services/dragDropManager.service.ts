@@ -242,6 +242,7 @@ export class DragDropManagerService {
         spawningResource: sourceItem.spawningResource, resource: null,
         input: sourceItem.input, output: sourceItem.output,
         rate: sourceItem.rate,
+        inputcount: this.zeroedCounts(sourceItem.input),
       });
       this.itemManager.itemStates[uniqueId] = { col: -1, row: -1, isAtStartPosition: true };
 
@@ -268,6 +269,7 @@ export class DragDropManagerService {
 
     const hostEl = componentRef.location.nativeElement as HTMLElement;
     document.body.appendChild(hostEl);
+    
     this.appRef.attachView(componentRef.hostView);
     componentRef.changeDetectorRef.detectChanges();
 
@@ -318,6 +320,16 @@ export class DragDropManagerService {
     );
     detectChanges();
   }
+
+  // Helper function to create a zeroed counts object based on the input keys
+  private zeroedCounts(input?: Record<string, number>): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const key in input) {
+    counts[key] = 0;
+  }
+  return counts;
+}
+
 
   clearAllItems(items: DraggableItems[]): void {
     const ids = this.itemManager.clonedItems.map(i => i.id);
