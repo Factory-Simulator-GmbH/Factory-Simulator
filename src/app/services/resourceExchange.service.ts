@@ -44,8 +44,8 @@ export class ResourceExchangeService {
         }
         return null;
     }
-    // prüft, ob neben einem Spawner ein Input liegt, und gibt die itemid des Items zurück oder null, wenn kein Output nebenan liegt
-    checkAdjacentInput(
+    // prüft, ob neben einem Förderband ein Input/Splitter liegt, und gibt die itemid des Items zurück oder null, wenn kein Input/Splitter nebenan liegt
+    checkAdjacentInputOrSplitter(
         conveyorCol: number,
         conveyorRow: number,
         items: DraggableItems[],
@@ -57,7 +57,7 @@ export class ResourceExchangeService {
         const minRow = conveyorRow - 1;
         const maxRow = conveyorRow + conveyorSize;
         for (const item of items) {
-            if (item.type !== 'input') continue;
+            if (item.type !== 'input' && item.type !== 'splitter') continue;
             const state = itemStates[item.id];
             if (!state || state.isAtStartPosition) continue;
             const c = state.col;
@@ -107,23 +107,34 @@ export class ResourceExchangeService {
     }
 
     // prüft, ob neben einem Output ein aktives Rollband liegt, und gibt die Koordinaten des Rollbands zurück oder null, wenn kein Rollband nebenan liegt
-    checkAdjacentConveyor(
+    checkAllAdjacentConveyors(
         outputCol: number,
         outputRow: number,
         conveyorGrid: ConveyorSegment[][],
-    ): { col: number; row: number } | null {
+    ): { col: number; row: number }[] {
         const neighbors = [
             { col: outputCol, row: outputRow - 1, entry: 'down' },
-            { col: outputCol, row: outputRow + 1, entry: 'up' },
-            { col: outputCol - 1, row: outputRow, entry: 'right' },
-            { col: outputCol + 1, row: outputRow, entry: 'left' },
+          { col: outputCol + 1, row: outputRow, entry: 'left' },
+          { col: outputCol, row: outputRow + 1, entry: 'up' },
+          { col: outputCol - 1, row: outputRow, entry: 'right' },
         ];
+        const neighbouringConveyors: { col: number; row: number }[] = [];
         for (const n of neighbors) {
-            if (conveyorGrid[n.row]?.[n.col]?.active && conveyorGrid[n.row]?.[n.col]?.entry === n.entry && conveyorGrid[n.row]?.[n.col]?.resource === null) {
-                return { col: n.col, row: n.row };
+            if (conveyorGrid[n.row]?.[n.col]?.active && conveyorGrid[n.row]?.[n.col]?.entry === n.entry) {
+                neighbouringConveyors.push({ col: n.col, row: n.row });
             }
         }
-        return null;
+        return neighbouringConveyors;
+    }
+
+    checkFreeAdjacentConveyor(
+      outputCol: number,
+      outputRow: number,
+      conveyorGrid: ConveyorSegment[][],
+    ): { col: number; row: number } | null {
+      let conveyors = this.checkAllAdjacentConveyors(outputCol, outputRow, conveyorGrid)
+        .filter(n => conveyorGrid[n.row][n.col].resource === null)
+      return conveyors.length > 0 ? conveyors[0] : null
     }
 
     // Wird beim Platzieren eines Spawners aufgerufen: legt die Ressource direkt auf
@@ -152,6 +163,9 @@ export class ResourceExchangeService {
     // aufgelegte Ressource nicht im selben Tick weiterspringt.
     // Gibt die geänderten Item-Ids zurück (für Badge-Aktualisierung) sowie die
     // Input→Maschine-Zuordnungen für die grün/rot-Markierung.
+
+    private splitterConveyorIndex = new Map<string, number>();
+
     tick(
         items: DraggableItems[],
         itemStates: Record<string, ItemState>,
@@ -185,19 +199,25 @@ export class ResourceExchangeService {
             }
         }
 
-        // 2. Conveyor → Input
+        // 2. Conveyor → Input/Splitter
         for (let row = 0; row < conveyorGrid.length; row++) {
             const cols = conveyorGrid[row]?.length ?? 0;
             for (let col = 0; col < cols; col++) {
                 const cell = conveyorGrid[row][col];
-                if (!cell?.active || !cell.resource) continue;
-                const adjacentInput = this.checkAdjacentInput(col, row, items, itemStates);
-                if (!adjacentInput) continue;
-                const inputItem = items.find(i => i.id === adjacentInput.itemid);
+                if (!cell?.active || !cell.resource || !cell.exit) continue;
+                const adjacentItem = this.checkAdjacentInputOrSplitter(col, row, items, itemStates);
+                if (!adjacentItem) continue;
+
+                const itemState = itemStates[adjacentItem.itemid];
+                if (!itemState) continue;
+                const targetCell = this.getNextCellByExit(cell.exit, col, row);
+                if (targetCell.col !== itemState.col || targetCell.row !== itemState.row) continue;
+
+              const inputItem = items.find(i => i.id === adjacentItem.itemid);
                 if (inputItem && !inputItem.resource) {
                     inputItem.resource = cell.resource;
                     cell.resource = null;
-                    changedItems.add(adjacentInput.itemid);
+                    changedItems.add(adjacentItem.itemid);
                 }
             }
         }
@@ -219,12 +239,37 @@ export class ResourceExchangeService {
             }
         }
 
-        // 4. Output → Conveyor
+        // 4. Splitter → Conveyor
+        for (const splitter of items) {
+          if (splitter.type !== 'splitter' || !splitter.resource) continue;
+          const state = itemStates[splitter.id];
+          if (!state || state.isAtStartPosition) continue;
+
+          const allOutputs = this.checkAllAdjacentConveyors(state.col, state.row, conveyorGrid);
+          if (allOutputs.length === 0) continue;
+
+          const lastIndex = this.splitterConveyorIndex.get(splitter.id) ?? 0;
+
+          for (let i = 0; i < allOutputs.length; i++) {
+            const targetIndex = (lastIndex + i) % allOutputs.length;
+            const targetConveyor = allOutputs[targetIndex];
+            const cell = conveyorGrid[targetConveyor.row]?.[targetConveyor.col];
+            if (cell && cell.resource === null) {
+              cell.resource = splitter.resource;
+              splitter.resource = null;
+              changedItems.add(splitter.id);
+              this.splitterConveyorIndex.set(splitter.id, (targetIndex + 1) % allOutputs.length);
+              break;
+            }
+          }
+        }
+
+        // 5. Output → Conveyor
         for (const output of items) {
             if (output.type !== 'output' || !output.resource) continue;
             const state = itemStates[output.id];
             if (!state || state.isAtStartPosition) continue;
-            const adjacentConveyor = this.checkAdjacentConveyor(state.col, state.row, conveyorGrid);
+            const adjacentConveyor = this.checkFreeAdjacentConveyor(state.col, state.row, conveyorGrid);
             if (!adjacentConveyor) continue;
             conveyorGrid[adjacentConveyor.row][adjacentConveyor.col].resource = output.resource;
             output.resource = null;
