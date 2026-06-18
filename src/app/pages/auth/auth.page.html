@@ -62,61 +62,6 @@
           />
         </div>
 
-        <div class="flex flex-col gap-1.5">
-          <label class="text-sm text-slate-300">Passwort</label>
-          <div class="relative">
-            <input
-              [(ngModel)]="password"
-              name="password"
-              [type]="showPassword() ? 'text' : 'password'"
-              required
-              autocomplete="current-password"
-              placeholder="******"
-              class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 pr-11 text-white placeholder-slate-500 focus:outline-none focus:border-white/40 transition-colors"
-            />
-            <button
-              type="button"
-              (click)="showPassword.set(!showPassword())"
-              class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors">
-              @if (showPassword()) {
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-5 0-9-4-9-7a9.77 9.77 0 012.05-3.95M6.53 6.53A9.77 9.77 0 0112 5c5 0 9 4 9 7a9.77 9.77 0 01-1.56 2.94M3 3l18 18" />
-                </svg>
-              } @else {
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                </svg>
-              }
-            </button>
-          </div>
-        </div>
-
-        @if (mode() === 'signup' && password.length > 0) {
-          <div class="flex flex-col gap-1.5">
-            <div class="flex items-center gap-2">
-              <div class="flex-1 h-1 rounded-full transition-colors duration-300"
-                   [class.bg-red-500]="passwordStrength === 'weak'"
-                   [class.bg-yellow-400]="passwordStrength === 'medium'"
-                   [class.bg-green-400]="passwordStrength === 'strong'"></div>
-              <span class="text-xs transition-colors duration-300"
-                    [class.text-red-400]="passwordStrength === 'weak'"
-                    [class.text-yellow-400]="passwordStrength === 'medium'"
-                    [class.text-green-400]="passwordStrength === 'strong'">
-                {{ passwordStrength === 'weak' ? 'Zu schwach' : passwordStrength === 'medium' ? 'Mittel' : 'Sicher' }}
-              </span>
-            </div>
-            @if (password.length > 3 && passwordStrength !== 'strong') {
-              <p class="text-xs text-slate-400">
-                @if (!passwordChecks.length) { 6+ Zeichen · }
-                @if (!passwordChecks.uppercase) { Großbuchstabe · }
-                @if (!passwordChecks.lowercase) { Kleinbuchstabe · }
-                @if (!passwordChecks.number) { Zahl }
-              </p>
-            }
-          </div>
-        }
-
         @if (error()) {
           <p class="text-red-400 text-sm text-center">{{ error() }}</p>
         }
