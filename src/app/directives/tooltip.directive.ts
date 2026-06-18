@@ -18,7 +18,7 @@ export class TooltipDirective implements OnDestroy {
   @HostListener('mouseenter')
   onMouseEnter(): void {
     if (!this.content || this.mousePressed) return;
-    this.timer = setTimeout(() => this.show(), 1500);
+    this.timer = setTimeout(() => this.show(), 1000);
   }
   
   @HostListener('mousemove', ['$event'])

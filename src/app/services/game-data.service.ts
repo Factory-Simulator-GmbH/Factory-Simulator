@@ -26,6 +26,7 @@ export class GameDataService {
       rate: row['rate'] ?? undefined,
       input: row['input'] ?? undefined,
       output: row['output'] ?? undefined,
+      outputcount: false,
     }));
   }
 }

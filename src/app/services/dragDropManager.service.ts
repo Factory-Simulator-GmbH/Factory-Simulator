@@ -243,6 +243,7 @@ export class DragDropManagerService {
         input: sourceItem.input, output: sourceItem.output,
         rate: sourceItem.rate,
         inputcount: this.zeroedCounts(sourceItem.input),
+        outputcount: false,
       });
       this.itemManager.itemStates[uniqueId] = { col: -1, row: -1, isAtStartPosition: true };
 
@@ -292,7 +293,8 @@ export class DragDropManagerService {
       spawningResource: sourceItem.spawningResource, resource: null,
       input: sourceItem.input, output: sourceItem.output,
       rate: sourceItem.rate,
-        inputcount: this.zeroedCounts(sourceItem.input),
+      inputcount: this.zeroedCounts(sourceItem.input),
+      outputcount: false,
     });
     this.itemManager.itemStates[uniqueId] = { col, row, isAtStartPosition: false };
 

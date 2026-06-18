@@ -69,7 +69,7 @@ export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
   private discardHoldTimer: ReturnType<typeof setTimeout> | null = null;
   private resetHoldTimer: ReturnType<typeof setTimeout> | null = null;
 
-  private readonly resourceEmoji: Record<string, string> = { metall: '🔩', kupfer: '🟤', plastik: '🧴' };
+  private readonly resourceEmoji: Record<string, string> = { metall: '🔩', kupfer: '🟤', plastik: '🧴', kabel: '🔌', gehäuse: '🏠',};
 
   // Globaler 1-Sekunden-Tick, der die komplette Ressourcen-Weitergabe abarbeitet.
   private tickSub?: Subscription;
