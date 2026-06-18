@@ -292,6 +292,7 @@ export class DragDropManagerService {
       spawningResource: sourceItem.spawningResource, resource: null,
       input: sourceItem.input, output: sourceItem.output,
       rate: sourceItem.rate,
+        inputcount: this.zeroedCounts(sourceItem.input),
     });
     this.itemManager.itemStates[uniqueId] = { col, row, isAtStartPosition: false };
 

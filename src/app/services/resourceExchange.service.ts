@@ -175,10 +175,10 @@ export class ResourceExchangeService {
                 itemStates[i.id]?.row === adjacentMachine.row
             );
             if (!machineItem) continue;
-            const accepted = !!(machineItem.input && input.resource in machineItem.input);
+            const accepted = !!(machineItem.input && input.resource in machineItem.input && machineItem.input[input.resource] > machineItem.inputcount![input.resource]);
             inputs.push({ inputId: input.id, accepted });
             if (accepted) {
-                machineItem.resource = input.resource;
+                machineItem.inputcount![input.resource] += 1;
                 input.resource = null;
                 changedItems.add(machineItem.id);
                 changedItems.add(input.id);
