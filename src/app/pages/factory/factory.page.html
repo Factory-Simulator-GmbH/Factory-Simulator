@@ -1,24 +1,26 @@
-<div
-  class="fixed inset-0 overflow-hidden bg-gradient-to-b from-slate-950 via-slate-900 to-slate-800 text-white flex flex-col transition-all"
-  [class.p-4]="!isFullscreen" [class.p-0]="isFullscreen">
-
+<div class="fixed inset-0 overflow-hidden bg-gradient-to-b from-slate-950 via-slate-900 to-slate-800 text-white flex flex-col transition-all"
+     [class.p-4]="!isFullscreen" 
+     [class.p-0]="isFullscreen">
 
   @if (!isFullscreen) {
-    <header class="flex-none flex items-center justify-between mb-4 transition-opacity" [class.opacity-30]="interaction.isDraggingItem">
+    <header class="flex-none flex items-center justify-between mb-4 transition-opacity" 
+            [class.opacity-30]="interaction.isDraggingItem">
+      
       <div class="w-48"></div>
+      
       <h1 class="text-4xl font-extrabold tracking-tight">Factory Simulator</h1>
+      
       <div class="w-48 flex justify-end relative">
-        <button
-          (click)="dropdownOpen.set(!dropdownOpen())"
-          class="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
+        <button (click)="dropdownOpen.set(!dropdownOpen())"
+                class="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
           <div class="w-8 h-8 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-sm font-semibold shrink-0">
             {{ auth.username?.charAt(0)?.toUpperCase() }}
           </div>
         </button>
+
         @if (dropdownOpen()) {
           <div class="absolute top-full mt-2 right-0 bg-slate-800 border border-white/10 rounded-xl shadow-xl z-50 min-w-48">
-
-            <!-- User info -->
+            
             <div class="px-4 py-3 flex items-center gap-3 border-b border-white/10">
               <div class="w-8 h-8 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-sm font-semibold shrink-0">
                 {{ auth.username?.charAt(0)?.toUpperCase() }}
@@ -30,16 +32,16 @@
             </div>
 
             <div class="py-1">
-              <button
-                (click)="openLayoutsDropdown()"
-                class="w-full px-4 py-2.5 text-sm text-left text-white/70 hover:text-white hover:bg-white/5 transition-colors flex items-center gap-3">
+              <button (click)="openLayoutsDropdown()"
+                      class="w-full px-4 py-2.5 text-sm text-left text-white/70 hover:text-white hover:bg-white/5 transition-colors flex items-center gap-3">
                 <span class="material-icons text-base">folder_open</span>
                 Spielstände
               </button>
+              
               <div class="mx-3 h-px bg-white/10"></div>
-              <button
-                (click)="auth.signOut(); dropdownOpen.set(false)"
-                class="w-full px-4 py-2.5 text-sm text-left text-red-400 hover:bg-white/5 transition-colors flex items-center gap-3">
+              
+              <button (click)="auth.signOut(); dropdownOpen.set(false)"
+                      class="w-full px-4 py-2.5 text-sm text-left text-red-400 hover:bg-white/5 transition-colors flex items-center gap-3">
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                 </svg>
@@ -53,307 +55,255 @@
     </header>
   }
 
-  <!-- Fullscreen: flex-row; Normal: flex-col -->
   <div [class]="'flex-1 min-h-0 overflow-hidden ' + (isFullscreen ? 'flex flex-row' : 'flex flex-col')">
 
-  <section [class]="'flex-1 min-h-0 relative flex flex-col overflow-hidden transition-all ' +
-                   (!isFullscreen ? 'rounded-3xl border border-white/10 bg-white/5 backdrop-blur' : 'rounded-none bg-black/20')"
-           (wheel)="onWheel($event)">
+    <section [class]="'flex-1 min-h-0 relative flex flex-col overflow-hidden transition-all ' + (!isFullscreen ? 'rounded-3xl border border-white/10 bg-white/5 backdrop-blur' : 'rounded-none bg-black/20')"
+             (wheel)="onWheel($event)">
 
-    <div #scrollContainer class="flex-1 min-h-0 overflow-hidden z-10">
+      <div #scrollContainer class="flex-1 min-h-0 overflow-hidden z-10">
+        <div class="origin-top-left w-full h-full p-8 transition-transform duration-100 ease-out"
+             [style.transform]="'scale(' + zoomLevel + ')'">
 
-      <div class="origin-top-left w-full h-full p-8 transition-transform duration-100 ease-out"
-           [style.transform]="'scale(' + zoomLevel + ')'">
+          <div class="w-full h-full min-h-0 rounded-2xl border border-white/10 bg-white/5 overflow-hidden"
+               [class.relative]="interaction.isDraggingItem"
+               [class.z-50]="interaction.isDraggingItem"
+               [class.playground-drag-active]="interaction.isDraggingItem">
+            
+            <app-playground-grid class="block w-full h-full"
+                                 [conveyorGrid]="conveyorGrid"
+                                 [gridCellSizePx]="gridCellSizePx"
+                                 [previewCells]="interaction.previewCells"
+                                 [getConveyorSymbol]="getConveyorSymbol"
+                                 (cellMouseDown)="onCellMouseDown($event.event, $event.rowIndex, $event.colIndex)"
+                                 (cellMouseEnter)="onCellMouseEnter($event.rowIndex, $event.colIndex)"
+                                 (gridScroll)="onScroll($event)">
 
-        <div
-          class="w-full h-full min-h-0 rounded-2xl border border-white/10 bg-white/5 overflow-hidden"
-          [class.relative]="interaction.isDraggingItem"
-          [class.z-50]="interaction.isDraggingItem"
-          [class.playground-drag-active]="interaction.isDraggingItem"
-        >
-          <app-playground-grid
-            class="block w-full h-full"
-            [conveyorGrid]="conveyorGrid"
-            [gridCellSizePx]="gridCellSizePx"
-            [previewCells]="interaction.previewCells"
-            [getConveyorSymbol]="getConveyorSymbol"
-            (cellMouseDown)="onCellMouseDown($event.event, $event.rowIndex, $event.colIndex)"
-            (cellMouseEnter)="onCellMouseEnter($event.rowIndex, $event.colIndex)"
-            (gridScroll)="onScroll($event)">
-
-            <!-- Spielstand-Status (Mitte) -->
-            <div slot="status" class="flex items-center gap-2 min-w-0 font-normal">
-              @if (activeLayoutId) {
-                <span class="text-white truncate">{{ activeLayoutName }}</span>
-                <span class="text-white/30">·</span>
-                @if (isDirty) {
-                  <span class="flex items-center gap-1.5 text-white/50">
-                    <span class="w-1.5 h-1.5 rounded-full bg-white/60"></span>
-                    Ungespeicherte Änderungen
-                  </span>
-                } @else {
-                  <span class="text-white/50">Gespeichert</span>
-                }
-              } @else {
-                <span class="text-white/40">Ungespeicherter Spielstand</span>
-              }
-            </div>
-
-            <div class="flex items-center gap-2 relative">
-              @if (isFullscreen) {
-                <button class="bg-slate-900/80 rounded-xl px-4 py-2 text-white shadow"
-                        (click)="showFullscreenItemBar = !showFullscreenItemBar">
-                  Items
-                </button>
-              }
-
-              <!-- Glühbirne lightbulb-glow im scss animiert -->
-              <button (click)="menu.toggleMenu(); $event.stopPropagation()"
-                      class="flex items-center justify-center w-8 h-8 transition-opacity hover:opacity-60 cursor-pointer">
-                <span class="lightbulb-wrapper" [class.lightbulb-active]="menu.showMenu">
-                  <span class="material-icons text-lg leading-none" [class.lightbulb-glow]="menu.showMenu">lightbulb</span>
-                </span>
-              </button>
-
-              <!-- Save button -->
-              <div class="relative">
-                <button
-                  (click)="onSaveButtonClick(); $event.stopPropagation()"
-                  [title]="activeLayoutId ? (isDirty ? 'Ungespeicherte Änderungen – klicken zum Speichern' : 'Gespeichert: ' + activeLayoutName) : 'Spielstand speichern'"
-                  [disabled]="layoutSaving"
-                  class="relative flex items-center justify-center w-8 h-8 transition-opacity cursor-pointer rounded-lg
-                         text-white/60 hover:text-white disabled:opacity-50">
-                  @if (layoutSaving) {
-                    <div class="w-4 h-4 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin"></div>
-                  } @else if (activeLayoutId && !isDirty) {
-                    <span class="material-icons text-lg leading-none">cloud_done</span>
+              <div slot="status" class="flex items-center gap-2 min-w-0 font-normal">
+                @if (activeLayoutId) {
+                  <span class="text-white truncate">{{ activeLayoutName }}</span>
+                  <span class="text-white/30">·</span>
+                  @if (isDirty) {
+                    <span class="flex items-center gap-1.5 text-white/50">
+                      <span class="w-1.5 h-1.5 rounded-full bg-white/60"></span>
+                      Ungespeicherte Änderungen
+                    </span>
                   } @else {
-                    <span class="material-icons text-lg leading-none">save</span>
+                    <span class="text-white/50">Gespeichert</span>
                   }
-                  @if (isDirty && activeLayoutId && !layoutSaving) {
-                    <span class="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-white"></span>
-                  }
-                </button>
-
-                <!-- Save name popover -->
-                @if (showSavePopover) {
-                  <div class="fixed inset-0 z-[70]" (click)="showSavePopover = false"></div>
-                  <div class="absolute top-full mt-2 right-0 z-[80] w-64
-                              bg-slate-900 border border-white/10 rounded-lg shadow-xl p-3 space-y-2"
-                       (click)="$event.stopPropagation()">
-                    <p class="text-sm text-white">Name für Spielstand</p>
-                    <input
-                      [(ngModel)]="savePopoverName"
-                      (keydown.enter)="confirmSaveNew()"
-                      (keydown.escape)="showSavePopover = false"
-                      placeholder="Name eingeben"
-                      autofocus
-                      class="w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-sm text-white
-                             placeholder-white/30 focus:outline-none focus:border-white/30" />
-                    <button
-                      (click)="confirmSaveNew()"
-                      [disabled]="!savePopoverName.trim() || layoutSaving"
-                      class="w-full py-2 rounded text-sm cursor-pointer flex items-center justify-center gap-2
-                             bg-white/10 hover:bg-white/15 text-white border border-white/10
-                             disabled:opacity-30 disabled:cursor-not-allowed">
-                      @if (layoutSaving) {
-                        <div class="w-4 h-4 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin"></div>
-                      } @else {
-                        <span>Speichern</span>
-                      }
-                    </button>
-                  </div>
+                } @else {
+                  <span class="text-white/40">Ungespeicherter Spielstand</span>
                 }
               </div>
 
-              <!-- Reset-Button (nur wenn etwas auf dem Spielfeld ist) -->
-              @if (hasFactoryContent) {
-              <div class="relative">
-                <button
-                  (click)="confirmResetOpen = !confirmResetOpen; $event.stopPropagation()"
-                  title="Fabrik zurücksetzen"
-                  class="flex items-center justify-center w-8 h-8 transition-opacity cursor-pointer rounded-lg text-white/60 hover:text-white">
-                  <span class="material-icons text-lg leading-none">refresh</span>
+              <div class="flex items-center gap-2 relative">
+                @if (isFullscreen) {
+                  <button class="bg-slate-900/80 rounded-xl px-4 py-2 text-white shadow"
+                          (click)="showFullscreenItemBar = !showFullscreenItemBar">
+                    Items
+                  </button>
+                }
+
+                <button (click)="menu.toggleMenu(); $event.stopPropagation()"
+                        class="flex items-center justify-center w-8 h-8 transition-opacity hover:opacity-60 cursor-pointer">
+                  <span class="lightbulb-wrapper" [class.lightbulb-active]="menu.showMenu">
+                    <span class="material-icons text-lg leading-none" [class.lightbulb-glow]="menu.showMenu">lightbulb</span>
+                  </span>
                 </button>
 
-                @if (confirmResetOpen) {
-                  <div class="fixed inset-0 z-[70]" (click)="confirmResetOpen = false; onResetHoldEnd()"></div>
-                  <div class="absolute top-full mt-2 right-0 z-[80] w-56
-                              bg-slate-800 border border-white/10 rounded-xl shadow-xl p-3 space-y-2"
-                       (click)="$event.stopPropagation()">
-                    <p class="text-sm text-white">Fabrik zurücksetzen?</p>
-                    <div class="flex gap-2">
-                      <button (mousedown)="onResetHoldStart($event)"
-                              (mouseup)="onResetHoldEnd()"
-                              (mouseleave)="onResetHoldEnd()"
-                              (touchstart)="onResetHoldStart($event)"
-                              (touchend)="onResetHoldEnd()"
-                              (touchcancel)="onResetHoldEnd()"
-                              class="relative flex-1 py-1.5 rounded text-sm overflow-hidden
-                                     bg-white/10 hover:bg-white/15 text-white border border-white/10
-                                     cursor-pointer transition-colors select-none">
-                        <span class="absolute inset-y-0 left-0 bg-red-500/35 ease-linear"
-                              [style.width]="resetHolding ? '100%' : '0%'"
-                              [style.transitionProperty]="'width'"
-                              [style.transitionDuration]="resetHolding ? '1000ms' : '180ms'"></span>
-                        <span class="relative">Ja</span>
+                <div class="relative">
+                  <button (click)="onSaveButtonClick(); $event.stopPropagation()"
+                          [title]="activeLayoutId ? (isDirty ? 'Ungespeicherte Änderungen – klicken zum Speichern' : 'Gespeichert: ' + activeLayoutName) : 'Spielstand speichern'"
+                          [disabled]="layoutSaving"
+                          class="relative flex items-center justify-center w-8 h-8 transition-opacity cursor-pointer rounded-lg text-white/60 hover:text-white disabled:opacity-50">
+                    @if (layoutSaving) {
+                      <div class="w-4 h-4 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin"></div>
+                    } @else if (activeLayoutId && !isDirty) {
+                      <span class="material-icons text-lg leading-none">cloud_done</span>
+                    } @else {
+                      <span class="material-icons text-lg leading-none">save</span>
+                    }
+                    @if (isDirty && activeLayoutId && !layoutSaving) {
+                      <span class="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-white"></span>
+                    }
+                  </button>
+
+                  @if (showSavePopover) {
+                    <div class="fixed inset-0 z-[70]" (click)="showSavePopover = false"></div>
+                    <div class="absolute top-full mt-2 right-0 z-[80] w-64 bg-slate-900 border border-white/10 rounded-lg shadow-xl p-3 space-y-2"
+                         (click)="$event.stopPropagation()">
+                      <p class="text-sm text-white">Name für Spielstand</p>
+                      <input [(ngModel)]="savePopoverName"
+                             (keydown.enter)="confirmSaveNew()"
+                             (keydown.escape)="showSavePopover = false"
+                             placeholder="Name eingeben"
+                             autofocus
+                             class="w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-white/30" />
+                      <button (click)="confirmSaveNew()"
+                              [disabled]="!savePopoverName.trim() || layoutSaving"
+                              class="w-full py-2 rounded text-sm cursor-pointer flex items-center justify-center gap-2 bg-white/10 hover:bg-white/15 text-white border border-white/10 disabled:opacity-30 disabled:cursor-not-allowed">
+                        @if (layoutSaving) {
+                          <div class="w-4 h-4 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin"></div>
+                        } @else {
+                          <span>Speichern</span>
+                        }
                       </button>
-                      <button (click)="confirmResetOpen = false; onResetHoldEnd()"
-                              class="flex-1 py-1.5 rounded text-sm hover:bg-white/5 text-white/60 cursor-pointer">
-                        Nein
+                    </div>
+                  }
+                </div>
+
+                @if (hasFactoryContent) {
+                  <div class="relative">
+                    <button (click)="confirmResetOpen = !confirmResetOpen; $event.stopPropagation()"
+                            title="Fabrik zurücksetzen"
+                            class="flex items-center justify-center w-8 h-8 transition-opacity cursor-pointer rounded-lg text-white/60 hover:text-white">
+                      <span class="material-icons text-lg leading-none">refresh</span>
+                    </button>
+
+                    @if (confirmResetOpen) {
+                      <div class="fixed inset-0 z-[70]" (click)="confirmResetOpen = false; onResetHoldEnd()"></div>
+                      <div class="absolute top-full mt-2 right-0 z-[80] w-56 bg-slate-800 border border-white/10 rounded-xl shadow-xl p-3 space-y-2"
+                           (click)="$event.stopPropagation()">
+                        <p class="text-sm text-white">Fabrik zurücksetzen?</p>
+                        <div class="flex gap-2">
+                          <button (mousedown)="onResetHoldStart($event)"
+                                  (mouseup)="onResetHoldEnd()"
+                                  (mouseleave)="onResetHoldEnd()"
+                                  (clientX)="onResetHoldStart($event)"
+                                  (touchend)="onResetHoldEnd()"
+                                  (touchcancel)="onResetHoldEnd()"
+                                  class="relative flex-1 py-1.5 rounded text-sm overflow-hidden bg-white/10 hover:bg-white/15 text-white border border-white/10 cursor-pointer transition-colors select-none">
+                            <span class="absolute inset-y-0 left-0 bg-red-500/35 ease-linear"
+                                  [style.width]="resetHolding ? '100%' : '0%'"
+                                  [style.transitionProperty]="'width'"
+                                  [style.transitionDuration]="resetHolding ? '1000ms' : '180ms'"></span>
+                            <span class="relative">Ja</span>
+                          </button>
+                          <button (click)="confirmResetOpen = false; onResetHoldEnd()"
+                                  class="flex-1 py-1.5 rounded text-sm hover:bg-white/5 text-white/60 cursor-pointer">
+                            Nein
+                          </button>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+
+                @if (menu.showMenu) {
+                  <div class="fixed inset-0 z-[70]" (click)="menu.closeMenu()"></div>
+                  <div class="absolute top-full right-0 mt-2 z-[80] w-44 bg-slate-900/95 border border-white/10 rounded-2xl shadow-2xl backdrop-blur-md fade-in-up overflow-hidden" style="animation-duration: 0.15s">
+                    <div class="p-1.5 space-y-0.5">
+                      <button (click)="menu.openShortcuts()"
+                              class="w-full group flex items-center justify-between px-3.5 py-2.5 rounded-xl hover:bg-white/5 active:bg-white/10 active:scale-[0.98] transition-all duration-150 cursor-pointer">
+                        <span class="text-sm font-medium text-white/50 group-hover:text-white transition-colors duration-150">Befehle</span>
+                        <span class="material-icons text-base text-white/70 group-hover:text-sky-400 group-hover:scale-110 transition-all duration-150">format_list_bulleted</span>
+                      </button>
+
+                      <div class="mx-3 h-px bg-white/8"></div>
+
+                      <button (click)="menu.openHelp()"
+                              class="w-full group flex items-center justify-between px-3.5 py-2.5 rounded-xl hover:bg-white/5 active:bg-white/10 active:scale-[0.98] transition-all duration-150 cursor-pointer">
+                        <span class="text-sm font-medium text-white/50 group-hover:text-white transition-colors duration-150">Hilfe</span>
+                        <span class="material-icons text-base text-white/70 group-hover:text-sky-400 group-hover:scale-110 transition-all duration-150">help_outline</span>
+                      </button>
+
+                      <div class="mx-3 h-px bg-white/8"></div>
+
+                      <button (click)="menu.toggleItemTooltips(); $event.stopPropagation()"
+                              class="w-full group flex items-center justify-between px-3.5 py-2.5 rounded-xl hover:bg-white/5 active:bg-white/10 active:scale-[0.98] transition-all duration-150 cursor-pointer">
+                        <span class="text-sm font-medium text-white/50 group-hover:text-white transition-colors duration-150">Item Tipps</span>
+                        <div class="w-9 h-5 rounded-full transition-all duration-200 flex items-center px-0.5 flex-none"
+                             [class]="menu.showItemTooltips ? 'bg-sky-500' : 'bg-white/15'">
+                          <div class="w-4 h-4 rounded-full bg-white shadow transition-all duration-200"
+                               [class]="menu.showItemTooltips ? 'translate-x-4' : 'translate-x-0'"></div>
+                        </div>
                       </button>
                     </div>
                   </div>
                 }
+
+                <button (click)="toggleFullscreen()"
+                        class="flex items-center justify-center w-8 h-8 transition-opacity hover:opacity-60 cursor-pointer">
+                  <span class="material-icons text-lg leading-none">
+                    {{ isFullscreen ? 'close_fullscreen' : 'open_in_full' }}
+                  </span>
+                </button>
+
               </div>
-              }
-
-              @if (menu.showMenu) {
-                <div class="fixed inset-0 z-[70]" (click)="menu.closeMenu()"></div>
-                <div class="absolute top-full right-0 mt-2 z-[80] w-44
-                            bg-slate-900/95 border border-white/10 rounded-2xl shadow-2xl
-                            backdrop-blur-md fade-in-up overflow-hidden" style="animation-duration: 0.15s">
-
-                  <div class="p-1.5 space-y-0.5">
-
-                    <button (click)="menu.openShortcuts()"
-                            class="w-full group flex items-center justify-between px-3.5 py-2.5 rounded-xl
-                                   hover:bg-white/5 active:bg-white/10 active:scale-[0.98]
-                                   transition-all duration-150 cursor-pointer">
-                      <span class="text-sm font-medium text-white/50 group-hover:text-white transition-colors duration-150">Befehle</span>
-                      <span class="material-icons text-base text-white/70 group-hover:text-sky-400 group-hover:scale-110 transition-all duration-150">format_list_bulleted</span>
-                    </button>
-
-                    <div class="mx-3 h-px bg-white/8"></div>
-
-                    <button (click)="menu.openHelp()"
-                            class="w-full group flex items-center justify-between px-3.5 py-2.5 rounded-xl
-                                   hover:bg-white/5 active:bg-white/10 active:scale-[0.98]
-                                   transition-all duration-150 cursor-pointer">
-                      <span class="text-sm font-medium text-white/50 group-hover:text-white transition-colors duration-150">Hilfe</span>
-                      <span class="material-icons text-base text-white/70 group-hover:text-sky-400 group-hover:scale-110 transition-all duration-150">help_outline</span>
-                    </button>
-
-                    <div class="mx-3 h-px bg-white/8"></div>
-
-                    <!-- Toggle Item Tipps -->
-                    <button (click)="menu.toggleItemTooltips(); $event.stopPropagation()"
-                            class="w-full group flex items-center justify-between px-3.5 py-2.5 rounded-xl
-                                   hover:bg-white/5 active:bg-white/10 active:scale-[0.98]
-                                   transition-all duration-150 cursor-pointer">
-                      <span class="text-sm font-medium text-white/50 group-hover:text-white transition-colors duration-150">Item Tipps</span>
-                      <!-- Toggle Design -->
-                      <div class="w-9 h-5 rounded-full transition-all duration-200 flex items-center px-0.5 flex-none"
-                           [class]="menu.showItemTooltips ? 'bg-sky-500' : 'bg-white/15'">
-                        <div class="w-4 h-4 rounded-full bg-white shadow transition-all duration-200"
-                             [class]="menu.showItemTooltips ? 'translate-x-4' : 'translate-x-0'"></div>
-                      </div>
-                    </button>
-
-                  </div>
-
-                </div>
-              }
-
-              <button (click)="toggleFullscreen()"
-                      class="flex items-center justify-center w-8 h-8 transition-opacity hover:opacity-60 cursor-pointer">
-                @if (isFullscreen) {
-                  <span class="material-icons text-lg leading-none">close_fullscreen</span>
-                } @else {
-                  <span class="material-icons text-lg leading-none">open_in_full</span>
-                }
-              </button>
-
-            </div>
-
-          </app-playground-grid>
+            </app-playground-grid>
+          </div>
         </div>
       </div>
 
-    </div>
-
-    <div class="absolute bottom-6 right-6 w-48 bg-slate-900 border-2 border-white/20 rounded-lg z-[60] shadow-2xl overflow-hidden select-none"
-         [class.cursor-grab]="!interaction.isNavigatingMinimap"
-         [class.cursor-grabbing]="interaction.isNavigatingMinimap"
-         (mousedown)="onMinimapMouseDown($event)">
-      <div class="px-2 py-0.5 text-[10px] text-white/50 uppercase font-bold bg-black/40 relative z-10">
-        Minimap
-      </div>
-      <div #minimapContent class="relative overflow-hidden bg-slate-950 w-full" [style.aspect-ratio]="gridColumns + ' / ' + gridRowCount">
-
-        @if (!minimap.ready) {
-          <!-- Ladeanimation -->
-          <div class="absolute inset-0 flex items-center justify-center">
-            <div class="w-5 h-5 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin"></div>
-          </div>
-        } @else {
-
-          <!-- Förderbänder -->
-          @for (row of conveyorGrid; let r = $index; track r) {
-            @for (cell of row; let c = $index; track c) {
-              @if (cell.active) {
-                <div class="absolute bg-slate-400"
-                     [style.left.%]="(c / gridColumns) * 100"
-                     [style.top.%]="(r / gridRowCount) * 100"
-                     [style.width.%]="(1 / gridColumns) * 100"
-                     [style.height.%]="(1 / gridRowCount) * 100">
-                </div>
+      <div class="absolute bottom-6 right-6 w-48 bg-slate-900 border-2 border-white/20 rounded-lg z-[60] shadow-2xl overflow-hidden select-none"
+           [class.cursor-grab]="!interaction.isNavigatingMinimap"
+           [class.cursor-grabbing]="interaction.isNavigatingMinimap"
+           (mousedown)="onMinimapMouseDown($event)">
+        <div class="px-2 py-0.5 text-[10px] text-white/50 uppercase font-bold bg-black/40 relative z-10">
+          Minimap
+        </div>
+        <div #minimapContent class="relative overflow-hidden bg-slate-950 w-full" [style.aspect-ratio]="gridColumns + ' / ' + gridRowCount">
+          @if (!minimap.ready) {
+            <div class="absolute inset-0 flex items-center justify-center">
+              <div class="w-5 h-5 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin"></div>
+            </div>
+          } @else {
+            @for (row of conveyorGrid; let r = $index; track r) {
+              @for (cell of row; let c = $index; track c) {
+                @if (cell.active) {
+                  <div class="absolute bg-slate-400"
+                        [style.left.%]="(c / gridColumns) * 100"
+                        [style.top.%]="(r / gridRowCount) * 100"
+                        [style.width.%]="(1 / gridColumns) * 100"
+                        [style.height.%]="(1 / gridRowCount) * 100">
+                  </div>
+                }
               }
             }
-          }
 
-          <!-- Platzierte Items -->
-          @for (item of minimapItems; track item.id) {
-            <div class="absolute bg-white rounded-sm"
-                 [style.left.%]="(item.col / gridColumns) * 100"
-                 [style.top.%]="(item.row / gridRowCount) * 100"
-                 [style.width.%]="(item.span / gridColumns) * 100"
-                 [style.height.%]="(item.span / gridRowCount) * 100">
+            @for (item of minimapItems; track item.id) {
+              <div class="absolute bg-white rounded-sm"
+                   [style.left.%]="(item.col / gridColumns) * 100"
+                   [style.top.%]="(item.row / gridRowCount) * 100"
+                   [style.width.%]="(item.span / gridColumns) * 100"
+                   [style.height.%]="(item.span / gridRowCount) * 100">
+              </div>
+            }
+
+            <div class="absolute border-2 border-blue-400 bg-blue-400/20 transition-all duration-75 z-10"
+                 [style.left]="minimap.viewport.left"
+                 [style.top]="minimap.viewport.top"
+                 [style.width]="minimap.viewport.width"
+                 [style.height]="minimap.viewport.height">
             </div>
           }
-
-          <!-- Viewport-Indikator -->
-          <div class="absolute border-2 border-blue-400 bg-blue-400/20 transition-all duration-75 z-10"
-               [style.left]="minimap.viewport.left"
-               [style.top]="minimap.viewport.top"
-               [style.width]="minimap.viewport.width"
-               [style.height]="minimap.viewport.height">
-          </div>
-        }
+        </div>
       </div>
-    </div>
 
-  </section>
+    </section>
 
-    <!-- Item-Bar: im Fullscreen rechts als Sidebar, sonst unten -->
-    <div
-      [class]="isFullscreen
-        ? 'flex-none self-stretch relative z-50 bg-slate-900/90 border-l border-white/10 overflow-hidden'
-        : 'flex-none mt-4 relative z-50'"
-      [style.transition]="isFullscreen ? 'width 0.3s ease, opacity 0.3s ease' : 'none'"
-      [style.width]="isFullscreen ? (showFullscreenItemBar ? (getItemSizePx('large') * 2 + 100) + 'px' : '0px') : 'auto'"
-      [style.opacity]="isFullscreen ? (showFullscreenItemBar ? '1' : '0') : '1'"
-    >
+    <div [class]="isFullscreen ? 'flex-none self-stretch relative z-50 bg-slate-900/90 border-l border-white/10 overflow-hidden' : 'flex-none mt-4 relative z-50'"
+         [style.transition]="isFullscreen ? 'width 0.3s ease, opacity 0.3s ease' : 'none'"
+         [style.width]="isFullscreen ? (showFullscreenItemBar ? (getItemSizePx('large') * 2 + 100) + 'px' : '0px') : 'auto'"
+         [style.opacity]="isFullscreen ? (showFullscreenItemBar ? '1' : '0') : '1'">
+      
       @if (interaction.isDraggingItem) {
         <div [class]="'absolute inset-0 z-30 bg-black/50 pointer-events-none ' + (isFullscreen ? '' : 'rounded-xl')"></div>
       }
+      
       <div [class]="isFullscreen ? 'h-full overflow-y-auto sidebar-scrollbar p-3' : ''">
-        <app-items
-          [items]="items"
-          [simpleMode]="isFullscreen"
-          [activeDraggedItemId]="interaction.activeDraggedItemId"
-          [isDraggingItem]="interaction.isDraggingItem"
-          [getItemSizePx]="getItemSizePx"
-          [tooltipsEnabled]="menu.showItemTooltips"
-          (itemMouseDown)="onItemMouseDown($event)">
+        <app-items [items]="items"
+                   [simpleMode]="isFullscreen"
+                   [activeDraggedItemId]="interaction.activeDraggedItemId"
+                   [isDraggingItem]="interaction.isDraggingItem"
+                   [getItemSizePx]="getItemSizePx"
+                   [tooltipsEnabled]="menu.showItemTooltips"
+                   (itemMouseDown)="onItemMouseDown($event)">
         </app-items>
       </div>
     </div>
 
-  </div><!-- Ende Wrapper -->
-
-
-</div><!-- Ende Hauptcontainer -->
+  </div>
+</div>
 
 @if (menu.showShortcutsModal) {
   <div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm"
@@ -361,24 +311,18 @@
     <div class="fade-in-up bg-slate-900/95 border border-white/10 rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden"
          (click)="$event.stopPropagation()">
 
-      <!-- Header -->
       <div class="flex items-center justify-between px-5 py-4 border-b border-white/8 bg-gradient-to-r from-slate-800/80 to-slate-800/40">
         <h2 class="text-base font-semibold text-white tracking-tight">Befehle</h2>
         <button (click)="menu.closeShortcuts()"
-                class="w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-200 cursor-pointer
-                       text-white/40 hover:text-red-400 hover:bg-red-500/15 hover:scale-110 active:scale-95">
+                class="w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-200 cursor-pointer text-white/40 hover:text-red-400 hover:bg-red-500/15 hover:scale-110 active:scale-95">
           <span class="material-icons text-base">close</span>
         </button>
       </div>
 
-      <!-- Befehle -->
       <div class="p-3 space-y-1">
-
-        <!-- Sektion: Förderbänder -->
         <p class="fade-in-up text-[10px] font-bold uppercase tracking-[0.15em] text-white/25 px-3 pt-2 pb-1.5" style="animation-delay: 0ms">Förderband</p>
 
-        <div class="fade-in-up group flex items-center justify-between gap-3 px-3 py-2.5 rounded-r-xl cursor-default
-                    border-l-2 border-l-transparent hover:border-l-sky-400 hover:bg-sky-500/5 transition-all duration-200" style="animation-delay: 40ms">
+        <div class="fade-in-up group flex items-center justify-between gap-3 px-3 py-2.5 rounded-r-xl cursor-default border-l-2 border-l-transparent hover:border-l-sky-400 hover:bg-sky-500/5 transition-all duration-200" style="animation-delay: 40ms">
           <div class="flex items-center gap-3 min-w-0">
             <div class="w-7 h-7 rounded-lg bg-sky-500/10 group-hover:bg-sky-500/20 flex items-center justify-center flex-none transition-colors duration-200">
               <span class="material-icons text-sm text-sky-400/50 group-hover:text-sky-400 transition-colors duration-200">brush</span>
@@ -396,8 +340,7 @@
           </div>
         </div>
 
-        <div class="fade-in-up group flex items-center justify-between gap-3 px-3 py-2.5 rounded-r-xl cursor-default
-                    border-l-2 border-l-transparent hover:border-l-red-400 hover:bg-red-500/5 transition-all duration-200" style="animation-delay: 80ms">
+        <div class="fade-in-up group flex items-center justify-between gap-3 px-3 py-2.5 rounded-r-xl cursor-default border-l-2 border-l-transparent hover:border-l-red-400 hover:bg-red-500/5 transition-all duration-200" style="animation-delay: 80ms">
           <div class="flex items-center gap-3 min-w-0">
             <div class="w-7 h-7 rounded-lg bg-red-500/10 group-hover:bg-red-500/20 flex items-center justify-center flex-none transition-colors duration-200">
               <span class="material-icons text-sm text-red-400/50 group-hover:text-red-400 transition-colors duration-200">remove_circle_outline</span>
@@ -415,11 +358,9 @@
           </div>
         </div>
 
-        <!-- Sektion: Items -->
         <p class="fade-in-up text-[10px] font-bold uppercase tracking-[0.15em] text-white/25 px-3 pt-3 pb-1.5" style="animation-delay: 120ms">Items</p>
 
-        <div class="fade-in-up group flex items-center justify-between gap-3 px-3 py-2.5 rounded-r-xl cursor-default
-                    border-l-2 border-l-transparent hover:border-l-emerald-400 hover:bg-emerald-500/5 transition-all duration-200" style="animation-delay: 160ms">
+        <div class="fade-in-up group flex items-center justify-between gap-3 px-3 py-2.5 rounded-r-xl cursor-default border-l-2 border-l-transparent hover:border-l-emerald-400 hover:bg-emerald-500/5 transition-all duration-200" style="animation-delay: 160ms">
           <div class="flex items-center gap-3 min-w-0">
             <div class="w-7 h-7 rounded-lg bg-emerald-500/10 group-hover:bg-emerald-500/20 flex items-center justify-center flex-none transition-colors duration-200">
               <span class="material-icons text-sm text-emerald-400/50 group-hover:text-emerald-400 transition-colors duration-200">drag_indicator</span>
@@ -429,8 +370,7 @@
           <span class="text-white/25 group-hover:text-white/50 text-xs text-right flex-none transition-colors duration-200">Item ins Grid ziehen</span>
         </div>
 
-        <div class="fade-in-up group flex items-center justify-between gap-3 px-3 py-2.5 rounded-r-xl cursor-default
-                    border-l-2 border-l-transparent hover:border-l-red-400 hover:bg-red-500/5 transition-all duration-200" style="animation-delay: 200ms">
+        <div class="fade-in-up group flex items-center justify-between gap-3 px-3 py-2.5 rounded-r-xl cursor-default border-l-2 border-l-transparent hover:border-l-red-400 hover:bg-red-500/5 transition-all duration-200" style="animation-delay: 200ms">
           <div class="flex items-center gap-3 min-w-0">
             <div class="w-7 h-7 rounded-lg bg-red-500/10 group-hover:bg-red-500/20 flex items-center justify-center flex-none transition-colors duration-200">
               <span class="material-icons text-sm text-red-400/50 group-hover:text-red-400 transition-colors duration-200">remove_circle_outline</span>
@@ -448,8 +388,7 @@
           </div>
         </div>
 
-        <div class="fade-in-up group flex items-center justify-between gap-3 px-3 py-2.5 rounded-r-xl cursor-default
-                    border-l-2 border-l-transparent hover:border-l-amber-400 hover:bg-amber-500/5 transition-all duration-200" style="animation-delay: 240ms">
+        <div class="fade-in-up group flex items-center justify-between gap-3 px-3 py-2.5 rounded-r-xl cursor-default border-l-2 border-l-transparent hover:border-l-amber-400 hover:bg-amber-500/5 transition-all duration-200" style="animation-delay: 240ms">
           <div class="flex items-center gap-3 min-w-0">
             <div class="w-7 h-7 rounded-lg bg-amber-500/10 group-hover:bg-amber-500/20 flex items-center justify-center flex-none transition-colors duration-200">
               <span class="material-icons text-sm text-amber-400/50 group-hover:text-amber-400 transition-colors duration-200">info_outline</span>
@@ -464,22 +403,19 @@
           </div>
         </div>
 
-        <!-- Sektion: Navigation -->
         <p class="fade-in-up text-[10px] font-bold uppercase tracking-[0.15em] text-white/25 px-3 pt-3 pb-1.5" style="animation-delay: 280ms">Navigation</p>
 
-        <div class="fade-in-up group flex items-center justify-between gap-3 px-3 py-2.5 rounded-r-xl cursor-default
-                    border-l-2 border-l-transparent hover:border-l-violet-400 hover:bg-violet-500/5 transition-all duration-200" style="animation-delay: 320ms">
+        <div class="fade-in-up group flex items-center justify-between gap-3 px-3 py-2.5 rounded-r-xl cursor-default border-l-2 border-l-transparent hover:border-l-violet-400 hover:bg-violet-500/5 transition-all duration-200" style="animation-delay: 320ms">
           <div class="flex items-center gap-3 min-w-0">
             <div class="w-7 h-7 rounded-lg bg-violet-500/10 group-hover:bg-violet-500/20 flex items-center justify-center flex-none transition-colors duration-200">
               <span class="material-icons text-sm text-violet-400/50 group-hover:text-violet-400 transition-colors duration-200">swap_vert</span>
             </div>
             <span class="text-white/60 group-hover:text-white transition-colors duration-200 text-sm">Grid scrollen</span>
           </div>
-          <span class="text-white/25 group-hover:text-white/50 text-xs text-right flex-none transition-colors duration-200">Scrollrad / Minimap ziehen / Mausrad </span>
+          <span class="text-white/25 group-hover:text-white/50 text-xs text-right flex-none transition-colors duration-200">Scrollrad / Minimap / Mausrad</span>
         </div>
 
-        <div class="fade-in-up group flex items-center justify-between gap-3 px-3 py-2.5 rounded-r-xl cursor-default
-                    border-l-2 border-l-transparent hover:border-l-violet-400 hover:bg-violet-500/5 transition-all duration-200" style="animation-delay: 360ms">
+        <div class="fade-in-up group flex items-center justify-between gap-3 px-3 py-2.5 rounded-r-xl cursor-default border-l-2 border-l-transparent hover:border-l-violet-400 hover:bg-violet-500/5 transition-all duration-200" style="animation-delay: 360ms">
           <div class="flex items-center gap-3 min-w-0">
             <div class="w-7 h-7 rounded-lg bg-violet-500/10 group-hover:bg-violet-500/20 flex items-center justify-center flex-none transition-colors duration-200">
               <span class="material-icons text-sm text-violet-400/50 group-hover:text-violet-400 transition-colors duration-200">place</span>
@@ -492,8 +428,7 @@
           </div>
         </div>
 
-        <div class="fade-in-up group flex items-center justify-between gap-3 px-3 py-2.5 rounded-r-xl cursor-default
-                    border-l-2 border-l-transparent hover:border-l-violet-400 hover:bg-violet-500/5 transition-all duration-200 mb-1" style="animation-delay: 400ms">
+        <div class="fade-in-up group flex items-center justify-between gap-3 px-3 py-2.5 rounded-r-xl cursor-default border-l-2 border-l-transparent hover:border-l-violet-400 hover:bg-violet-500/5 transition-all duration-200 mb-1" style="animation-delay: 400ms">
           <div class="flex items-center gap-3 min-w-0">
             <div class="w-7 h-7 rounded-lg bg-violet-500/10 group-hover:bg-violet-500/20 flex items-center justify-center flex-none transition-colors duration-200">
               <span class="material-icons text-sm text-violet-400/50 group-hover:text-violet-400 transition-colors duration-200">open_in_full</span>
@@ -502,8 +437,8 @@
           </div>
           <span class="text-white/25 group-hover:text-white/50 text-xs text-right flex-none transition-colors duration-200">Oben rechts im Playground</span>
         </div>
-
       </div>
+
     </div>
   </div>
 }
@@ -512,35 +447,25 @@
   <div class="fixed inset-0 z-[90] flex items-center justify-center bg-black/55 backdrop-blur-sm" (click)="cancelSwitch()">
     <div class="fade-in-up bg-slate-900/95 backdrop-blur-md border border-white/10 rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden"
          style="animation-duration: 0.18s" (click)="$event.stopPropagation()">
-
-      <!-- Inhalt -->
       <div class="px-6 pt-6 pb-5">
         <h3 class="text-base font-semibold text-white tracking-tight">Ungespeicherte Änderungen</h3>
         <p class="text-sm text-white/50 mt-2 leading-relaxed">Dein Spielstand hat ungespeicherte Änderungen. Möchtest du trotzdem fortfahren?</p>
       </div>
 
-      <!-- Trennlinie -->
       <div class="h-px bg-white/8"></div>
 
-      <!-- Aktionen -->
       <div class="px-5 pb-5 pt-3 flex flex-col gap-2">
         <button (click)="confirmSwitchWithSave()"
-                class="w-full px-4 py-2.5 rounded-xl text-sm font-semibold tracking-tight
-                       bg-white text-slate-900 hover:bg-white/90
-                       shadow-[0_4px_14px_rgba(255,255,255,0.08)] hover:shadow-[0_6px_20px_rgba(255,255,255,0.15)]
-                       active:scale-[0.98] cursor-pointer transition-all duration-150">
+                class="w-full px-4 py-2.5 rounded-xl text-sm font-semibold tracking-tight bg-white text-slate-900 hover:bg-white/90 shadow-[0_4px_14px_rgba(255,255,255,0.08)] hover:shadow-[0_6px_20px_rgba(255,255,255,0.15)] active:scale-[0.98] cursor-pointer transition-all duration-150">
           Speichern und fortfahren
         </button>
         <button (mousedown)="onDiscardHoldStart($event)"
                 (mouseup)="onDiscardHoldEnd()"
                 (mouseleave)="onDiscardHoldEnd()"
-                (touchstart)="onDiscardHoldStart($event)"
+                (clientX)="onDiscardHoldStart($event)"
                 (touchend)="onDiscardHoldEnd()"
                 (touchcancel)="onDiscardHoldEnd()"
-                class="relative w-full px-4 py-2.5 rounded-xl text-sm overflow-hidden
-                       text-white/40 hover:text-white/80 hover:bg-white/5
-                       cursor-pointer transition-colors duration-150 select-none">
-          <!-- Rot-Füllung beim Halten -->
+                class="relative w-full px-4 py-2.5 rounded-xl text-sm overflow-hidden text-white/40 hover:text-white/80 hover:bg-white/5 cursor-pointer transition-colors duration-150 select-none">
           <span class="absolute inset-y-0 left-0 bg-red-500/35 ease-linear"
                 [style.width]="discardHolding ? '100%' : '0%'"
                 [style.transitionProperty]="'width'"
@@ -555,16 +480,14 @@
 @if (showLayoutsDropdown) {
   <div class="fixed inset-0 z-[60]" (click)="closeLayoutsDropdown()"></div>
   <div class="fixed top-16 right-4 z-[70] bg-slate-800 border border-white/10 rounded-xl shadow-xl min-w-64 max-w-80 overflow-hidden">
-
-    <!-- Neuer Spielstand -->
     <div class="py-1">
-      <button (click)="createNewLayout()" class="w-full px-4 py-2.5 text-sm text-left text-white/70 hover:text-white hover:bg-white/5 transition-colors flex items-center gap-3">
+      <button (click)="createNewLayout()" 
+              class="w-full px-4 py-2.5 text-sm text-left text-white/70 hover:text-white hover:bg-white/5 transition-colors flex items-center gap-3">
         <span class="material-icons text-base">add</span>
         Neuer Spielstand
       </button>
     </div>
 
-    <!-- Liste -->
     @if (layoutsLoading) {
       <div class="border-t border-white/10 py-5 flex items-center justify-center">
         <div class="w-5 h-5 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin"></div>
@@ -587,7 +510,10 @@
             } @else if (activeLayoutId === layout.id) {
               <span class="material-icons text-white text-base leading-none mr-1 flex-none">chevron_right</span>
             }
-            <button (click)="deleteLayout(layout.id); $event.stopPropagation()" title="Löschen" class="w-7 h-7 mr-2 flex items-center justify-center text-white/40 hover:text-white cursor-pointer invisible group-hover:visible transition-colors" [class.hidden]="layoutLoadingId === layout.id">
+            <button (click)="deleteLayout(layout.id); $event.stopPropagation()" 
+                    title="Löschen" 
+                    class="w-7 h-7 mr-2 flex items-center justify-center text-white/40 hover:text-white cursor-pointer invisible group-hover:visible transition-colors" 
+                    [class.hidden]="layoutLoadingId === layout.id">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4">
                 <path d="M3 6h18"/>
                 <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
@@ -604,7 +530,6 @@
     @if (layoutError) {
       <p class="mx-3 my-2 text-xs text-white/70 bg-white/5 border border-white/10 rounded px-3 py-2">{{ layoutError }}</p>
     }
-
   </div>
 }
 
@@ -614,22 +539,18 @@
     <div class="bg-slate-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden"
          (click)="$event.stopPropagation()">
 
-      <!-- Header -->
       <div class="flex items-center justify-between px-5 py-4 border-b border-white/10 bg-slate-800/60">
         <h2 class="text-base font-semibold text-white">Hilfe</h2>
         <div class="flex items-center gap-3">
           <span class="text-xs text-white/30">{{ menu.helpCurrentStep + 1 }} / {{ menu.helpTotalSteps }}</span>
           <button (click)="menu.closeHelp()"
-                  class="w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-200 cursor-pointer
-                         text-white/40 hover:text-red-400 hover:bg-red-500/15 hover:scale-110 active:scale-95">
+                  class="w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-200 cursor-pointer text-white/40 hover:text-red-400 hover:bg-red-500/15 hover:scale-110 active:scale-95">
             <span class="material-icons text-base">close</span>
           </button>
         </div>
       </div>
 
-      <!-- Inhalt -->
       <div class="px-4 pt-4 pb-2 overflow-hidden" style="min-height: 140px">
-
         @if (menu.helpCurrentStep === 0) {
           <div [class]="'hilfe-slide-' + menu.helpAnimationDirection + ' rounded-xl bg-blue-500/10 border border-blue-500/20 p-4'">
             <h3 class="font-semibold text-white mb-1.5 flex items-center gap-2">
@@ -666,7 +587,7 @@
               <span class="material-icons text-base text-emerald-400">link</span>
               Items verbinden
             </h3>
-            <p class="text-white/60 leading-relaxed text-sm">Items verbinden sich mit den Fliessbändern. Input/Output sind zwischen Band und Item wichtig um es richtig zu machen </p>
+            <p class="text-white/60 leading-relaxed text-sm">Items verbinden sich mit den Fliessbändern. Input/Output sind zwischen Band und Item wichtig um es richtig zu machen</p>
           </div>
         }
 
@@ -676,37 +597,23 @@
               <span class="material-icons text-base text-purple-400">swap_vert</span>
               Navigieren im Grid
             </h3>
-            <p class="text-white/60 leading-relaxed text-sm">Navigieren kannst du ganz leicht, wähl die für dich beste Variante. Verwende einfach Minimap, Maus, Scrollleisten oder Mausrad </p>
+            <p class="text-white/60 leading-relaxed text-sm">Navigieren kannst du ganz leicht, wähl die für dich beste Variante. Verwende einfach Minimap, Maus, Scrollleisten oder Mausrad</p>
           </div>
         }
-
       </div>
 
-      <!-- Dot Farbe in der Hilfe -->
       <div class="flex justify-center gap-1.5 py-3">
         @for (i of [0,1,2,3,4]; track i) {
           <button (click)="menu.helpAnimationDirection = i > menu.helpCurrentStep ? 'right' : 'left'; menu.helpCurrentStep = i"
-                  [class]="'w-1.5 h-1.5 rounded-full transition-all duration-300 cursor-pointer ' +
-                    (menu.helpCurrentStep === i
-                      ? ([
-                          'bg-blue-400',
-                          'bg-green-400',
-                          'bg-orange-400',
-                          'bg-emerald-400',
-                          'bg-purple-400'
-                        ][menu.helpCurrentStep] + ' scale-125')
-                      : 'bg-white/25 hover:bg-white/50')">
+                  [class]="'w-1.5 h-1.5 rounded-full transition-all duration-300 cursor-pointer ' + (menu.helpCurrentStep === i ? ([ 'bg-blue-400', 'bg-green-400', 'bg-orange-400', 'bg-emerald-400', 'bg-purple-400' ][menu.helpCurrentStep] + ' scale-125') : 'bg-white/25 hover:bg-white/50')">
           </button>
         }
       </div>
 
-      <!-- Navigation -->
       <div class="flex items-center justify-between px-4 pb-4 gap-2">
         @if (menu.helpCurrentStep > 0) {
           <button (click)="menu.prevHelpStep()"
-                  class="flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-200 cursor-pointer
-                         bg-white/5 hover:bg-white/15 text-white/50 hover:text-white
-                         hover:scale-110 active:scale-90 active:bg-white/20">
+                  class="flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-200 cursor-pointer bg-white/5 hover:bg-white/15 text-white/50 hover:text-white hover:scale-110 active:scale-90 active:bg-white/20">
             <span class="material-icons text-xl">chevron_left</span>
           </button>
         } @else {
@@ -715,21 +622,17 @@
 
         @if (menu.helpCurrentStep < menu.helpTotalSteps - 1) {
           <button (click)="menu.nextHelpStep()"
-                  class="flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-200 cursor-pointer
-                         bg-white/5 hover:bg-white/15 text-white/50 hover:text-white
-                         hover:scale-110 active:scale-90 active:bg-white/20">
+                  class="flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-200 cursor-pointer bg-white/5 hover:bg-white/15 text-white/50 hover:text-white hover:scale-110 active:scale-90 active:bg-white/20">
             <span class="material-icons text-xl">chevron_right</span>
           </button>
         } @else {
           <button (click)="menu.closeHelp()"
-                  class="flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-200 cursor-pointer
-                         bg-blue-500/20 hover:bg-blue-500/40 text-blue-300 hover:text-blue-100
-                         border border-blue-500/20 hover:border-blue-400/50
-                         hover:scale-110 active:scale-90 hover:shadow-[0_0_12px_rgba(96,165,250,0.3)]">
+                  class="flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-200 cursor-pointer bg-blue-500/20 hover:bg-blue-500/40 text-blue-300 hover:text-blue-100 border border-blue-500/20 hover:border-blue-400/50 hover:scale-110 active:scale-90 hover:shadow-[0_0_12px_rgba(96,165,250,0.3)]">
             <span class="material-icons text-xl">check</span>
           </button>
         }
       </div>
+
     </div>
   </div>
 }

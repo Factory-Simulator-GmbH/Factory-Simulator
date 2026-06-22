@@ -578,7 +578,7 @@ export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
             endpoint: saved?.endpoint ?? false
         });
       }
-    }
+    }  
     requestAnimationFrame(() => {
       for (const entry of raw.items) {
         const source = this.items.find(i => i.label === entry.label);
