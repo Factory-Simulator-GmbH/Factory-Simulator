@@ -20,6 +20,7 @@ export class GameDataService {
     return (data ?? []).map(row => ({
       id: row['id'],
       type: row['type'],
+      filter_category: row['filter_category'] ?? undefined,
       label: row['label'],
       size: row['size'],
       helpText: row['help_text'],
