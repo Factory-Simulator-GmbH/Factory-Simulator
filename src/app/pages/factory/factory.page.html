@@ -11,8 +11,13 @@
         <button
           (click)="dropdownOpen.set(!dropdownOpen())"
           class="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
-          <div class="w-8 h-8 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-sm font-semibold shrink-0">
-            {{ auth.username?.charAt(0)?.toUpperCase() }}
+          <div class="relative w-8 h-8 shrink-0">
+            <div class="w-8 h-8 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-sm font-semibold">
+              {{ auth.username?.charAt(0)?.toUpperCase() }}
+            </div>
+            @if (auth.role === 'admin') {
+              <span class="absolute -bottom-1 -right-1 bg-red-600 text-white text-[8px] font-bold leading-none px-1 py-0.5 rounded-full uppercase tracking-wide">Admin</span>
+            }
           </div>
         </button>
         @if (dropdownOpen()) {
@@ -57,7 +62,8 @@
   <div [class]="'flex-1 min-h-0 overflow-hidden ' + (isFullscreen ? 'flex flex-row' : 'flex flex-col')">
 
   <section [class]="'flex-1 min-h-0 relative flex flex-col overflow-hidden transition-all ' +
-                   (!isFullscreen ? 'rounded-3xl border border-white/10 bg-white/5 backdrop-blur' : 'rounded-none bg-black/20')"
+                   (quickLookActive ? 'rounded-3xl border-2 border-blue-400 bg-white/5 backdrop-blur preview-pulse-border' :
+                   !isFullscreen ? 'rounded-3xl border border-white/10 bg-white/5 backdrop-blur' : 'rounded-none bg-black/20')"
            (wheel)="onWheel($event)">
 
     <div #scrollContainer class="flex-1 min-h-0 overflow-hidden z-10">
@@ -83,7 +89,9 @@
 
             <!-- Spielstand-Status (Mitte) -->
             <div slot="status" class="flex items-center gap-2 min-w-0 font-normal">
-              @if (activeLayoutId) {
+              @if (quickLookActive) {
+                <span class="text-[10px] font-semibold uppercase tracking-wider text-blue-400 bg-blue-400/10 border border-blue-400/30 px-1.5 py-0.5 rounded">Vorschau</span>
+              } @else if (activeLayoutId) {
                 <span class="text-white truncate">{{ activeLayoutName }}</span>
                 <span class="text-white/30">·</span>
                 @if (isDirty) {
@@ -195,7 +203,7 @@
                         <span class="absolute inset-y-0 left-0 bg-red-500/35 ease-linear"
                               [style.width]="resetHolding ? '100%' : '0%'"
                               [style.transitionProperty]="'width'"
-                              [style.transitionDuration]="resetHolding ? '1000ms' : '180ms'"></span>
+                              [style.transitionDuration]="resetHolding ? '800ms' : '180ms'"></span>
                         <span class="relative">Ja</span>
                       </button>
                       <button (click)="confirmResetOpen = false; onResetHoldEnd()"
@@ -272,7 +280,7 @@
 
     </div>
 
-    <div class="absolute bottom-6 right-6 w-48 bg-slate-900 border-2 border-white/20 rounded-lg z-[60] shadow-2xl overflow-hidden select-none"
+    <div [class.hidden]="quickLookActive" class="absolute bottom-6 right-6 w-48 bg-slate-900 border-2 border-white/20 rounded-lg z-[60] shadow-2xl overflow-hidden select-none"
          [class.cursor-grab]="!interaction.isNavigatingMinimap"
          [class.cursor-grabbing]="interaction.isNavigatingMinimap"
          (mousedown)="onMinimapMouseDown($event)">
@@ -326,7 +334,7 @@
   </section>
 
     <!-- Item-Bar: im Fullscreen rechts als Sidebar, sonst unten -->
-    <div
+    <div [class.hidden]="quickLookActive"
       [class]="isFullscreen
         ? 'flex-none self-stretch relative z-50 bg-slate-900/90 border-l border-white/10 overflow-hidden'
         : 'flex-none mt-4 relative z-50'"
@@ -544,7 +552,7 @@
           <span class="absolute inset-y-0 left-0 bg-red-500/35 ease-linear"
                 [style.width]="discardHolding ? '100%' : '0%'"
                 [style.transitionProperty]="'width'"
-                [style.transitionDuration]="discardHolding ? '3000ms' : '180ms'"></span>
+                [style.transitionDuration]="discardHolding ? '800ms' : '180ms'"></span>
           <span class="relative">Halten um fortzufahren</span>
         </button>
       </div>
@@ -577,9 +585,22 @@
       <div class="border-t border-white/10 py-1 max-h-72 overflow-y-auto grid-scrollbar">
         @for (layout of savedLayouts; track layout.id) {
           <div class="group flex items-center transition-colors border-l-2"
-               [ngClass]="activeLayoutId === layout.id ? 'bg-white/10 border-white' : 'border-transparent hover:bg-white/5'">
+               [ngClass]="activeLayoutId === layout.id ? 'bg-white/10 border-white' : 'border-transparent hover:bg-white/5'"
+               (mouseenter)="loadQuickLookData(layout)" (mouseleave)="clearQuickLookData()">
             <button (click)="loadLayout(layout)" class="flex-1 min-w-0 px-4 py-2 text-left">
-              <p class="text-sm truncate" [ngClass]="activeLayoutId === layout.id ? 'text-white font-semibold' : 'text-white/90'">{{ layout.name }}</p>
+              <p class="text-sm truncate flex items-center gap-1.5" [ngClass]="activeLayoutId === layout.id ? 'text-white font-semibold' : 'text-white/90'">
+                {{ layout.name }}
+                @if (layout.is_public) {
+                  <span class="inline-flex items-center gap-0.5 bg-green-600 text-white text-[8px] font-bold leading-none pl-1.5 pr-0.5 py-0.5 rounded-full uppercase tracking-wide shrink-0">
+                    Geteilt
+                    @if (auth.role === 'admin') {
+                      <button (click)="shareLayout(layout); $event.stopPropagation()"
+                              title="Teilen aufheben"
+                              class="w-3 h-3 rounded-full bg-black/20 hover:bg-black/40 flex items-center justify-center leading-none cursor-pointer transition-colors">✕</button>
+                    }
+                  </span>
+                }
+              </p>
               <p class="text-xs text-white/40">{{ layout.updated_at | date:'dd.MM.yy' }}</p>
             </button>
             @if (layoutLoadingId === layout.id) {
@@ -587,7 +608,27 @@
             } @else if (activeLayoutId === layout.id) {
               <span class="material-icons text-white text-base leading-none mr-1 flex-none">chevron_right</span>
             }
-            <button (click)="deleteLayout(layout.id); $event.stopPropagation()" title="Löschen" class="w-7 h-7 mr-2 flex items-center justify-center text-white/40 hover:text-white cursor-pointer invisible group-hover:visible transition-colors" [class.hidden]="layoutLoadingId === layout.id">
+            @if (auth.role === 'admin' && layoutLoadingId !== layout.id && !layout.is_public) {
+              <button
+                (mousedown)="onShareHoldStart(layout, $event)"
+                (mouseleave)="onShareHoldEnd()"
+                (mouseup)="onShareHoldEnd()"
+                (touchstart)="onShareHoldStart(layout, $event)"
+                (touchend)="onShareHoldEnd()"
+                (click)="$event.stopPropagation()"
+                title="Gedrückt halten zum Teilen"
+                class="relative mr-2 px-2 py-0.5 rounded text-[10px] font-semibold overflow-hidden cursor-pointer
+                       border border-white/20 text-white/50
+                       invisible group-hover:visible
+                       animate-pulse hover:animate-none
+                       transition-colors hover:border-green-500/60 hover:text-green-300">
+                <span class="absolute inset-y-0 left-0 bg-green-500/30 transition-all ease-linear"
+                      [style.width]="shareHoldingId === layout.id ? '100%' : '0%'"
+                      [style.transitionDuration]="shareHoldingId === layout.id ? '800ms' : '150ms'"></span>
+                <span class="relative">Teilen</span>
+              </button>
+            }
+            <button (click)="deleteLayout(layout.id); $event.stopPropagation()" title="Löschen" class="w-7 h-7 mr-2 flex items-center justify-center text-white/40 hover:text-white cursor-pointer transition-colors" [class.hidden]="layoutLoadingId === layout.id || (layout.is_public && auth.role !== 'admin')">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4">
                 <path d="M3 6h18"/>
                 <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
@@ -601,10 +642,45 @@
       </div>
     }
 
+    @if (publicLayouts.length > 0) {
+      <div class="border-t border-white/10 py-1">
+        <p class="px-4 pt-2 pb-1 text-xs text-white/30 uppercase tracking-wider">Geteilte Spielstände</p>
+        @for (layout of publicLayouts; track layout.id) {
+          <div class="group flex items-center transition-colors hover:bg-white/5">
+            <button (click)="loadPublicLayout(layout)" class="flex-1 min-w-0 px-4 py-2 text-left">
+              <p class="text-sm truncate text-white/90">{{ layout.name }}</p>
+              <p class="text-xs text-white/40">{{ layout.updated_at | date:'dd.MM.yy' }}</p>
+            </button>
+            @if (layoutLoadingId === layout.id) {
+              <div class="w-4 h-4 mr-3 border-2 border-green-400/30 border-t-green-400 rounded-full animate-spin flex-none"></div>
+            } @else {
+              <span class="material-icons text-green-400/60 text-base leading-none mr-3 flex-none">arrow_outward</span>
+            }
+          </div>
+        }
+      </div>
+    }
+
+    @if (quickLookLayoutData) {
+      <div class="mx-3 my-2 flex items-center gap-1.5 text-[10px] text-white/30 bg-white/3 rounded px-3 py-1.5">
+        <span class="material-icons text-[11px] leading-none">info</span>
+        Leertaste halten für Vorschau
+      </div>
+    }
+
     @if (layoutError) {
       <p class="mx-3 my-2 text-xs text-white/70 bg-white/5 border border-white/10 rounded px-3 py-2">{{ layoutError }}</p>
     }
 
+  </div>
+}
+
+@if (quickLookActive) {
+  <div class="fixed inset-0 z-[85] pointer-events-none">
+    <div class="absolute bottom-6 left-1/2 -translate-x-1/2 bg-black/70 backdrop-blur-sm text-white/70 text-xs px-4 py-2 rounded-full border border-white/10 flex items-center gap-2 select-none">
+      <span class="material-icons text-sm leading-none">space_bar</span>
+      Leertaste loslassen um zurückzukehren
+    </div>
   </div>
 }
 

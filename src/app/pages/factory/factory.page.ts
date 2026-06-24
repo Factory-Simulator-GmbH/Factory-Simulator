@@ -55,9 +55,15 @@ export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
   savePopoverName = '';
   layoutSaving = false;
 
+  quickLookActive = false;
+  private quickLookSnapshot: unknown = null;
+  quickLookLayoutData: unknown = null;
+  private quickLookLayoutId: string | null = null;
+
   // Layouts dropdown (load / delete / reset)
   showLayoutsDropdown = false;
   savedLayouts: SavedLayout[] = [];
+  publicLayouts: SavedLayout[] = [];
   layoutsLoading = false;
   layoutLoadingId: string | null = null;
   layoutError = '';
@@ -66,8 +72,10 @@ export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
   pendingSwitchLayout: SavedLayout | null = null;
   discardHolding = false;
   resetHolding = false;
+  shareHoldingId: string | null = null;
   private discardHoldTimer: ReturnType<typeof setTimeout> | null = null;
   private resetHoldTimer: ReturnType<typeof setTimeout> | null = null;
+  private shareHoldTimer: ReturnType<typeof setTimeout> | null = null;
 
   private readonly resourceEmoji: Record<string, string> = { metall: '🔩', kupfer: '🟤', plastik: '🧴', kabel: '🔌', gehäuse: '🏠', leiterplatte: '🟩', elektronik: '📱' };
 
@@ -108,6 +116,7 @@ export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
         this.itemManager.itemStates,
         this.conveyorGrid,
       );
+      if (changedItems.size > 0) this.markDirty();
       for (const itemid of changedItems) {
         const item = this.itemManager.clonedItems.find(i => i.id === itemid);
         this.updateItemResourceBadge(itemid, item?.resource ?? null);
@@ -373,14 +382,91 @@ export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
     this.layoutError = '';
     this.confirmDeleteId = null;
     this.confirmResetOpen = false;
+    if (this.quickLookActive) this.exitQuickLook();
   }
+
+  async loadQuickLookData(layout: SavedLayout): Promise<void> {
+    this.quickLookLayoutId = layout.id;
+    this.quickLookLayoutData = null;
+    try {
+      const data = await this.factoryLayoutService.loadLayoutData(layout.id);
+      if (this.quickLookLayoutId === layout.id) this.quickLookLayoutData = data;
+    } catch { /* silent */ }
+  }
+
+  clearQuickLookData(): void {
+    if (!this.quickLookActive) {
+      this.quickLookLayoutData = null;
+      this.quickLookLayoutId = null;
+    }
+  }
+
+  @HostListener('document:keydown', ['$event'])
+  onKeyDown(event: KeyboardEvent): void {
+    if (event.code !== 'Space') return;
+    const tag = (event.target as HTMLElement).tagName.toLowerCase();
+    if (tag === 'input' || tag === 'textarea') return;
+    if (!this.showLayoutsDropdown || !this.quickLookLayoutData || this.quickLookActive) return;
+    event.preventDefault();
+    this.enterQuickLook();
+  }
+
+  @HostListener('document:keyup', ['$event'])
+  onKeyUp(event: KeyboardEvent): void {
+    if (event.code !== 'Space' || !this.quickLookActive) return;
+    event.preventDefault();
+    this.exitQuickLook();
+  }
+
+  private enterQuickLook(): void {
+    this.quickLookSnapshot = this.buildLayoutSnapshot();
+    this.quickLookActive = true;
+    this.tickSub?.unsubscribe();
+    this.dragDrop.previewMode = true;
+    this.cdr.detectChanges();
+    this.applyLayoutSnapshot(this.quickLookLayoutData as any);
+  }
+
+  private exitQuickLook(): void {
+    this.quickLookActive = false;
+    this.dragDrop.previewMode = false;
+    this.cdr.detectChanges();
+    this.applyLayoutSnapshot(this.quickLookSnapshot as any);
+    this.quickLookSnapshot = null;
+    this.tickSub = interval(1000).subscribe(() => {
+      const { changedItems, inputs } = this.resourceExchangeService.tick(
+        this.itemManager.clonedItems, this.itemManager.itemStates, this.conveyorGrid,
+      );
+      if (changedItems.size > 0) this.markDirty();
+      for (const itemid of changedItems) {
+        const item = this.itemManager.clonedItems.find(i => i.id === itemid);
+        this.updateItemResourceBadge(itemid, item?.resource ?? null);
+      }
+      for (const { inputId, accepted } of inputs) this.markInputAcceptance(inputId, accepted);
+      for (const item of this.itemManager.clonedItems) {
+        if (item.type !== 'machine') continue;
+        const state = this.itemManager.itemStates[item.id];
+        if (!state || state.isAtStartPosition) continue;
+        this.updateMachineStatus(item);
+      }
+      this.cdr.detectChanges();
+    });
+  }
+
+
 
   private async refreshLayouts(): Promise<void> {
     this.layoutsLoading = true;
     this.cdr.detectChanges();
     try {
-      const list = await this.factoryLayoutService.listLayouts();
-      this.ngZone.run(() => { this.savedLayouts = list; });
+      const [list, publicList] = await Promise.all([
+        this.factoryLayoutService.listLayouts(),
+        this.factoryLayoutService.listPublicLayouts(),
+      ]);
+      this.ngZone.run(() => {
+        this.savedLayouts = list;
+        this.publicLayouts = publicList.filter(p => !list.some(l => l.id === p.id));
+      });
     } catch {
       this.ngZone.run(() => { this.layoutError = 'Spielstände konnten nicht geladen werden.'; });
     } finally {
@@ -437,7 +523,7 @@ export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
       this.discardHoldTimer = null;
       this.discardHolding = false;
       this.confirmSwitchDiscard();
-    }, 3000);
+    }, 800);
   }
 
   onDiscardHoldEnd(): void {
@@ -458,7 +544,7 @@ export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
       this.resetHoldTimer = null;
       this.resetHolding = false;
       this.resetFactory();
-    }, 1000);
+    }, 800);
   }
 
   onResetHoldEnd(): void {
@@ -484,6 +570,66 @@ export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
         this.activeLayoutId = layout.id;
         this.activeLayoutName = layout.name;
         this.isDirty = false;
+        this.closeLayoutsDropdown();
+      });
+    } catch {
+      this.ngZone.run(() => { this.layoutError = 'Laden fehlgeschlagen.'; });
+    } finally {
+      this.ngZone.run(() => {
+        this.layoutLoadingId = null;
+        this.cdr.detectChanges();
+      });
+    }
+  }
+
+  onShareHoldStart(layout: SavedLayout, event: Event): void {
+    event.preventDefault();
+    if (this.shareHoldTimer || layout.is_public) return;
+    this.shareHoldingId = layout.id;
+    this.cdr.detectChanges();
+    this.shareHoldTimer = setTimeout(() => {
+      this.shareHoldTimer = null;
+      this.shareHoldingId = null;
+      this.shareLayout(layout);
+    }, 800);
+  }
+
+  onShareHoldEnd(): void {
+    this.shareHoldingId = null;
+    if (this.shareHoldTimer) {
+      clearTimeout(this.shareHoldTimer);
+      this.shareHoldTimer = null;
+    }
+    this.cdr.detectChanges();
+  }
+
+  async shareLayout(layout: SavedLayout): Promise<void> {
+    const next = !layout.is_public;
+    try {
+      await this.factoryLayoutService.publishLayout(layout.id, next);
+      layout.is_public = next;
+      await this.refreshLayouts();
+    } catch {
+      this.layoutError = 'Teilen fehlgeschlagen.';
+      this.cdr.detectChanges();
+    }
+  }
+
+  async loadPublicLayout(layout: SavedLayout): Promise<void> {
+    this.layoutError = '';
+    this.layoutLoadingId = layout.id;
+    this.cdr.detectChanges();
+    try {
+      const raw = await this.factoryLayoutService.loadLayoutData(layout.id) as {
+        conveyorGrid: ConveyorSegment[][];
+        items: Array<{ label: string; col: number; row: number }>;
+      };
+      this.ngZone.run(() => {
+        this.applyLayoutSnapshot(raw);
+        // Shared layouts laden ohne activeLayoutId — Änderungen gehen in neuen Spielstand
+        this.activeLayoutId = null;
+        this.activeLayoutName = layout.name + ' (Kopie)';
+        this.isDirty = true;
         this.closeLayoutsDropdown();
       });
     } catch {
@@ -557,18 +703,18 @@ export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
 
   private buildLayoutSnapshot(): unknown {
     return {
-      conveyorGrid: this.conveyorGrid,
+      conveyorGrid: this.conveyorGrid.map(row => row.map(cell => ({ ...cell }))),
       items: this.itemManager.clonedItems
         .filter(i => !this.itemManager.itemStates[i.id]?.isAtStartPosition)
         .map(i => ({
-          label: i.label,
+          ...i,
           col: this.itemManager.itemStates[i.id].col,
           row: this.itemManager.itemStates[i.id].row,
         })),
     };
   }
 
-  private applyLayoutSnapshot(raw: { conveyorGrid: ConveyorSegment[][]; items: Array<{ label: string; col: number; row: number }> }): void {
+  private applyLayoutSnapshot(raw: { conveyorGrid: ConveyorSegment[][]; items: Array<Partial<DraggableItems> & { label: string; col: number; row: number }> }): void {
     this.dragDrop.clearAllItems(this.items);
     for (let r = 0; r < this.conveyorGrid.length; r++) {
       for (let c = 0; c < this.conveyorGrid[r].length; c++) {
@@ -581,6 +727,13 @@ export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
         const source = this.items.find(i => i.label === entry.label);
         if (!source || (source.currentAvailableCount ?? source.maxAvailableCount ?? 1) <= 0) continue;
         this.dragDrop.placeItemAt(source, entry.col, entry.row, this.items);
+        const placed = this.itemManager.clonedItems.find(
+          i => this.itemManager.itemStates[i.id]?.col === entry.col && this.itemManager.itemStates[i.id]?.row === entry.row,
+        );
+        if (placed) {
+          const { id: _id, col: _col, row: _row, ...state } = entry;
+          Object.assign(placed, state);
+        }
       }
       this.itemManager.captureBasePositions([...this.items, ...this.itemManager.clonedItems], this.getGridRect());
       this.setupInteractDragging();

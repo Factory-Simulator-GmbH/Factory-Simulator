@@ -133,7 +133,7 @@ export class AdminAuthPage implements AfterViewInit {
   private async doSignup(): Promise<void> {
     this.loading.set(true);
     try {
-      await this.auth.signUp(this.username.trim(), this.password, 'admin');
+      await this.auth.signUpAdmin(this.username.trim(), this.password);
       await this.router.navigate(['/factory']);
     } catch (e: any) {
       this.error.set(this.mapError(e?.message));
@@ -145,7 +145,7 @@ export class AdminAuthPage implements AfterViewInit {
   private async doLogin(): Promise<void> {
     this.loading.set(true);
     try {
-      await this.auth.signIn(this.username.trim(), this.password);
+      await this.auth.signInAdmin(this.username.trim(), this.password);
       if (this.auth.role !== 'admin') {
         await this.auth.signOut();
         this.error.set('Dieser Account ist kein Admin.');
