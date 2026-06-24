@@ -579,7 +579,7 @@ export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
     requestAnimationFrame(() => {
       for (const entry of raw.items) {
         const source = this.items.find(i => i.label === entry.label);
-        if (!source || (source.currentAvailableCount ?? source.maxAvailableCount ?? 1) <= 0) continue;
+        if (!source || (source.maxAvailableCount && (source.currentAvailableCount ?? source.maxAvailableCount) <= 0)) continue;
         this.dragDrop.placeItemAt(source, entry.col, entry.row, this.items);
       }
       this.itemManager.captureBasePositions([...this.items, ...this.itemManager.clonedItems], this.getGridRect());

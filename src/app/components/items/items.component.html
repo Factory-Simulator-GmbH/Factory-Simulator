@@ -58,9 +58,11 @@
             {{ item.label.charAt(0) }}
           </span>
         }
-        <span class="absolute top-1 left-1 text-[12px] leading-none text-white/60">
-          {{ item.currentAvailableCount ?? item.maxAvailableCount ?? 1 }} / {{ item.maxAvailableCount ?? 1 }}
+        @if (item.maxAvailableCount) {
+          <span class="absolute top-1 left-1 text-[12px] leading-none text-white/60">
+          {{ item.currentAvailableCount ?? item.maxAvailableCount }} / {{ item.maxAvailableCount }}
         </span>
+        }
       </div>
     }
   </div>
