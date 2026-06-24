@@ -1,4 +1,4 @@
-import { ApplicationRef, ComponentRef, createComponent, EnvironmentInjector, Injectable, NgZone } from '@angular/core';
+import { ApplicationRef, createComponent, EnvironmentInjector, Injectable, NgZone } from '@angular/core';
 import { Subscription, timer } from 'rxjs';
 import interact from 'interactjs';
 import { ConveyorSegment } from '../models/conveyorSegment.model';
