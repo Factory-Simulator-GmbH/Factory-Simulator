@@ -56,6 +56,11 @@ export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
   savePopoverName = '';
   layoutSaving = false;
 
+  // Popover anchor positions (set dynamically from button click position)
+  savePopoverAnchor = { top: 0, right: 0 };
+  resetPopoverAnchor = { top: 0, right: 0 };
+  menuPopoverAnchor = { top: 0, right: 0 };
+
   // Layouts dropdown (load / delete / reset)
   showLayoutsDropdown = false;
   savedLayouts: SavedLayout[] = [];
@@ -309,13 +314,29 @@ export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
 
   // ── Toolbar: save button ─────────────────────────────────────────────────
 
-  onSaveButtonClick(): void {
+  private anchorBelow(event: MouseEvent): { top: number; right: number } {
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    return { top: rect.bottom + 8, right: window.innerWidth - rect.right };
+  }
+
+  onSaveButtonClick(event?: MouseEvent): void {
     if (this.activeLayoutId) {
       this.performSaveOverwrite();
     } else {
+      if (event) this.savePopoverAnchor = this.anchorBelow(event);
       this.showSavePopover = !this.showSavePopover;
       this.savePopoverName = '';
     }
+  }
+
+  onResetButtonClick(event: MouseEvent): void {
+    this.resetPopoverAnchor = this.anchorBelow(event);
+    this.confirmResetOpen = !this.confirmResetOpen;
+  }
+
+  onMenuButtonClick(event: MouseEvent): void {
+    if (!this.menu.showMenu) this.menuPopoverAnchor = this.anchorBelow(event);
+    this.menu.toggleMenu();
   }
 
   async confirmSaveNew(): Promise<void> {
