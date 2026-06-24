@@ -226,6 +226,16 @@
 
                     <div class="mx-3 h-px bg-white/8"></div>
 
+                    <button (click)="menu.openRecipes()"
+                            class="w-full group flex items-center justify-between px-3.5 py-2.5 rounded-xl
+                                   hover:bg-white/5 active:bg-white/10 active:scale-[0.98]
+                                   transition-all duration-150 cursor-pointer">
+                      <span class="text-sm font-medium text-white/50 group-hover:text-white transition-colors duration-150">Rezepte</span>
+                      <span class="material-icons text-base text-white/70 group-hover:text-sky-400 group-hover:scale-110 transition-all duration-150">restaurant</span>
+                    </button>
+
+                    <div class="mx-3 h-px bg-white/8"></div>
+
                     <button (click)="menu.openHelp()"
                             class="w-full group flex items-center justify-between px-3.5 py-2.5 rounded-xl
                                    hover:bg-white/5 active:bg-white/10 active:scale-[0.98]
@@ -503,6 +513,45 @@
           <span class="text-white/25 group-hover:text-white/50 text-xs text-right flex-none transition-colors duration-200">Oben rechts im Playground</span>
         </div>
 
+      </div>
+    </div>
+  </div>
+}
+
+@if (menu.showRecipesModal) {
+  <div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+       (click)="menu.closeRecipes()">
+    <div class="fade-in-up bg-slate-900/95 border border-white/10 rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden"
+         (click)="$event.stopPropagation()">
+
+      <!-- Header -->
+      <div class="flex items-center justify-between px-5 py-4 border-b border-white/8 bg-gradient-to-r from-slate-800/80 to-slate-800/40">
+        <h2 class="text-base font-semibold text-white tracking-tight">Rezepte</h2>
+        <button (click)="menu.closeRecipes()"
+                class="w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-200 cursor-pointer
+                       text-white/40 hover:text-red-400 hover:bg-red-500/15 hover:scale-110 active:scale-95">
+          <span class="material-icons text-base">close</span>
+        </button>
+      </div>
+
+      <!-- Rezepte -->
+      <div class="p-3 space-y-1">
+        <p class="fade-in-up text-sm text-white/50 px-3 pt-2 pb-1.5" style="animation-delay: 0ms">Hier kannst du sehen, welche Inputs die verschiedenen Maschinen benötigen und was sie daraus herstellen.</p>
+
+        @for (item of items; track item.id) {
+          @if (item.type == 'machine') {
+            <div class="fade-in-up group flex items-center justify-between gap-3 px-3 py-2.5 rounded-r-xl cursor-default
+                        border-l-2 border-l-transparent hover:border-l-sky-400 hover:bg-sky-500/5 transition-all duration-200" style="animation-delay: 40ms">
+              <div class="flex items-center gap-3 min-w-0">
+                <div class="w-7 h-7 rounded-lg bg-sky-500/10 group-hover:bg-sky-500/20 flex items-center justify-center flex-none transition-colors duration-200">
+                  <span class="material-icons text-sm text-sky-400/50 group-hover:text-sky-400 transition-colors duration-200">{{ gameDataService.getIconBasedOnMachine(item) }}</span>
+                </div>
+                <span class="text-white/60 group-hover:text-white transition-colors duration-200 text-sm">{{ item.label }}</span>
+              </div>
+              <span class="text-white/25 group-hover:text-white/50 text-xs text-right flex-none transition-colors duration-200">{{ gameDataService.getRecipeAsString(item) | titlecase }}</span>
+            </div>
+          }
+        }
       </div>
     </div>
   </div>

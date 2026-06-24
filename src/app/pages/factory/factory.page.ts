@@ -1,5 +1,5 @@
 import { AfterViewInit, ChangeDetectorRef, Component, ElementRef, HostListener, NgZone, OnDestroy, OnInit, signal, ViewChild } from '@angular/core';
-import { DatePipe, NgClass } from '@angular/common';
+import {DatePipe, NgClass, TitleCasePipe} from '@angular/common';
 import { interval, ReplaySubject, Subscription, take } from 'rxjs';
 import { FormsModule } from '@angular/forms';
 import { PlaygroundGridComponent } from '../../components/playgroundGrid/playgroundGrid.component';
@@ -20,11 +20,12 @@ import { ItemManagerService } from '../../services/itemManager.service';
 import { AuthService } from '../../services/auth.service';
 import { ActivatedRoute } from '@angular/router';
 import { FactoryLayoutService, SavedLayout } from '../../services/factoryLayout.service';
+import {GameDataService} from '../../services/game-data.service';
 
 @Component({
   selector: 'app-factory-page',
   standalone: true,
-  imports: [PlaygroundGridComponent, ItemsComponent, FormsModule, DatePipe, NgClass],
+  imports: [PlaygroundGridComponent, ItemsComponent, FormsModule, DatePipe, NgClass, TitleCasePipe],
   templateUrl: './factory.page.html',
   styleUrl: './factory.page.scss'
 })
@@ -80,6 +81,7 @@ export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
     private factoryGridService: FactoryGridService,
     private factoryItemsService: FactoryItemsService,
     private layoutService: LayoutService,
+    protected gameDataService: GameDataService,
     private resourceExchangeService: ResourceExchangeService,
     // Public — template binds directly to service properties
     public menu: MenuService,
