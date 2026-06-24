@@ -12,7 +12,7 @@
           (click)="dropdownOpen.set(!dropdownOpen())"
           class="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
           <div class="w-8 h-8 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-sm font-semibold shrink-0">
-            {{ auth.username?.charAt(0)?.toUpperCase() }}
+            {{ (auth.username ?? '').charAt(0)?.toUpperCase() }}
           </div>
         </button>
         @if (dropdownOpen()) {
@@ -21,7 +21,7 @@
             <!-- User info -->
             <div class="px-4 py-3 flex items-center gap-3 border-b border-white/10">
               <div class="w-8 h-8 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-sm font-semibold shrink-0">
-                {{ auth.username?.charAt(0)?.toUpperCase() }}
+                {{ (auth.username ?? '').charAt(0)?.toUpperCase() }}
               </div>
               <div class="flex flex-col leading-tight">
                 <span class="text-sm font-medium">{{ auth.username }}</span>
