@@ -3,11 +3,12 @@ import {FormsModule} from '@angular/forms';
 import {ActivatedRoute, Router, RouterLink} from '@angular/router';
 import {environment} from '../../../environments/environment';
 import {AuthService} from '../../services/auth.service';
+import {NgClass} from '@angular/common';
 
 @Component({
   selector: 'app-admin-auth-page',
   standalone: true,
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, NgClass],
   templateUrl: './admin-auth.page.html',
   styleUrl: './admin-auth.page.scss',
 })
