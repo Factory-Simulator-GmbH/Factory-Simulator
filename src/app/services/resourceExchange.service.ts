@@ -85,7 +85,7 @@ export class ResourceExchangeService {
     ): { col: number; row: number } | null {
         const machineSize = 3;
         for (const item of items) {
-            if (item.type !== 'machine') continue;
+            if (item.type !== 'machine' && item.type !== 'warehouse') continue;
             const state = itemStates[item.id];
             if (!state || state.isAtStartPosition) continue;
             const minCol = state.col - 1;
@@ -232,12 +232,13 @@ export class ResourceExchangeService {
             const adjacentMachine = this.checkAdjacentMachine(state.col, state.row, items, itemStates);
             if (!adjacentMachine) continue;
             const machineItem = items.find(i =>
-                i.type === 'machine' &&
+                (i.type === 'machine' || i.type === 'warehouse') &&
                 itemStates[i.id]?.col === adjacentMachine.col &&
                 itemStates[i.id]?.row === adjacentMachine.row
             );
             if (!machineItem) continue;
-            const accepted = !!(machineItem.input && input.resource in machineItem.input && machineItem.input[input.resource] > machineItem.inputcount![input.resource]);
+            const accepted = !!(machineItem.input && input.resource in machineItem.input &&
+              (machineItem.type === 'warehouse' || machineItem.input[input.resource] > machineItem.inputcount![input.resource]));
             inputs.push({ inputId: input.id, accepted });
             if (accepted) {
                 machineItem.inputcount![input.resource] += 1;
@@ -245,11 +246,13 @@ export class ResourceExchangeService {
                 changedItems.add(machineItem.id);
                 changedItems.add(input.id);
             }
-            const outputCreatable = !!(machineItem.outputcount == false && JSON.stringify(machineItem.input) == JSON.stringify(machineItem.inputcount));
-            if (outputCreatable) {
+            if (machineItem.type !== 'warehouse') {
+              const outputCreatable = (!machineItem.outputcount && JSON.stringify(machineItem.input) == JSON.stringify(machineItem.inputcount));
+              if (outputCreatable) {
                 machineItem.outputcount = true;
                 for (const k in machineItem.inputcount) machineItem.inputcount[k] = 0;
                 changedItems.add(machineItem.id);
+              }
             }
         }
 
