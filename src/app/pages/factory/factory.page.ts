@@ -131,7 +131,7 @@ export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
         this.markInputAcceptance(inputId, accepted);
       }
       for (const item of this.itemManager.clonedItems) {
-        if (item.type !== 'machine') continue;
+        if (item.type !== 'machine' && item.type !== 'warehouse') continue;
         const state = this.itemManager.itemStates[item.id];
         if (!state || state.isAtStartPosition) continue;
         this.updateMachineStatus(item);
@@ -466,7 +466,7 @@ export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
       }
       for (const { inputId, accepted } of inputs) this.markInputAcceptance(inputId, accepted);
       for (const item of this.itemManager.clonedItems) {
-        if (item.type !== 'machine') continue;
+        if (item.type !== 'machine' && item.type !== 'warehouse') continue;
         const state = this.itemManager.itemStates[item.id];
         if (!state || state.isAtStartPosition) continue;
         this.updateMachineStatus(item);
@@ -842,8 +842,12 @@ export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
     if (machine.input) {
       for (const res of Object.keys(machine.input)) {
         const have = machine.inputcount?.[res] ?? 0;
-        const need = machine.input[res];
-        lines.push(`${this.resourceEmoji[res] ?? res} ${have}/${need}`);
+        if (machine.type === 'warehouse') {
+          lines.push(`${this.resourceEmoji[res] ?? res} ${have}`)
+        } else {
+          const need = machine.input[res];
+          lines.push(`${this.resourceEmoji[res] ?? res} ${have}/${need}`);
+        }
       }
     }
     if (machine.outputcount && machine.output) {

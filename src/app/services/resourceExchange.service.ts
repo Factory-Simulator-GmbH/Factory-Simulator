@@ -85,7 +85,7 @@ export class ResourceExchangeService {
     ): { col: number; row: number } | null {
         const machineSize = 3;
         for (const item of items) {
-            if (item.type !== 'machine') continue;
+            if (item.type !== 'machine' && item.type !== 'warehouse') continue;
             const state = itemStates[item.id];
             if (!state || state.isAtStartPosition) continue;
             const minCol = state.col - 1;
@@ -247,33 +247,38 @@ export class ResourceExchangeService {
 
         // 1. Input → Maschine
         for (const input of items) {
-            if (input.type !== 'input' || !input.resource) continue;
-            const state = itemStates[input.id];
-            if (!state || state.isAtStartPosition) continue;
-            const adjacentMachine = this.checkAdjacentMachine(state.col, state.row, items, itemStates);
-            if (!adjacentMachine) continue;
-            const machineItem = items.find(i =>
-                i.type === 'machine' &&
-                itemStates[i.id]?.col === adjacentMachine.col &&
-                itemStates[i.id]?.row === adjacentMachine.row
-            );
-            if (!machineItem) continue;
-            // Maschine ist beschäftigt, solange ein Output-Timer läuft oder ein
-            // fertiger Output noch nicht abgegeben wurde -> keine neuen Inputs annehmen.
-            const machineBusy = this.outputTimers.has(machineItem.id) || machineItem.outputcount;
-            const accepted = !machineBusy && !!(machineItem.input && input.resource in machineItem.input && machineItem.input[input.resource] > machineItem.inputcount![input.resource]);
-            inputs.push({ inputId: input.id, accepted });
-            if (accepted) {
-                machineItem.inputcount![input.resource] += 1;
-                input.resource = null;
-                changedItems.add(machineItem.id);
-                changedItems.add(input.id);
-            }
-            const outputCreatable = !machineBusy && !!(machineItem.input && JSON.stringify(machineItem.input) == JSON.stringify(machineItem.inputcount));
+          if (input.type !== 'input' || !input.resource) continue;
+          const state = itemStates[input.id];
+          if (!state || state.isAtStartPosition) continue;
+          const adjacentMachine = this.checkAdjacentMachine(state.col, state.row, items, itemStates);
+          if (!adjacentMachine) continue;
+          const machineItem = items.find(i =>
+            (i.type === 'machine' || i.type === 'warehouse') &&
+            itemStates[i.id]?.col === adjacentMachine.col &&
+            itemStates[i.id]?.row === adjacentMachine.row
+          );
+          if (!machineItem) continue;
+          // Maschine ist beschäftigt, solange ein Output-Timer läuft oder ein
+          // fertiger Output noch nicht abgegeben wurde -> keine neuen Inputs annehmen.
+          const machineBusy = this.outputTimers.has(machineItem.id) || machineItem.outputcount;
+          const accepted = !machineBusy && !!(machineItem.input && input.resource in machineItem.input &&
+            (machineItem.type === 'warehouse' || machineItem.input[input.resource] > machineItem.inputcount![input.resource]));
+          inputs.push({inputId: input.id, accepted});
+          if (accepted) {
+            machineItem.inputcount![input.resource] += 1;
+            input.resource = null;
+            changedItems.add(machineItem.id);
+            changedItems.add(input.id);
+          }
+          if (machineItem.type !== 'warehouse') {
+            const outputCreatable = !machineBusy && (!machineItem.outputcount && JSON.stringify(machineItem.input) == JSON.stringify(machineItem.inputcount));
             if (outputCreatable) {
-                changedItems.add(machineItem.id);
-                this.startOutputTimer(machineItem);
+              machineItem.outputcount = true;
+              for (const k in machineItem.inputcount) machineItem.inputcount[k] = 0;
+              changedItems.add(machineItem.id);
+              this.startOutputTimer(machineItem);
             }
+          }
         }
 
         // 2. Conveyor → Input/Splitter
@@ -344,7 +349,6 @@ export class ResourceExchangeService {
         // 5. Output → Conveyor
         for (const output of items) {
             if (output.type !== 'output' || !output.resource) continue;
-            if (outputsFilledThisTick.has(output.id)) continue;
             const state = itemStates[output.id];
             if (!state || state.isAtStartPosition) continue;
             const adjacentConveyor = this.checkFreeAdjacentConveyor(state.col, state.row, conveyorGrid);
