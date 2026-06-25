@@ -4,6 +4,7 @@ import { Injectable } from '@angular/core';
 export class MenuService {
   showMenu = false;
   showShortcutsModal = false;
+  showRecipesModal = false;
   showHelpModal = false;
   showItemTooltips = true;
 
@@ -19,6 +20,13 @@ export class MenuService {
     this.showShortcutsModal = true;
   }
   closeShortcuts(): void { this.showShortcutsModal = false; }
+
+
+  openRecipes() {
+    this.showMenu = false;
+    this.showRecipesModal = true;
+  }
+  closeRecipes() { this.showRecipesModal = false;}
 
   openHelp(): void {
     this.showMenu = false;

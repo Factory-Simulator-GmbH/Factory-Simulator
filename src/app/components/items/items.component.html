@@ -33,7 +33,7 @@
         [class.relative]="activeDraggedItemId === item.id"
         [class.z-50]="activeDraggedItemId === item.id"
         [class.not-available]="!isAvailable(item.id)"
-        [class.hidden]="activeFilter !== null && item.type !== activeFilter && !simpleMode"
+        [class.hidden]="activeFilter !== null && item.filter_category !== activeFilter && !simpleMode"
         [style.width.px]="getItemSizePx(item.size)"
         [style.height.px]="getItemSizePx(item.size)"
         [style.font-size]="'clamp(14px, ' + getItemSizePx(item.size) * 0.12 + 'px, 9999px)'"
@@ -58,9 +58,11 @@
             {{ item.label.charAt(0) }}
           </span>
         }
-        <span class="absolute top-1 left-1 text-[12px] leading-none text-white/60">
-          {{ item.currentAvailableCount ?? item.maxAvailableCount ?? 1 }} / {{ item.maxAvailableCount ?? 1 }}
+        @if (item.maxAvailableCount) {
+          <span class="absolute top-1 left-1 text-[12px] leading-none text-white/60">
+          {{ item.currentAvailableCount ?? item.maxAvailableCount }} / {{ item.maxAvailableCount }}
         </span>
+        }
       </div>
     }
   </div>

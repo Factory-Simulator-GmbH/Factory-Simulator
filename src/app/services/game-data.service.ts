@@ -6,6 +6,14 @@ import {SupabaseService} from './supabase.service';
   providedIn: 'root',
 })
 export class GameDataService {
+  private readonly machineIcons: Record<string, string> = {
+    'Metallpresse':           'gavel',
+    'Kabelmaschine':          'cable',
+    'Leiterplattenfertigung': 'developer_board',
+    'Elektronikmontage':      'memory',
+    'PC-Montage':             'computer',
+  };
+
   constructor(private supabase: SupabaseService) {}
 
   async loadItems(): Promise<DraggableItems[]> {
@@ -20,6 +28,7 @@ export class GameDataService {
     return (data ?? []).map(row => ({
       id: row['id'],
       type: row['type'],
+      filter_category: row['filter_category'] ?? undefined,
       label: row['label'],
       size: row['size'],
       helpText: row['help_text'],
@@ -30,5 +39,19 @@ export class GameDataService {
       output: row['output'] ?? undefined,
       outputcount: false,
     }));
+  }
+
+  getRecipeAsString(item: DraggableItems): string {
+    if (!item.input || !item.output) return "";
+
+    const inputRessources: string[] = [];
+    for (const [ressource, count] of Object.entries(item.input)) {
+      inputRessources.push(`${count}x ${ressource}`);
+    }
+    return `${inputRessources.join(' + ')} → ${item.output}`;
+  }
+
+  getIconBasedOnMachine(item: DraggableItems): string {
+    return this.machineIcons[item.label] ?? 'precision_manufacturing';
   }
 }

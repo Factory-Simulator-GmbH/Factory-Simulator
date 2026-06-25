@@ -1,4 +1,4 @@
-import { ApplicationRef, ComponentRef, createComponent, EnvironmentInjector, Injectable, NgZone } from '@angular/core';
+import { ApplicationRef, createComponent, EnvironmentInjector, Injectable, NgZone } from '@angular/core';
 import { Subscription, timer } from 'rxjs';
 import interact from 'interactjs';
 import { ConveyorSegment } from '../models/conveyorSegment.model';
@@ -170,7 +170,9 @@ export class DragDropManagerService {
             if (this.itemManager.itemStates[element.id].isAtStartPosition) {
               const clone = this.itemManager.clonedItems.find(i => i.id === element.id);
               const sourceItem = items.find(i => i.label === clone?.label);
-              if (sourceItem) sourceItem.currentAvailableCount = (sourceItem.currentAvailableCount ?? sourceItem.maxAvailableCount ?? 1) - 1;
+              if (sourceItem && sourceItem.maxAvailableCount) {
+                sourceItem.currentAvailableCount = (sourceItem.currentAvailableCount ?? sourceItem.maxAvailableCount) - 1;
+              }
             }
 
             this.itemManager.itemStates[element.id] = { col: targetCol, row: targetRow, isAtStartPosition: false };
@@ -271,7 +273,7 @@ export class DragDropManagerService {
 
     const hostEl = componentRef.location.nativeElement as HTMLElement;
     document.body.appendChild(hostEl);
-    
+
     this.appRef.attachView(componentRef.hostView);
     componentRef.changeDetectorRef.detectChanges();
 
@@ -283,8 +285,8 @@ export class DragDropManagerService {
     innerDiv.setAttribute('id', uniqueId);
 
     const sourceItemRef = items.find(i => i.label === sourceItem.label);
-    if (sourceItemRef) {
-      sourceItemRef.currentAvailableCount = (sourceItemRef.currentAvailableCount ?? sourceItemRef.maxAvailableCount ?? 1) - 1;
+    if (sourceItemRef && sourceItemRef.maxAvailableCount) {
+      sourceItemRef.currentAvailableCount = (sourceItemRef.currentAvailableCount ?? sourceItemRef.maxAvailableCount) - 1;
     }
 
     this.itemManager.componentRefs.set(uniqueId, componentRef);
