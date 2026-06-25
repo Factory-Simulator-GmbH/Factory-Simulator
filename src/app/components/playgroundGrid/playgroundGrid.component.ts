@@ -1,5 +1,6 @@
 import { Component, ElementRef, EventEmitter, Input, Output, ViewChild } from '@angular/core';
 import { ConveyorSegment } from '../../models/conveyorSegment.model';
+import {GameDataService} from '../../services/game-data.service';
 
 @Component({
   selector: 'app-playground-grid',
@@ -30,15 +31,10 @@ export class PlaygroundGridComponent {
     return `${r}:${c}`;
   }
 
-  readonly resourceEmoji: Record<string, string> = {
-    metall: '🔩',
-    kupfer: '🟤',
-    plastik: '🧴',
-    kabel: '🔌',
-    gehäuse: '🏠',
-    leiterplatte: '🟩',
-    elektronik: '📱',
-  };
+  constructor(
+    protected gameDataService: GameDataService
+  ) {}
+
 
   // Check if a cell is in the paint preview
   isPaintPreview(r: number, c: number): boolean {

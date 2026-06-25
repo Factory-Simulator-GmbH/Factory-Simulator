@@ -6,6 +6,17 @@ import {SupabaseService} from './supabase.service';
   providedIn: 'root',
 })
 export class GameDataService {
+  readonly resourceEmoji: Record<string, string> = {
+    metall: '🔩',
+    kupfer: '🟤',
+    plastik: '🧴',
+    kabel: '🔌',
+    gehäuse: '🏠',
+    leiterplatte: '🟩',
+    elektronik: '📱',
+    pc: '💻'
+  };
+
   private readonly machineIcons: Record<string, string> = {
     'Metallpresse':           'gavel',
     'Kabelmaschine':          'cable',

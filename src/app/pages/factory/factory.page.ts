@@ -82,8 +82,6 @@ export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
   private resetHoldTimer: ReturnType<typeof setTimeout> | null = null;
   private shareHoldTimer: ReturnType<typeof setTimeout> | null = null;
 
-  private readonly resourceEmoji: Record<string, string> = { metall: '🔩', kupfer: '🟤', plastik: '🧴', kabel: '🔌', gehäuse: '🏠', leiterplatte: '🟩', elektronik: '📱' };
-
   // Globaler 1-Sekunden-Tick, der die komplette Ressourcen-Weitergabe abarbeitet.
   private tickSub?: Subscription;
 
@@ -824,7 +822,7 @@ export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
       badge.className = 'resource-badge absolute bottom-1 right-1 text-base leading-none pointer-events-none';
       el.appendChild(badge);
     }
-    badge.textContent = resource ? (this.resourceEmoji[resource] ?? resource) : '';
+    badge.textContent = resource ? (this.gameDataService.resourceEmoji[resource] ?? resource) : '';
   }
 
   // Zeigt auf einer Maschine je Input-Ressource "Emoji aktuell/Soll" an und,
@@ -843,15 +841,15 @@ export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
       for (const res of Object.keys(machine.input)) {
         const have = machine.inputcount?.[res] ?? 0;
         if (machine.type === 'warehouse') {
-          lines.push(`${this.resourceEmoji[res] ?? res} ${have}`)
+          lines.push(`${this.gameDataService.resourceEmoji[res] ?? res} ${have}`)
         } else {
           const need = machine.input[res];
-          lines.push(`${this.resourceEmoji[res] ?? res} ${have}/${need}`);
+          lines.push(`${this.gameDataService.resourceEmoji[res] ?? res} ${have}/${need}`);
         }
       }
     }
     if (machine.outputcount && machine.output) {
-      lines.push(`➡️ ${this.resourceEmoji[machine.output] ?? machine.output}`);
+      lines.push(`➡️ ${this.gameDataService.resourceEmoji[machine.output] ?? machine.output}`);
     }
     panel.textContent = lines.join('\n');
     panel.style.whiteSpace = 'pre';
