@@ -859,3 +859,38 @@
     </div>
   </div>
 }
+
+@if (showCongratulationPopup && !congratulationPopupShown) {
+  <div class="fixed inset-0 z-[200] flex items-center justify-center bg-black/55 backdrop-blur-sm">
+    <div class="fade-in-up bg-slate-900/95 backdrop-blur-md border border-white/10 rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden"
+         style="animation-duration: 0.18s">
+
+      <!-- Header -->
+      <div class="flex items-center justify-center px-5 py-4 border-b border-white/8 bg-gradient-to-r from-slate-800/80 to-slate-800/40">
+        <h2 class="font-semibold text-white tracking-tight">Glückwunsch! 🎉</h2>
+      </div>
+
+      <!-- Inhalt -->
+      <div class="px-6 pt-5 pb-4 text-center">
+        <p class="text-sm text-white/50 leading-relaxed">Du hast deinen ersten PC hergestellt und ins Lager transportiert.<br>
+          Baue deine Fabrik weiter aus und optimiere sie, um noch effizienter PCs herzustellen.</p>
+      </div>
+
+      <!-- Trennlinie -->
+      <div class="h-px bg-white/8"></div>
+
+      <!-- Aktion -->
+      <div class="px-5 py-4">
+        <button
+          (click)="showCongratulationPopup = false; congratulationPopupShown = true"
+          class="w-full px-4 py-2.5 rounded-xl text-sm font-semibold tracking-tight
+                 bg-white text-slate-900 hover:bg-white/90
+                 shadow-[0_4px_14px_rgba(255,255,255,0.08)] hover:shadow-[0_6px_20px_rgba(255,255,255,0.15)]
+                 active:scale-[0.98] cursor-pointer transition-all duration-150">
+          Weiter
+        </button>
+      </div>
+
+    </div>
+  </div>
+}

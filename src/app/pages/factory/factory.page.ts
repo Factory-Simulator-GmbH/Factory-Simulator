@@ -47,6 +47,8 @@ export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
   items: DraggableItems[] = [];
   private itemsReady$ = new ReplaySubject<void>(1);
   showFullscreenItemBar = false;
+  showCongratulationPopup = false;
+  congratulationPopupShown = false;
 
   // Active layout (toolbar)
   activeLayoutId: string | null = null;
@@ -842,6 +844,9 @@ export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
         const have = machine.inputcount?.[res] ?? 0;
         if (machine.type === 'warehouse') {
           lines.push(`${this.gameDataService.resourceEmoji[res] ?? res} ${have}`)
+          if (have === 1 && !this.showCongratulationPopup) {
+            this.showCongratulationPopup = true;
+          }
         } else {
           const need = machine.input[res];
           lines.push(`${this.gameDataService.resourceEmoji[res] ?? res} ${have}/${need}`);
