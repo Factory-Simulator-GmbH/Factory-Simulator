@@ -1,5 +1,5 @@
 <div
-  class="fixed inset-0 overflow-hidden bg-gradient-to-b from-slate-950 via-slate-900 to-slate-800 text-white flex flex-col transition-all"
+  class="fixed inset-0 z-[1] overflow-hidden bg-gradient-to-b from-slate-950 via-slate-900 to-slate-800 text-white flex flex-col transition-all"
   [class.p-4]="!isFullscreen" [class.p-0]="isFullscreen">
 
 
@@ -14,7 +14,7 @@
 
           <div class="relative w-8 h-8 shrink-0">
             <div class="w-8 h-8 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-sm font-semibold">
-              {{ (auth.username ?? '').charAt(0).toUpperCase() }}
+              {{ (auth.username ?? '').charAt(0)?.toUpperCase() }}
             </div>
             @if (auth.role === 'admin') {
               <span class="absolute -bottom-1 -right-1 bg-red-600 text-white text-[8px] font-bold leading-none px-1 py-0.5 rounded-full uppercase tracking-wide">Admin</span>
@@ -28,7 +28,7 @@
             <!-- User info -->
             <div class="px-4 py-3 flex items-center gap-3 border-b border-white/10">
               <div class="w-8 h-8 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-sm font-semibold shrink-0">
-                {{ (auth.username ?? '').charAt(0).toUpperCase() }}
+                {{ (auth.username ?? '').charAt(0)?.toUpperCase() }}
               </div>
               <div class="flex flex-col leading-tight">
                 <span class="text-sm font-medium">{{ auth.username }}</span>
@@ -118,7 +118,7 @@
               }
 
               <!-- Glühbirne lightbulb-glow im scss animiert -->
-              <button (click)="menu.toggleMenu(); $event.stopPropagation()"
+              <button (click)="onMenuButtonClick($event); $event.stopPropagation()"
                       class="flex items-center justify-center w-8 h-8 transition-opacity hover:opacity-60 cursor-pointer">
                 <span class="lightbulb-wrapper" [class.lightbulb-active]="menu.showMenu">
                   <span class="material-icons text-lg leading-none" [class.lightbulb-glow]="menu.showMenu">lightbulb</span>
@@ -126,143 +126,32 @@
               </button>
 
               <!-- Save button -->
-              <div class="relative">
-                <button
-                  (click)="onSaveButtonClick(); $event.stopPropagation()"
-                  [title]="activeLayoutId ? (isDirty ? 'Ungespeicherte Änderungen – klicken zum Speichern' : 'Gespeichert: ' + activeLayoutName) : 'Spielstand speichern'"
-                  [disabled]="layoutSaving"
-                  class="relative flex items-center justify-center w-8 h-8 transition-opacity cursor-pointer rounded-lg
-                         text-white/60 hover:text-white disabled:opacity-50">
-                  @if (layoutSaving) {
-                    <div class="w-4 h-4 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin"></div>
-                  } @else if (activeLayoutId && !isDirty) {
-                    <span class="material-icons text-lg leading-none">cloud_done</span>
-                  } @else {
-                    <span class="material-icons text-lg leading-none">save</span>
-                  }
-                  @if (isDirty && activeLayoutId && !layoutSaving) {
-                    <span class="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-white"></span>
-                  }
-                </button>
-
-                <!-- Save name popover -->
-                @if (showSavePopover) {
-                  <div class="fixed inset-0 z-[70]" (click)="showSavePopover = false"></div>
-                  <div class="absolute top-full mt-2 right-0 z-[80] w-64
-                              bg-slate-900 border border-white/10 rounded-lg shadow-xl p-3 space-y-2"
-                       (click)="$event.stopPropagation()">
-                    <p class="text-sm text-white">Name für Spielstand</p>
-                    <input
-                      [(ngModel)]="savePopoverName"
-                      (keydown.enter)="confirmSaveNew()"
-                      (keydown.escape)="showSavePopover = false"
-                      placeholder="Name eingeben"
-                      autofocus
-                      class="w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-sm text-white
-                             placeholder-white/30 focus:outline-none focus:border-white/30" />
-                    <button
-                      (click)="confirmSaveNew()"
-                      [disabled]="!savePopoverName.trim() || layoutSaving"
-                      class="w-full py-2 rounded text-sm cursor-pointer flex items-center justify-center gap-2
-                             bg-white/10 hover:bg-white/15 text-white border border-white/10
-                             disabled:opacity-30 disabled:cursor-not-allowed">
-                      @if (layoutSaving) {
-                        <div class="w-4 h-4 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin"></div>
-                      } @else {
-                        <span>Speichern</span>
-                      }
-                    </button>
-                  </div>
+              <button
+                (click)="onSaveButtonClick($event); $event.stopPropagation()"
+                [title]="activeLayoutId ? (isDirty ? 'Ungespeicherte Änderungen – klicken zum Speichern' : 'Gespeichert: ' + activeLayoutName) : 'Spielstand speichern'"
+                [disabled]="layoutSaving"
+                class="relative flex items-center justify-center w-8 h-8 transition-opacity cursor-pointer rounded-lg
+                       text-white/60 hover:text-white disabled:opacity-50">
+                @if (layoutSaving) {
+                  <div class="w-4 h-4 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin"></div>
+                } @else if (activeLayoutId && !isDirty) {
+                  <span class="material-icons text-lg leading-none">cloud_done</span>
+                } @else {
+                  <span class="material-icons text-lg leading-none">save</span>
                 }
-              </div>
+                @if (isDirty && activeLayoutId && !layoutSaving) {
+                  <span class="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-white"></span>
+                }
+              </button>
 
               <!-- Reset-Button (nur wenn etwas auf dem Spielfeld ist) -->
               @if (hasFactoryContent) {
-              <div class="relative">
                 <button
-                  (click)="confirmResetOpen = !confirmResetOpen; $event.stopPropagation()"
+                  (click)="onResetButtonClick($event); $event.stopPropagation()"
                   title="Fabrik zurücksetzen"
                   class="flex items-center justify-center w-8 h-8 transition-opacity cursor-pointer rounded-lg text-white/60 hover:text-white">
                   <span class="material-icons text-lg leading-none">refresh</span>
                 </button>
-
-                @if (confirmResetOpen) {
-                  <div class="fixed inset-0 z-[70]" (click)="confirmResetOpen = false; onResetHoldEnd()"></div>
-                  <div class="absolute top-full mt-2 right-0 z-[80] w-56
-                              bg-slate-800 border border-white/10 rounded-xl shadow-xl p-3 space-y-2"
-                       (click)="$event.stopPropagation()">
-                    <p class="text-sm text-white">Fabrik zurücksetzen?</p>
-                    <div class="flex gap-2">
-                      <button (mousedown)="onResetHoldStart($event)"
-                              (mouseup)="onResetHoldEnd()"
-                              (mouseleave)="onResetHoldEnd()"
-                              (touchstart)="onResetHoldStart($event)"
-                              (touchend)="onResetHoldEnd()"
-                              (touchcancel)="onResetHoldEnd()"
-                              class="relative flex-1 py-1.5 rounded text-sm overflow-hidden
-                                     bg-white/10 hover:bg-white/15 text-white border border-white/10
-                                     cursor-pointer transition-colors select-none">
-                        <span class="absolute inset-y-0 left-0 bg-red-500/35 ease-linear"
-                              [style.width]="resetHolding ? '100%' : '0%'"
-                              [style.transitionProperty]="'width'"
-                              [style.transitionDuration]="resetHolding ? '800ms' : '180ms'"></span>
-                        <span class="relative">Ja</span>
-                      </button>
-                      <button (click)="confirmResetOpen = false; onResetHoldEnd()"
-                              class="flex-1 py-1.5 rounded text-sm hover:bg-white/5 text-white/60 cursor-pointer">
-                        Nein
-                      </button>
-                    </div>
-                  </div>
-                }
-              </div>
-              }
-
-              @if (menu.showMenu) {
-                <div class="fixed inset-0 z-[70]" (click)="menu.closeMenu()"></div>
-                <div class="absolute top-full right-0 mt-2 z-[80] w-44
-                            bg-slate-900/95 border border-white/10 rounded-2xl shadow-2xl
-                            backdrop-blur-md fade-in-up overflow-hidden" style="animation-duration: 0.15s">
-
-                  <div class="p-1.5 space-y-0.5">
-
-                    <button (click)="menu.openShortcuts()"
-                            class="w-full group flex items-center justify-between px-3.5 py-2.5 rounded-xl
-                                   hover:bg-white/5 active:bg-white/10 active:scale-[0.98]
-                                   transition-all duration-150 cursor-pointer">
-                      <span class="text-sm font-medium text-white/50 group-hover:text-white transition-colors duration-150">Befehle</span>
-                      <span class="material-icons text-base text-white/70 group-hover:text-sky-400 group-hover:scale-110 transition-all duration-150">format_list_bulleted</span>
-                    </button>
-
-                    <div class="mx-3 h-px bg-white/8"></div>
-
-                    <button (click)="menu.openHelp()"
-                            class="w-full group flex items-center justify-between px-3.5 py-2.5 rounded-xl
-                                   hover:bg-white/5 active:bg-white/10 active:scale-[0.98]
-                                   transition-all duration-150 cursor-pointer">
-                      <span class="text-sm font-medium text-white/50 group-hover:text-white transition-colors duration-150">Hilfe</span>
-                      <span class="material-icons text-base text-white/70 group-hover:text-sky-400 group-hover:scale-110 transition-all duration-150">help_outline</span>
-                    </button>
-
-                    <div class="mx-3 h-px bg-white/8"></div>
-
-                    <!-- Toggle Item Tipps -->
-                    <button (click)="menu.toggleItemTooltips(); $event.stopPropagation()"
-                            class="w-full group flex items-center justify-between px-3.5 py-2.5 rounded-xl
-                                   hover:bg-white/5 active:bg-white/10 active:scale-[0.98]
-                                   transition-all duration-150 cursor-pointer">
-                      <span class="text-sm font-medium text-white/50 group-hover:text-white transition-colors duration-150">Item Tipps</span>
-                      <!-- Toggle Design -->
-                      <div class="w-9 h-5 rounded-full transition-all duration-200 flex items-center px-0.5 flex-none"
-                           [class]="menu.showItemTooltips ? 'bg-sky-500' : 'bg-white/15'">
-                        <div class="w-4 h-4 rounded-full bg-white shadow transition-all duration-200"
-                             [class]="menu.showItemTooltips ? 'translate-x-4' : 'translate-x-0'"></div>
-                      </div>
-                    </button>
-
-                  </div>
-
-                </div>
               }
 
               <button (click)="toggleFullscreen()"
@@ -273,9 +162,7 @@
                   <span class="material-icons text-lg leading-none">open_in_full</span>
                 }
               </button>
-
             </div>
-
           </app-playground-grid>
         </div>
       </div>
@@ -513,6 +400,45 @@
           <span class="text-white/25 group-hover:text-white/50 text-xs text-right flex-none transition-colors duration-200">Oben rechts im Playground</span>
         </div>
 
+      </div>
+    </div>
+  </div>
+}
+
+@if (menu.showRecipesModal) {
+  <div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+       (click)="menu.closeRecipes()">
+    <div class="fade-in-up bg-slate-900/95 border border-white/10 rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden"
+         (click)="$event.stopPropagation()">
+
+      <!-- Header -->
+      <div class="flex items-center justify-between px-5 py-4 border-b border-white/8 bg-gradient-to-r from-slate-800/80 to-slate-800/40">
+        <h2 class="text-base font-semibold text-white tracking-tight">Rezepte</h2>
+        <button (click)="menu.closeRecipes()"
+                class="w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-200 cursor-pointer
+                       text-white/40 hover:text-red-400 hover:bg-red-500/15 hover:scale-110 active:scale-95">
+          <span class="material-icons text-base">close</span>
+        </button>
+      </div>
+
+      <!-- Rezepte -->
+      <div class="p-3 space-y-1">
+        <p class="fade-in-up text-sm text-white/50 px-3 pt-2 pb-1.5" style="animation-delay: 0ms">Hier kannst du sehen, welche Inputs die verschiedenen Maschinen benötigen und was sie daraus herstellen.</p>
+
+        @for (item of items; track item.id) {
+          @if (item.type == 'machine') {
+            <div class="fade-in-up group flex items-center justify-between gap-3 px-3 py-2.5 rounded-r-xl cursor-default
+                        border-l-2 border-l-transparent hover:border-l-sky-400 hover:bg-sky-500/5 transition-all duration-200" style="animation-delay: 40ms">
+              <div class="flex items-center gap-3 min-w-0">
+                <div class="w-7 h-7 rounded-lg bg-sky-500/10 group-hover:bg-sky-500/20 flex items-center justify-center flex-none transition-colors duration-200">
+                  <span class="material-icons text-sm text-sky-400/50 group-hover:text-sky-400 transition-colors duration-200">{{ gameDataService.getIconBasedOnMachine(item) }}</span>
+                </div>
+                <span class="text-white/60 group-hover:text-white transition-colors duration-200 text-sm">{{ item.label }}</span>
+              </div>
+              <span class="text-white/25 group-hover:text-white/50 text-xs text-right flex-none transition-colors duration-200">{{ gameDataService.getRecipeAsString(item) | titlecase }}</span>
+            </div>
+          }
+        }
       </div>
     </div>
   </div>
@@ -808,6 +734,128 @@
           </button>
         }
       </div>
+    </div>
+  </div>
+}
+
+<!-- ── Save Popover ──────────────────────────────────────────── -->
+@if (showSavePopover) {
+  <div class="fixed inset-0 z-[70]" (click)="showSavePopover = false"></div>
+  <div class="fixed z-[80] w-64
+              bg-slate-900 border border-white/10 rounded-lg shadow-xl p-3 space-y-2"
+       [style.top.px]="savePopoverAnchor.top"
+       [style.right.px]="savePopoverAnchor.right"
+       (click)="$event.stopPropagation()">
+    <p class="text-sm text-white">Name für Spielstand</p>
+    <input
+      [(ngModel)]="savePopoverName"
+      (keydown.enter)="confirmSaveNew()"
+      (keydown.escape)="showSavePopover = false"
+      placeholder="Name eingeben"
+      autofocus
+      class="w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-sm text-white
+             placeholder-white/30 focus:outline-none focus:border-white/30"/>
+    <button
+      (click)="confirmSaveNew()"
+      [disabled]="!savePopoverName.trim() || layoutSaving"
+      class="w-full py-2 rounded text-sm cursor-pointer flex items-center justify-center gap-2
+             bg-white/10 hover:bg-white/15 text-white border border-white/10
+             disabled:opacity-30 disabled:cursor-not-allowed">
+      @if (layoutSaving) {
+        <div class="w-4 h-4 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin"></div>
+      } @else {
+        <span>Speichern</span>
+      }
+    </button>
+  </div>
+}
+
+<!-- ── Reset Popover ─────────────────────────────────────────── -->
+@if (confirmResetOpen) {
+  <div class="fixed inset-0 z-[70]" (click)="confirmResetOpen = false; onResetHoldEnd()"></div>
+  <div class="fixed z-[80] w-56
+              bg-slate-800 border border-white/10 rounded-xl shadow-xl p-3 space-y-2"
+       [style.top.px]="resetPopoverAnchor.top"
+       [style.right.px]="resetPopoverAnchor.right"
+       (click)="$event.stopPropagation()">
+    <p class="text-sm text-white">Fabrik zurücksetzen?</p>
+    <div class="flex gap-2">
+      <button (mousedown)="onResetHoldStart($event)"
+              (mouseup)="onResetHoldEnd()"
+              (mouseleave)="onResetHoldEnd()"
+              (touchstart)="onResetHoldStart($event)"
+              (touchend)="onResetHoldEnd()"
+              (touchcancel)="onResetHoldEnd()"
+              class="relative flex-1 py-1.5 rounded text-sm overflow-hidden
+                     bg-white/10 hover:bg-white/15 text-white border border-white/10
+                     cursor-pointer transition-colors select-none">
+        <span class="absolute inset-y-0 left-0 bg-red-500/35 ease-linear"
+              [style.width]="resetHolding ? '100%' : '0%'"
+              [style.transitionProperty]="'width'"
+              [style.transitionDuration]="resetHolding ? '1000ms' : '180ms'"></span>
+        <span class="relative">Ja</span>
+      </button>
+      <button (click)="confirmResetOpen = false; onResetHoldEnd()"
+              class="flex-1 py-1.5 rounded text-sm hover:bg-white/5 text-white/60 cursor-pointer">
+        Nein
+      </button>
+    </div>
+  </div>
+}
+
+<!-- ── Menü Popover ───────────────────────────────────────────── -->
+@if (menu.showMenu) {
+  <div class="fixed inset-0 z-[70]" (click)="menu.closeMenu()"></div>
+  <div class="fixed z-[80] w-44
+              bg-slate-900/95 border border-white/10 rounded-2xl shadow-2xl
+              backdrop-blur-md fade-in-up overflow-hidden"
+       [style.top.px]="menuPopoverAnchor.top"
+       [style.right.px]="menuPopoverAnchor.right"
+       style="animation-duration: 0.15s">
+    <div class="p-1.5 space-y-0.5">
+
+      <button (click)="menu.openShortcuts()"
+              class="w-full group flex items-center justify-between px-3.5 py-2.5 rounded-xl
+                     hover:bg-white/5 active:bg-white/10 active:scale-[0.98]
+                     transition-all duration-150 cursor-pointer">
+        <span class="text-sm font-medium text-white/50 group-hover:text-white transition-colors duration-150">Befehle</span>
+        <span class="material-icons text-base text-white/70 group-hover:text-sky-400 group-hover:scale-110 transition-all duration-150">format_list_bulleted</span>
+      </button>
+
+      <div class="mx-3 h-px bg-white/8"></div>
+
+      <button (click)="menu.openRecipes()"
+              class="w-full group flex items-center justify-between px-3.5 py-2.5 rounded-xl
+                     hover:bg-white/5 active:bg-white/10 active:scale-[0.98]
+                     transition-all duration-150 cursor-pointer">
+        <span class="text-sm font-medium text-white/50 group-hover:text-white transition-colors duration-150">Rezepte</span>
+        <span class="material-icons text-base text-white/70 group-hover:text-sky-400 group-hover:scale-110 transition-all duration-150">restaurant</span>
+      </button>
+
+      <div class="mx-3 h-px bg-white/8"></div>
+
+      <button (click)="menu.openHelp()"
+              class="w-full group flex items-center justify-between px-3.5 py-2.5 rounded-xl
+                     hover:bg-white/5 active:bg-white/10 active:scale-[0.98]
+                     transition-all duration-150 cursor-pointer">
+        <span class="text-sm font-medium text-white/50 group-hover:text-white transition-colors duration-150">Hilfe</span>
+        <span class="material-icons text-base text-white/70 group-hover:text-sky-400 group-hover:scale-110 transition-all duration-150">help_outline</span>
+      </button>
+
+      <div class="mx-3 h-px bg-white/8"></div>
+
+      <button (click)="menu.toggleItemTooltips(); $event.stopPropagation()"
+              class="w-full group flex items-center justify-between px-3.5 py-2.5 rounded-xl
+                     hover:bg-white/5 active:bg-white/10 active:scale-[0.98]
+                     transition-all duration-150 cursor-pointer">
+        <span class="text-sm font-medium text-white/50 group-hover:text-white transition-colors duration-150">Item Tipps</span>
+        <div class="w-9 h-5 rounded-full transition-all duration-200 flex items-center px-0.5 flex-none"
+             [class]="menu.showItemTooltips ? 'bg-sky-500' : 'bg-white/15'">
+          <div class="w-4 h-4 rounded-full bg-white shadow transition-all duration-200"
+               [class]="menu.showItemTooltips ? 'translate-x-4' : 'translate-x-0'"></div>
+        </div>
+      </button>
+
     </div>
   </div>
 }

@@ -1,5 +1,5 @@
 import { AfterViewInit, ChangeDetectorRef, Component, ElementRef, HostListener, NgZone, OnDestroy, OnInit, signal, ViewChild } from '@angular/core';
-import { DatePipe, NgClass } from '@angular/common';
+import {DatePipe, NgClass, TitleCasePipe} from '@angular/common';
 import { interval, ReplaySubject, Subscription, take } from 'rxjs';
 import { FormsModule } from '@angular/forms';
 import { PlaygroundGridComponent } from '../../components/playgroundGrid/playgroundGrid.component';
@@ -20,11 +20,12 @@ import { ItemManagerService } from '../../services/itemManager.service';
 import { AuthService } from '../../services/auth.service';
 import { ActivatedRoute } from '@angular/router';
 import { FactoryLayoutService, SavedLayout } from '../../services/factoryLayout.service';
+import {GameDataService} from '../../services/game-data.service';
 
 @Component({
   selector: 'app-factory-page',
   standalone: true,
-  imports: [PlaygroundGridComponent, ItemsComponent, FormsModule, DatePipe, NgClass],
+  imports: [PlaygroundGridComponent, ItemsComponent, FormsModule, DatePipe, NgClass, TitleCasePipe],
   templateUrl: './factory.page.html',
   styleUrl: './factory.page.scss'
 })
@@ -55,6 +56,10 @@ export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
   savePopoverName = '';
   layoutSaving = false;
 
+  // Popover anchor positions (set dynamically from button click position)
+  savePopoverAnchor = { top: 0, right: 0 };
+  resetPopoverAnchor = { top: 0, right: 0 };
+  menuPopoverAnchor = { top: 0, right: 0 };
   quickLookActive = false;
   private quickLookSnapshot: unknown = null;
   quickLookLayoutData: unknown = null;
@@ -88,6 +93,7 @@ export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
     private factoryGridService: FactoryGridService,
     private factoryItemsService: FactoryItemsService,
     private layoutService: LayoutService,
+    protected gameDataService: GameDataService,
     private resourceExchangeService: ResourceExchangeService,
     // Public — template binds directly to service properties
     public menu: MenuService,
@@ -316,13 +322,29 @@ export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
 
   // ── Toolbar: save button ─────────────────────────────────────────────────
 
-  onSaveButtonClick(): void {
+  private anchorBelow(event: MouseEvent): { top: number; right: number } {
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    return { top: rect.bottom + 8, right: window.innerWidth - rect.right };
+  }
+
+  onSaveButtonClick(event?: MouseEvent): void {
     if (this.activeLayoutId) {
       this.performSaveOverwrite();
     } else {
+      if (event) this.savePopoverAnchor = this.anchorBelow(event);
       this.showSavePopover = !this.showSavePopover;
       this.savePopoverName = '';
     }
+  }
+
+  onResetButtonClick(event: MouseEvent): void {
+    this.resetPopoverAnchor = this.anchorBelow(event);
+    this.confirmResetOpen = !this.confirmResetOpen;
+  }
+
+  onMenuButtonClick(event: MouseEvent): void {
+    if (!this.menu.showMenu) this.menuPopoverAnchor = this.anchorBelow(event);
+    this.menu.toggleMenu();
   }
 
   async confirmSaveNew(): Promise<void> {
