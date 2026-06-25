@@ -676,5 +676,48 @@ export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
     }
     panel.textContent = lines.join('\n');
     panel.style.whiteSpace = 'pre';
+
+    this.updateMachineProgressBar(machine, el);
+  }
+
+  // Zeigt unten in der Maschine einen Ladebalken, der den Fortschritt des
+  // Produktions-Timers darstellt. Läuft per CSS-Transition flüssig zwischen den
+  // Ticks; wird ausgeblendet, sobald kein Timer aktiv ist.
+  private updateMachineProgressBar(machine: DraggableItems, el: HTMLElement): void {
+    let track = el.querySelector('.machine-progress') as HTMLElement | null;
+    if (!track) {
+      track = document.createElement('div');
+      track.className = 'machine-progress absolute bottom-1 left-1 right-1 h-1.5 rounded-full bg-white/20 overflow-hidden pointer-events-none';
+      const fill = document.createElement('div');
+      fill.className = 'machine-progress-fill h-full w-0 rounded-full bg-green-400';
+      track.appendChild(fill);
+      el.appendChild(track);
+    }
+    const fill = track.querySelector('.machine-progress-fill') as HTMLElement;
+
+    const progress = this.resourceExchangeService.getOutputProgress(machine.id);
+    if (!progress || progress.duration <= 0) {
+      track.style.display = 'none';
+      fill.style.transition = 'none';
+      fill.style.width = '0%';
+      delete (track.dataset as any)['running'];
+      return;
+    }
+
+    track.style.display = 'block';
+    // Animation nur einmal pro Timer-Lauf starten, sonst würde sie jeden Tick
+    // neu von vorne beginnen.
+    if (track.dataset['running'] !== 'true') {
+      track.dataset['running'] = 'true';
+      const elapsed = progress.duration - progress.remaining;
+      const startPct = Math.min(100, (elapsed / progress.duration) * 100);
+      fill.style.transition = 'none';
+      fill.style.width = `${startPct}%`;
+      // Im nächsten Frame auf 100% über die Restdauer animieren.
+      requestAnimationFrame(() => {
+        fill.style.transition = `width ${progress.remaining}ms linear`;
+        fill.style.width = '100%';
+      });
+    }
   }
 }

@@ -198,6 +198,21 @@ export class ResourceExchangeService {
 
     private splitterConveyorIndex = new Map<string, number>();
 
+    private outputTimers = new Map<string, ReturnType<typeof setTimeout>>();
+    // Pro laufendem Output-Timer: Startzeit + Gesamtdauer, damit die UI einen
+    // Fortschritts-/Ladebalken anzeigen kann.
+    private outputTimerInfo = new Map<string, { startedAt: number; duration: number }>();
+
+    // Liefert den Fortschritt des Produktions-Timers einer Maschine (0..1) bzw.
+    // null, wenn gerade kein Timer läuft.
+    getOutputProgress(machineId: string): { duration: number; remaining: number } | null {
+        const info = this.outputTimerInfo.get(machineId);
+        if (!info) return null;
+        const elapsed = Date.now() - info.startedAt;
+        const remaining = Math.max(0, info.duration - elapsed);
+        return { duration: info.duration, remaining };
+    }
+
     tick(
         items: DraggableItems[],
         itemStates: Record<string, ItemState>,
@@ -206,6 +221,9 @@ export class ResourceExchangeService {
         const changedItems = new Set<string>();
         const inputs: { inputId: string; accepted: boolean }[] = [];
         const filledThisTick = new Set<string>();
+        // Output-Items, die in diesem Tick frisch von einer Maschine befüllt
+        // wurden -> erst im nächsten Tick ans Rollband weitergeben.
+        const outputsFilledThisTick = new Set<string>();
         const key = (c: number, r: number) => `${c},${r}`;
 
         // 0. Maschine -> Output
@@ -219,6 +237,9 @@ export class ResourceExchangeService {
             if (outputItem && !outputItem.resource) {
                 outputItem.resource = machine.output;
                 machine.outputcount = false;
+                // In diesem Tick neu befülltes Output-Item nicht im selben Tick
+                // ans Rollband weitergeben -> ein Tick Verweildauer.
+                outputsFilledThisTick.add(outputItem.id);
                 changedItems.add(machine.id);
                 changedItems.add(outputItem.id);
             }
@@ -237,7 +258,10 @@ export class ResourceExchangeService {
                 itemStates[i.id]?.row === adjacentMachine.row
             );
             if (!machineItem) continue;
-            const accepted = !!(machineItem.input && input.resource in machineItem.input && machineItem.input[input.resource] > machineItem.inputcount![input.resource]);
+            // Maschine ist beschäftigt, solange ein Output-Timer läuft oder ein
+            // fertiger Output noch nicht abgegeben wurde -> keine neuen Inputs annehmen.
+            const machineBusy = this.outputTimers.has(machineItem.id) || machineItem.outputcount;
+            const accepted = !machineBusy && !!(machineItem.input && input.resource in machineItem.input && machineItem.input[input.resource] > machineItem.inputcount![input.resource]);
             inputs.push({ inputId: input.id, accepted });
             if (accepted) {
                 machineItem.inputcount![input.resource] += 1;
@@ -245,11 +269,10 @@ export class ResourceExchangeService {
                 changedItems.add(machineItem.id);
                 changedItems.add(input.id);
             }
-            const outputCreatable = !!(machineItem.outputcount == false && JSON.stringify(machineItem.input) == JSON.stringify(machineItem.inputcount));
+            const outputCreatable = !machineBusy && !!(machineItem.input && JSON.stringify(machineItem.input) == JSON.stringify(machineItem.inputcount));
             if (outputCreatable) {
-                machineItem.outputcount = true;
-                for (const k in machineItem.inputcount) machineItem.inputcount[k] = 0;
                 changedItems.add(machineItem.id);
+                this.startOutputTimer(machineItem);
             }
         }
 
@@ -321,6 +344,7 @@ export class ResourceExchangeService {
         // 5. Output → Conveyor
         for (const output of items) {
             if (output.type !== 'output' || !output.resource) continue;
+            if (outputsFilledThisTick.has(output.id)) continue;
             const state = itemStates[output.id];
             if (!state || state.isAtStartPosition) continue;
             const adjacentConveyor = this.checkFreeAdjacentConveyor(state.col, state.row, conveyorGrid);
@@ -331,6 +355,33 @@ export class ResourceExchangeService {
         }
 
         return { changedItems, inputs };
+    }
+
+    private startOutputTimer(machine: DraggableItems): void {
+        if (this.outputTimers.has(machine.id)) return;
+
+        const duration = machine.duration ?? 0;
+        if (duration <= 0) {
+            this.finishOutput(machine);
+            return;
+        }
+
+        const timer = setTimeout(() => {
+            this.finishOutput(machine);
+            this.outputTimers.delete(machine.id);
+            this.outputTimerInfo.delete(machine.id);
+        }, duration);
+        this.outputTimers.set(machine.id, timer);
+        this.outputTimerInfo.set(machine.id, { startedAt: Date.now(), duration });
+    }
+
+    // Output ist fertig produziert: Verbrauchte Inputs jetzt entfernen (Anzeige
+    // bleibt bis hierhin auf vollem Stand, z.B. 1/1) und Output freigeben.
+    private finishOutput(machine: DraggableItems): void {
+        if (machine.inputcount) {
+            for (const k in machine.inputcount) machine.inputcount[k] = 0;
+        }
+        machine.outputcount = true;
     }
 
     private getNextCellByExit(exit: string, col: number, row: number): { col: number; row: number } {

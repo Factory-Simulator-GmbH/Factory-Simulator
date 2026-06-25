@@ -241,7 +241,7 @@ export class DragDropManagerService {
         size: sourceItem.size || 'large', helpText: sourceItem.helpText || '',
         spawningResource: sourceItem.spawningResource, resource: null,
         input: sourceItem.input, output: sourceItem.output,
-        rate: sourceItem.rate,
+        rate: sourceItem.rate, duration: sourceItem.duration,
         inputcount: this.zeroedCounts(sourceItem.input),
         outputcount: false,
       });
@@ -292,7 +292,7 @@ export class DragDropManagerService {
       size: sourceItem.size || 'large', helpText: sourceItem.helpText || '',
       spawningResource: sourceItem.spawningResource, resource: null,
       input: sourceItem.input, output: sourceItem.output,
-      rate: sourceItem.rate,
+      rate: sourceItem.rate, duration: sourceItem.duration,
       inputcount: this.zeroedCounts(sourceItem.input),
       outputcount: false,
     });
