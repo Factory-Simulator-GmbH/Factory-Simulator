@@ -29,6 +29,7 @@ export interface DragSetupOptions {
 export class DragDropManagerService {
   private opts: DragSetupOptions | null = null;
   private spawnerIntervals = new Map<string, Subscription>();
+  previewMode = false;
 
   constructor(
     private ngZone: NgZone,
@@ -300,7 +301,7 @@ export class DragDropManagerService {
     });
     this.itemManager.itemStates[uniqueId] = { col, row, isAtStartPosition: false };
 
-    if (sourceItem.spawningResource) {
+    if (sourceItem.spawningResource && !this.previewMode) {
       this.spawnerIntervals.get(uniqueId)?.unsubscribe();
       const spawnRate = sourceItem.rate ?? 5000;
       const sub = timer(spawnRate, spawnRate).subscribe(() => {
