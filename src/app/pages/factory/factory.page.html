@@ -11,18 +11,15 @@
         <button
           (click)="dropdownOpen.set(!dropdownOpen())"
           class="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
-<<<<<<< 180-max-available-count-default-anpassen
-          <div class="w-8 h-8 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-sm font-semibold shrink-0">
-            {{ (auth.username ?? '').charAt(0).toUpperCase() }}
-=======
+
           <div class="relative w-8 h-8 shrink-0">
             <div class="w-8 h-8 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-sm font-semibold">
-              {{ auth.username?.charAt(0)?.toUpperCase() }}
+              {{ (auth.username ?? '').charAt(0).toUpperCase() }}
             </div>
             @if (auth.role === 'admin') {
               <span class="absolute -bottom-1 -right-1 bg-red-600 text-white text-[8px] font-bold leading-none px-1 py-0.5 rounded-full uppercase tracking-wide">Admin</span>
             }
->>>>>>> main
+
           </div>
         </button>
         @if (dropdownOpen()) {
