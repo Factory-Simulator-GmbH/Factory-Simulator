@@ -5,6 +5,7 @@ export type ItemSize = 'large' | 'small';
 export interface DraggableItems {
   id: string;
   type: string;
+  filter_category?: string | null;
   label: string;
   size: ItemSize;
   helpText: string;

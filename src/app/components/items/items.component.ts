@@ -30,9 +30,11 @@ export class ItemsComponent implements OnChanges {
   }
 
   private createFilters() {
+    this.filters = [];
     for (let item of this.items) {
-      if (!this.filters.includes(item.type)) {
-        this.filters.push(item.type);
+      if (!item.filter_category) continue;
+      if (!this.filters.includes(item.filter_category)) {
+        this.filters.push(item.filter_category);
       }
     }
   }
