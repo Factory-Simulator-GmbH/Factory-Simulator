@@ -69,4 +69,22 @@ export class FactoryLayoutService {
     if (error) throw error;
     return data['data'];
   }
+
+  async publishLayout(id: string, isPublic: boolean): Promise<void> {
+    const { error } = await this.supabase.client
+      .from('layouts')
+      .update({ is_public: isPublic })
+      .eq('id', id);
+    if (error) throw error;
+  }
+
+  async listPublicLayouts(): Promise<SavedLayout[]> {
+    const { data, error } = await this.supabase.client
+      .from('layouts')
+      .select('id, name, is_public, created_at, updated_at')
+      .eq('is_public', true)
+      .order('updated_at', { ascending: false });
+    if (error) throw error;
+    return (data ?? []) as SavedLayout[];
+  }
 }
