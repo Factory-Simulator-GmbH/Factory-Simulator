@@ -3,7 +3,7 @@
 
   <div class="relative z-10 flex items-center justify-between">
     <a routerLink="/" class="flex items-center gap-3">
-      <img src="/favicon.png" alt="Logo" class="w-8 h-8" />
+      <img ngSrc="/favicon.png" alt="Logo" class="w-8 h-8" height="1024" width="1024"/>
       <span class="text-xl font-extrabold tracking-tight">Factory Simulator</span>
     </a>
     <a routerLink="/auth" title="Zur normalen Anmeldung"
@@ -35,7 +35,7 @@
           [class.text-white]="mode() === 'login'"
           [class.border-b-2]="mode() === 'login'"
           [class.border-white]="mode() === 'login'"
-          [class.text-white/40]="mode() !== 'login'">
+          [ngClass]="mode() !== 'login' ? 'text-white/40' : ''">
           Anmelden
         </button>
         <button
@@ -44,7 +44,7 @@
           [class.text-white]="mode() === 'signup'"
           [class.border-b-2]="mode() === 'signup'"
           [class.border-white]="mode() === 'signup'"
-          [class.text-white/40]="mode() !== 'signup'">
+          [ngClass]="mode() !== 'signup' ? 'text-white/40' : ''">
           Registrieren
         </button>
       </div>
