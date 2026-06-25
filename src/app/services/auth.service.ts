@@ -48,6 +48,23 @@ export class AuthService {
     if (error) throw error;
   }
 
+  async signUpAdmin(username: string, password: string): Promise<void> {
+    const {error} = await this.supabase.client.auth.signUp({
+      email: `${username}@${DOMAIN}`,
+      password,
+      options: {data: {username, role: 'admin'}},
+    });
+    if (error) throw error;
+  }
+
+  async signInAdmin(username: string, password: string): Promise<void> {
+    const {error} = await this.supabase.client.auth.signInWithPassword({
+      email: `${username}@${DOMAIN}`,
+      password,
+    });
+    if (error) throw error;
+  }
+
   async signOut(): Promise<void> {
     await this.supabase.client.auth.signOut();
     await this.router.navigate(['/']);

@@ -33,6 +33,11 @@ export class AuthPage {
         await this.auth.signUp(this.username.trim());
       } else {
         await this.auth.signIn(this.username.trim());
+        if (this.auth.role === 'admin') {
+          await this.auth.signOut();
+          this.error.set('Bitte melde dich im Admin-Bereich an.');
+          return;
+        }
       }
       await this.router.navigate(['/factory']);
     } catch (e: any) {
