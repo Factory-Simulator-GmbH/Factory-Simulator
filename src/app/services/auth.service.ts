@@ -31,19 +31,19 @@ export class AuthService {
     return this.sessionReady;
   }
 
-  async signUp(username: string): Promise<void> {
+  async signUp(username: string, password: string = DEFAULT_PASSWORD, role: string = 'user'): Promise<void> {
     const {error} = await this.supabase.client.auth.signUp({
       email: `${username}@${DOMAIN}`,
-      password: DEFAULT_PASSWORD,
-      options: {data: {username, role: 'user'}},
+      password: password,
+      options: {data: {username, role: role}},
     });
     if (error) throw error;
   }
 
-  async signIn(username: string): Promise<void> {
+  async signIn(username: string, password: string = DEFAULT_PASSWORD): Promise<void> {
     const {error} = await this.supabase.client.auth.signInWithPassword({
       email: `${username}@${DOMAIN}`,
-      password: DEFAULT_PASSWORD,
+      password: password,
     });
     if (error) throw error;
   }
