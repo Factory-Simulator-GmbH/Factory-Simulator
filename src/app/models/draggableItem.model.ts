@@ -21,4 +21,5 @@ export interface DraggableItems {
   output?: string;
   inputcount?: Record<string, number>;
   outputcount: boolean;
+  duration?: number | null;
 }
