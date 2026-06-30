@@ -273,8 +273,6 @@ export class ResourceExchangeService {
           if (machineItem.type !== 'warehouse') {
             const outputCreatable = !machineBusy && (!machineItem.outputcount && JSON.stringify(machineItem.input) == JSON.stringify(machineItem.inputcount));
             if (outputCreatable) {
-              machineItem.outputcount = true;
-              for (const k in machineItem.inputcount) machineItem.inputcount[k] = 0;
               changedItems.add(machineItem.id);
               this.startOutputTimer(machineItem);
             }
@@ -349,6 +347,7 @@ export class ResourceExchangeService {
         // 5. Output → Conveyor
         for (const output of items) {
             if (output.type !== 'output' || !output.resource) continue;
+            if (outputsFilledThisTick.has(output.id)) continue;
             const state = itemStates[output.id];
             if (!state || state.isAtStartPosition) continue;
             const adjacentConveyor = this.checkFreeAdjacentConveyor(state.col, state.row, conveyorGrid);
