@@ -359,9 +359,7 @@ export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
     } else {
       if (event) this.savePopoverAnchor = this.anchorBelow(event);
       this.showSavePopover = !this.showSavePopover;
-      if (this.showSavePopover) {
-        this.savePopoverName = this.activeLayoutName;
-      }
+      this.savePopoverName = '';
     }
   }
 
