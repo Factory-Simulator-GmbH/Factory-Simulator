@@ -39,7 +39,7 @@
                 </span>
                 @if (conveyorGrid[rowIndex][colIndex].resource) {
                   <span class="pointer-events-none absolute bottom-0 right-0 text-xs leading-none">
-                    {{ resourceEmoji[conveyorGrid[rowIndex][colIndex].resource!] }}
+                    {{ gameDataService.resourceEmoji[conveyorGrid[rowIndex][colIndex].resource!] }}
                   </span>
                 }
               }

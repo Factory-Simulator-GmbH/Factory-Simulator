@@ -82,14 +82,6 @@ export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
   private resetHoldTimer: ReturnType<typeof setTimeout> | null = null;
   private shareHoldTimer: ReturnType<typeof setTimeout> | null = null;
 
-  private readonly resourceEmoji: Record<string, string> = { metall: '🔩', kupfer: '🟤', plastik: '🧴', kabel: '🔌', gehäuse: '🏠', leiterplatte: '🟩', elektronik: '📱' };
-
-  autoSaveEnabled = signal(false);
-  showHammerMenu = false;
-  showAutoSavePopup = signal(false);
-  private autoSavePopupShown = false;
-  private autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
-
   // Globaler 1-Sekunden-Tick, der die komplette Ressourcen-Weitergabe abarbeitet.
   private tickSub?: Subscription;
 
@@ -139,7 +131,7 @@ export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
         this.markInputAcceptance(inputId, accepted);
       }
       for (const item of this.itemManager.clonedItems) {
-        if (item.type !== 'machine') continue;
+        if (item.type !== 'machine' && item.type !== 'warehouse') continue;
         const state = this.itemManager.itemStates[item.id];
         if (!state || state.isAtStartPosition) continue;
         this.updateMachineStatus(item);
@@ -514,7 +506,7 @@ export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
       }
       for (const { inputId, accepted } of inputs) this.markInputAcceptance(inputId, accepted);
       for (const item of this.itemManager.clonedItems) {
-        if (item.type !== 'machine') continue;
+        if (item.type !== 'machine' && item.type !== 'warehouse') continue;
         const state = this.itemManager.itemStates[item.id];
         if (!state || state.isAtStartPosition) continue;
         this.updateMachineStatus(item);
@@ -872,7 +864,7 @@ export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
       badge.className = 'resource-badge absolute bottom-1 right-1 text-base leading-none pointer-events-none';
       el.appendChild(badge);
     }
-    badge.textContent = resource ? (this.resourceEmoji[resource] ?? resource) : '';
+    badge.textContent = resource ? (this.gameDataService.resourceEmoji[resource] ?? resource) : '';
   }
 
   // Zeigt auf einer Maschine je Input-Ressource "Emoji aktuell/Soll" an und,
@@ -890,12 +882,16 @@ export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
     if (machine.input) {
       for (const res of Object.keys(machine.input)) {
         const have = machine.inputcount?.[res] ?? 0;
-        const need = machine.input[res];
-        lines.push(`${this.resourceEmoji[res] ?? res} ${have}/${need}`);
+        if (machine.type === 'warehouse') {
+          lines.push(`${this.gameDataService.resourceEmoji[res] ?? res} ${have}`)
+        } else {
+          const need = machine.input[res];
+          lines.push(`${this.gameDataService.resourceEmoji[res] ?? res} ${have}/${need}`);
+        }
       }
     }
     if (machine.outputcount && machine.output) {
-      lines.push(`➡️ ${this.resourceEmoji[machine.output] ?? machine.output}`);
+      lines.push(`➡️ ${this.gameDataService.resourceEmoji[machine.output] ?? machine.output}`);
     }
     panel.textContent = lines.join('\n');
     panel.style.whiteSpace = 'pre';
