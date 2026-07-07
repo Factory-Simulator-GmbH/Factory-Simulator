@@ -109,9 +109,6 @@ export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
   ngOnInit(): void {
     this.updateGridCellSize();
     this.calculateColumnsAndCreateGrid();
-    const stored = localStorage.getItem(`autosave_${this.auth.currentUser()?.id}`);
-    this.autoSaveEnabled.set(stored === 'true');
-
 
     this.items = this.route.snapshot.data['items'];
     this.itemsReady$.next();
@@ -142,31 +139,6 @@ export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.tickSub?.unsubscribe();
-    if (this.autoSaveTimer) clearTimeout(this.autoSaveTimer);
-  }
-
-  toggleAutoSave(enable?: boolean): void {
-    const next = enable !== undefined ? enable : !this.autoSaveEnabled();
-    this.autoSaveEnabled.set(next);
-    localStorage.setItem(`autosave_${this.auth.currentUser()?.id}`, String(next));
-    if (next) this.scheduleAutoSave();
-  }
-
-  dismissAutoSavePopup(enable: boolean): void {
-    this.showAutoSavePopup.set(false);
-    this.autoSavePopupShown = true;
-    if (enable) this.toggleAutoSave(true);
-  }
-
-  private scheduleAutoSave(): void {
-    if (!this.autoSaveEnabled() || !this.activeLayoutId || !this.isDirty) return;
-    if (this.autoSaveTimer) clearTimeout(this.autoSaveTimer);
-    this.autoSaveTimer = setTimeout(() => {
-      this.autoSaveTimer = null;
-      if (this.autoSaveEnabled() && this.activeLayoutId && this.isDirty) {
-        this.performSaveOverwrite();
-      }
-    }, 3000);
   }
 
   // Markiert einen Input grün (Maschine akzeptiert die Ressource) bzw. rot (lehnt ab).
@@ -343,7 +315,6 @@ export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
       this.isDirty = true;
       this.cdr.detectChanges();
     }
-    this.scheduleAutoSave();
   }
 
   // ── Toolbar: save button ─────────────────────────────────────────────────
@@ -388,10 +359,6 @@ export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
         this.isDirty = false;
         this.showSavePopover = false;
         this.savePopoverName = '';
-        if (!this.autoSaveEnabled() && !this.autoSavePopupShown) {
-          this.autoSavePopupShown = true;
-          this.showAutoSavePopup.set(true);
-        }
         this.cdr.detectChanges();
       });
     } catch {
@@ -412,10 +379,6 @@ export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
       await this.factoryLayoutService.overwriteLayout(this.activeLayoutId, this.buildLayoutSnapshot());
       this.ngZone.run(() => {
         this.isDirty = false;
-        if (!this.autoSaveEnabled() && !this.autoSavePopupShown) {
-          this.autoSavePopupShown = true;
-          this.showAutoSavePopup.set(true);
-        }
         this.cdr.detectChanges();
       });
     } catch {

@@ -125,37 +125,6 @@
                 </span>
               </button>
 
-              <!-- Hammer menu -->
-              <div class="relative">
-                <button
-                  (click)="showHammerMenu = !showHammerMenu; $event.stopPropagation()"
-                  title="Autosave aktivieren"
-                  class="flex items-center justify-center w-8 h-8 transition-opacity cursor-pointer text-white/60 hover:text-white">
-                  <span class="material-icons text-lg leading-none">hardware</span>
-                </button>
-
-                @if (showHammerMenu) {
-                  <div class="fixed inset-0 z-[70]" (click)="showHammerMenu = false"></div>
-                  <div class="absolute top-full mt-2 right-0 z-[80] w-56
-                              bg-slate-900 border border-white/10 rounded-xl shadow-xl p-1"
-                       (click)="$event.stopPropagation()">
-                    <button
-                      (click)="toggleAutoSave()"
-                      class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-white/5 transition-colors cursor-pointer">
-                      <div class="flex items-center gap-2.5">
-                        <span class="material-icons text-base text-white/60">sync</span>
-                        <span class="text-sm text-white">Autosave</span>
-                      </div>
-                      <span class="relative inline-flex w-9 h-5 rounded-full transition-colors duration-200 shrink-0"
-                            [class]="autoSaveEnabled() ? 'bg-blue-400' : 'bg-white/20'">
-                        <span class="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform duration-200"
-                              [class.translate-x-4]="autoSaveEnabled()"></span>
-                      </span>
-                    </button>
-                  </div>
-                }
-              </div>
-
               <!-- Save button -->
               <button
                 (click)="onSaveButtonClick($event); $event.stopPropagation()"
@@ -282,33 +251,6 @@
 
 
 </div><!-- Ende Hauptcontainer -->
-
-<!-- Autosave popup -->
-@if (showAutoSavePopup()) {
-  <div class="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm">
-    <div class="bg-slate-900 border border-white/10 rounded-2xl shadow-2xl p-6 w-80 flex flex-col gap-4">
-      <div class="flex items-center gap-3">
-        <span class="material-icons text-2xl text-blue-400">sync</span>
-        <h2 class="text-white font-semibold text-base">Autosave aktivieren?</h2>
-      </div>
-      <p class="text-sm text-white/60 leading-relaxed">
-        Soll dein Spielstand ab jetzt automatisch gespeichert werden? Du kannst das jederzeit unter dem <span class="material-icons text-sm align-middle">hardware</span> Icon ändern.
-      </p>
-      <div class="flex gap-2">
-        <button
-          (click)="dismissAutoSavePopup(false)"
-          class="flex-1 py-2 rounded-lg text-sm text-white/50 hover:text-white hover:bg-white/5 transition-colors cursor-pointer border border-white/10">
-          Nein danke
-        </button>
-        <button
-          (click)="dismissAutoSavePopup(true)"
-          class="flex-1 py-2 rounded-lg text-sm text-white bg-blue-500 hover:bg-blue-400 transition-colors cursor-pointer">
-          Ja, aktivieren
-        </button>
-      </div>
-    </div>
-  </div>
-}
 
 @if (menu.showShortcutsModal) {
   <div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm"
