@@ -1,0 +1,25 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dev
+    container_name: factory-simulator
+    ports:
+      - "4200:4200"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      CHOKIDAR_USEPOLLING: "true"
+    restart: unless-stopped
+
+  app-prod:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: prod
+    container_name: factory-simulator-prod
+    ports:
+      - "8080:80"
+    restart: unless-stopped
