@@ -55,6 +55,9 @@ export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
   showSavePopover = false;
   savePopoverName = '';
   layoutSaving = false;
+  // Speicherfehler werden ausserhalb des Layouts-Dropdowns angezeigt, weil beim
+  // Speichern über die Toolbar das Dropdown geschlossen ist.
+  saveError = '';
 
   // Popover anchor positions (set dynamically from button click position)
   savePopoverAnchor = { top: 0, right: 0 };
@@ -346,10 +349,23 @@ export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
     this.menu.toggleMenu();
   }
 
+  private reportSaveError(e: unknown): void {
+    this.ngZone.run(() => {
+      this.saveError = e instanceof Error ? e.message : 'Speichern fehlgeschlagen.';
+      this.cdr.detectChanges();
+    });
+  }
+
+  dismissSaveError(): void {
+    this.saveError = '';
+    this.cdr.detectChanges();
+  }
+
   async confirmSaveNew(): Promise<void> {
     const name = this.savePopoverName.trim();
     if (!name) return;
     this.layoutSaving = true;
+    this.saveError = '';
     this.cdr.detectChanges();
     try {
       const saved = await this.factoryLayoutService.saveLayout(name, this.buildLayoutSnapshot());
@@ -361,8 +377,8 @@ export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
         this.savePopoverName = '';
         this.cdr.detectChanges();
       });
-    } catch {
-      // silent – user can retry
+    } catch (e) {
+      this.reportSaveError(e);
     } finally {
       this.ngZone.run(() => {
         this.layoutSaving = false;
@@ -374,6 +390,7 @@ export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
   private async performSaveOverwrite(): Promise<void> {
     if (!this.activeLayoutId) return;
     this.layoutSaving = true;
+    this.saveError = '';
     this.cdr.detectChanges();
     try {
       await this.factoryLayoutService.overwriteLayout(this.activeLayoutId, this.buildLayoutSnapshot());
@@ -381,8 +398,8 @@ export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
         this.isDirty = false;
         this.cdr.detectChanges();
       });
-    } catch {
-      // silent
+    } catch (e) {
+      this.reportSaveError(e);
     } finally {
       this.ngZone.run(() => {
         this.layoutSaving = false;
@@ -489,8 +506,10 @@ export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
         this.factoryLayoutService.listPublicLayouts(),
       ]);
       this.ngZone.run(() => {
+        // listLayouts() liefert ausschliesslich eigene, listPublicLayouts() ausschliesslich
+        // fremde Layouts – die Listen überschneiden sich nicht mehr.
         this.savedLayouts = list;
-        this.publicLayouts = publicList.filter(p => !list.some(l => l.id === p.id));
+        this.publicLayouts = publicList;
       });
     } catch {
       this.ngZone.run(() => { this.layoutError = 'Spielstände konnten nicht geladen werden.'; });
@@ -522,7 +541,11 @@ export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
     if (this.activeLayoutId) {
       try {
         await this.factoryLayoutService.overwriteLayout(this.activeLayoutId, this.buildLayoutSnapshot());
-      } catch { /* fall through */ }
+      } catch (e) {
+        // Wechsel abbrechen: sonst wären die ungespeicherten Änderungen weg.
+        this.reportSaveError(e);
+        return;
+      }
     }
     await this.doLoadLayout(target);
   }
@@ -634,8 +657,8 @@ export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
       await this.factoryLayoutService.publishLayout(layout.id, next);
       layout.is_public = next;
       await this.refreshLayouts();
-    } catch {
-      this.layoutError = 'Teilen fehlgeschlagen.';
+    } catch (e) {
+      this.layoutError = e instanceof Error ? e.message : 'Teilen fehlgeschlagen.';
       this.cdr.detectChanges();
     }
   }
@@ -678,8 +701,8 @@ export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
         this.isDirty = false;
       }
       await this.refreshLayouts();
-    } catch {
-      this.layoutError = 'Löschen fehlgeschlagen.';
+    } catch (e) {
+      this.layoutError = e instanceof Error ? e.message : 'Löschen fehlgeschlagen.';
       this.cdr.detectChanges();
     }
   }
@@ -688,7 +711,11 @@ export class FactoryPage implements AfterViewInit, OnInit, OnDestroy {
     if (this.activeLayoutId && this.isDirty) {
       try {
         await this.factoryLayoutService.overwriteLayout(this.activeLayoutId, this.buildLayoutSnapshot());
-      } catch { /* silent */ }
+      } catch (e) {
+        // Nicht zurücksetzen, solange der aktuelle Stand nicht gesichert ist.
+        this.reportSaveError(e);
+        return;
+      }
     }
     this.dragDrop.clearAllItems(this.items);
     for (const row of this.conveyorGrid) {
