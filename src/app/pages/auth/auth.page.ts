@@ -1,7 +1,7 @@
 import {Component, signal} from '@angular/core';
 import {FormsModule} from '@angular/forms';
 import {ActivatedRoute, Router, RouterLink} from '@angular/router';
-import {AuthService} from '../../services/auth.service';
+import {AuthService, INVALID_USERNAME, USERNAME_HINT} from '../../services/auth.service';
 
 @Component({
   selector: 'app-auth-page',
@@ -49,6 +49,9 @@ export class AuthPage {
   }
 
   private mapError(msg: string): string {
+    if (msg === INVALID_USERNAME) return USERNAME_HINT;
+    // Falls doch eine unsaubere Adresse durchrutscht, meldet Supabase das so.
+    if (msg?.includes('Unable to validate email address')) return USERNAME_HINT;
     if (msg?.includes('already registered')) return 'Dieser Name ist bereits vergeben.';
     if (msg?.includes('Invalid login')) return 'Name nicht gefunden.';
     return 'Etwas ist schiefgelaufen. Bitte versuche es erneut.';

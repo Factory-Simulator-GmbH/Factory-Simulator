@@ -2,7 +2,7 @@ import {AfterViewInit, Component, ElementRef, signal, ViewChild} from '@angular/
 import {FormsModule} from '@angular/forms';
 import {ActivatedRoute, Router, RouterLink} from '@angular/router';
 import {environment} from '../../../environments/environment';
-import {AuthService} from '../../services/auth.service';
+import {AuthService, INVALID_USERNAME, USERNAME_HINT} from '../../services/auth.service';
 import {NgClass, NgOptimizedImage} from '@angular/common';
 
 @Component({
@@ -161,6 +161,8 @@ export class AdminAuthPage implements AfterViewInit {
   }
 
   private mapError(msg: string): string {
+    if (msg === INVALID_USERNAME) return USERNAME_HINT;
+    if (msg?.includes('Unable to validate email address')) return USERNAME_HINT;
     if (msg?.includes('already registered')) return 'Dieser Name ist bereits vergeben.';
     if (msg?.includes('Invalid login')) return 'Name oder Passwort falsch.';
     if (msg?.includes('Password should')) return 'Passwort muss mindestens 6 Zeichen haben.';
