@@ -46,3 +46,5 @@ Thumbs.db
 # Supabase
 supabase/.branches
 supabase/.temp
+# Die Migrate-Skripte legen bei jedem Lauf einen neuen Dump an
+supabase/backups/
