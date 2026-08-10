@@ -60,7 +60,8 @@
             placeholder="Dein Name"
             class="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-white/40 transition-colors"
           />
-          @if (mode() === 'signup') {
+          <!-- Weicht der Fehlermeldung: die erklärt die Regel bereits. -->
+          @if (mode() === 'signup' && !error()) {
             <p class="text-xs text-slate-500">Buchstaben, Zahlen und . _ - – keine Leerzeichen oder Umlaute.</p>
           }
         </div>
