@@ -48,11 +48,12 @@ export class AdminAuthPage implements AfterViewInit {
   }
 
   @ViewChild('pinField') pinField?: ElementRef<HTMLInputElement>;
+  @ViewChild('usernameField') usernameField?: ElementRef<HTMLInputElement>;
 
   constructor(
     private auth: AuthService,
     private router: Router,
-    route: ActivatedRoute,
+    private route: ActivatedRoute,
   ) {
     route.queryParams.subscribe(params => {
       const isSignup = params['mode'] === 'signup';
@@ -77,41 +78,48 @@ export class AdminAuthPage implements AfterViewInit {
     setTimeout(() => this.pinField?.nativeElement.focus(), 50);
   }
 
-  onPinKey(event: KeyboardEvent): void {
+  // Liest den Feldwert statt einzelne Tastendrücke: damit funktionieren Backspace,
+  // Einfügen und Handy-Tastaturen (die liefern bei keydown oft nur "Unidentified").
+  onPinInput(event: Event): void {
     if (this.pinVerified()) return;
 
-    if (event.key === 'Backspace') {
-      this.pinInput.set(this.pinInput().slice(0, -1));
+    const field = event.target as HTMLInputElement;
+    const digits = field.value.replace(/\D/g, '').slice(0, this.PIN_LENGTH);
+    field.value = digits;
+    this.pinInput.set(digits);
+
+    if (digits.length < this.PIN_LENGTH) return;
+
+    if (digits === environment.adminMasterPin) {
+      this.pinVerified.set(true);
+      setTimeout(() => this.pinModalOpen.set(false), 500);
       return;
     }
-    if (!/^\d$/.test(event.key)) return;
-    if (this.pinInput().length >= this.PIN_LENGTH) return;
 
-    const next = this.pinInput() + event.key;
-    this.pinInput.set(next);
-
-    if (next.length === this.PIN_LENGTH) {
-      if (next === environment.adminMasterPin) {
-        this.pinVerified.set(true);
-        setTimeout(() => {
-          this.pinModalOpen.set(false);
-        }, 500);
-      } else {
-        this.pinShake.set(true);
-        setTimeout(() => {
-          this.pinInput.set('');
-          this.pinShake.set(false);
-          this.pinField?.nativeElement.focus();
-        }, 600);
+    this.pinShake.set(true);
+    setTimeout(() => {
+      this.pinInput.set('');
+      this.pinShake.set(false);
+      if (this.pinField) {
+        this.pinField.nativeElement.value = '';
+        this.pinField.nativeElement.focus();
       }
-    }
+    }, 600);
   }
 
-  closePinModal(): void {
+  // Bricht die PIN-Eingabe ab. Hier bewusst NICHT wegnavigieren: der Backdrop liegt
+  // über dem ganzen Formular, ein Klick ins Passwortfeld landete sonst auf /auth –
+  // und dort gibt es gar kein Passwortfeld.
+  cancelPinModal(): void {
     this.pinModalOpen.set(false);
-    if (!this.pinVerified()) {
-      this.router.navigate(['/auth']);
-    }
+    this.pinInput.set('');
+    this.pinShake.set(false);
+    this.mode.set('login');
+    // ?mode=signup aus der URL nehmen, sonst öffnet ein Reload das Modal erneut.
+    this.router.navigate([], {relativeTo: this.route, queryParams: {}, replaceUrl: true});
+    // Der Klick, der das Modal geschlossen hat, traf den Backdrop – ohne das hier
+    // hätte anschliessend kein Feld den Fokus und das Tippen liefe ins Leere.
+    setTimeout(() => this.usernameField?.nativeElement.focus(), 0);
   }
 
   async submit(): Promise<void> {
